@@ -1,6 +1,6 @@
 package com.stellarcolonizer.model.galaxy.enums;
 
-enum PlanetTrait {
+public enum PlanetTrait {
     STANDARD("标准", 1.0f, 1.0f, 0.2f),
     MINERAL_RICH("富矿", 0.9f, 1.5f, 0.1f),
     ENERGY_RICH("富能", 0.9f, 1.5f, 0.1f),

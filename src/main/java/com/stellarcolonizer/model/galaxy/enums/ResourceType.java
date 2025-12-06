@@ -2,10 +2,11 @@ package com.stellarcolonizer.model.galaxy.enums;
 
 
 // 资源类型枚举
-enum ResourceType {
+public enum ResourceType {
     // 基础资源
     METAL("金属", "#888888"),
     ENERGY("能量", "#ffff00"),
+    FUEL("燃料", "#ff8800"),
     FOOD("食物", "#00ff00"),
     SCIENCE("科研", "#00ffff"),
 

@@ -1,6 +1,6 @@
 package com.stellarcolonizer.model.galaxy.enums;
 
-enum HexType {
+public enum HexType {
     EMPTY("空域", "transparent"),
     NEBULA("星云", "#9966cc"),
     ASTEROID_FIELD("小行星带", "#888888"),

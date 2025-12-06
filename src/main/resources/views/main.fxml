@@ -1,14 +1,96 @@
+<!-- main.fxml - 主界面布局 -->
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import com.stellarcolonizer.view.components.HexMapView?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="CONTROLLER_NAME"
-            prefHeight="400.0" prefWidth="600.0">
+<BorderPane fx:id="mainPane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.stellarcolonizer.view.controllers.MainController">
 
-</AnchorPane>
+    <!-- 顶部菜单栏 -->
+    <top>
+        <MenuBar>
+            <Menu text="游戏">
+                <MenuItem text="新游戏" />
+                <MenuItem text="保存游戏" />
+                <MenuItem text="加载游戏" />
+                <SeparatorMenuItem />
+                <MenuItem text="设置" />
+                <SeparatorMenuItem />
+                <MenuItem text="退出" />
+            </Menu>
+            <Menu text="视图">
+                <MenuItem text="缩放 +" />
+                <MenuItem text="缩放 -" />
+                <MenuItem text="重置视图" />
+                <SeparatorMenuItem />
+                <CheckMenuItem text="显示网格" />
+                <CheckMenuItem text="显示资源" />
+                <CheckMenuItem text="显示领土" />
+            </Menu>
+            <Menu text="帮助">
+                <MenuItem text="教程" />
+                <MenuItem text="关于" />
+            </Menu>
+        </MenuBar>
+    </top>
+
+    <!-- 中心地图区域 -->
+    <center>
+        <HexMapView fx:id="hexMapView" />
+    </center>
+
+    <!-- 右侧边栏 -->
+    <right>
+        <VBox fx:id="sidebar" spacing="10" prefWidth="300" style="-fx-background-color: #2b2b2b; -fx-padding: 10;">
+
+            <!-- 资源显示 -->
+            <VBox spacing="5">
+                <Label text="资源" style="-fx-font-size: 16; -fx-text-fill: white; -fx-font-weight: bold;" />
+                <HBox spacing="10">
+                    <Label fx:id="turnLabel" text="回合: 1" style="-fx-text-fill: white;" />
+                    <Button fx:id="nextTurnButton" text="下一回合" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" />
+                </HBox>
+                <Label fx:id="energyLabel" text="能量: 0" style="-fx-text-fill: yellow;" />
+                <Label fx:id="metalLabel" text="金属: 0" style="-fx-text-fill: #888888;" />
+                <Label fx:id="foodLabel" text="食物: 0" style="-fx-text-fill: #00ff00;" />
+                <Label fx:id="scienceLabel" text="科研: 0" style="-fx-text-fill: cyan;" />
+            </VBox>
+
+            <Separator />
+
+            <!-- 快速操作按钮 -->
+            <VBox spacing="5">
+                <Label text="操作" style="-fx-font-size: 16; -fx-text-fill: white; -fx-font-weight: bold;" />
+                <Button text="舰队" onAction="#showFleetManager" style="-fx-background-color: #2196F3; -fx-text-fill: white;" />
+                <Button text="科技" onAction="#showTechTree" style="-fx-background-color: #9C27B0; -fx-text-fill: white;" />
+                <Button text="外交" onAction="#showDiplomacy" style="-fx-background-color: #FF9800; -fx-text-fill: white;" />
+                <Button text="建造" onAction="#showBuildMenu" style="-fx-background-color: #009688; -fx-text-fill: white;" />
+                <Button text="殖民地" onAction="#showColonyManager" style="-fx-background-color: #E91E63; -fx-text-fill: white;" />
+            </VBox>
+
+            <Separator />
+
+            <!-- 事件日志 -->
+            <VBox spacing="5" VBox.vgrow="ALWAYS">
+                <Label text="事件日志" style="-fx-font-size: 16; -fx-text-fill: white; -fx-font-weight: bold;" />
+                <TextArea fx:id="eventLog" editable="false" wrapText="true"
+                          style="-fx-control-inner-background: #1e1e1e; -fx-text-fill: white;"
+                          prefHeight="200" />
+            </VBox>
+
+        </VBox>
+    </right>
+
+    <!-- 底部状态栏 -->
+    <bottom>
+        <HBox style="-fx-background-color: #333333; -fx-padding: 5;" spacing="10">
+            <Label text="就绪" style="-fx-text-fill: white;" />
+            <Separator orientation="VERTICAL" />
+            <Label text="F1 帮助" style="-fx-text-fill: #888888;" />
+            <Label text="ESC 取消" style="-fx-text-fill: #888888;" />
+            <Label text="空格 下一回合" style="-fx-text-fill: #888888;" />
+        </HBox>
+    </bottom>
+
+</BorderPane>

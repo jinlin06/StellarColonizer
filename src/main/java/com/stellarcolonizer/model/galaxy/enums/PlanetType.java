@@ -1,6 +1,6 @@
 package com.stellarcolonizer.model.galaxy.enums;
 
-enum PlanetType {
+public enum PlanetType {
     TERRA("类地行星", 0.8f, 1.0f, 0.5f, 0.1f, true, "TERRAFORMING_BASIC"),
     DESERT("沙漠行星", 0.4f, 0.8f, 0.3f, 0.15f, true, "DESERT_ADAPTATION"),
     ARID("干旱行星", 0.5f, 0.7f, 0.4f, 0.12f, true, "ARID_ADAPTATION"),

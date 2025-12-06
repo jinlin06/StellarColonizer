@@ -1,0 +1,151 @@
+/* main.css - 主样式 */
+.root {
+    -fx-font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    -fx-base: #2b2b2b;
+}
+
+/* 按钮样式 */
+.button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: white;
+    -fx-background-radius: 5;
+    -fx-padding: 8 15 8 15;
+}
+
+.button:hover {
+    -fx-background-color: #4c4c4c;
+}
+
+.button:pressed {
+    -fx-background-color: #2c2c2c;
+}
+
+/* 菜单栏 */
+.menu-bar {
+    -fx-background-color: #1e1e1e;
+}
+
+.menu {
+    -fx-text-fill: white;
+}
+
+.menu-item {
+    -fx-background-color: #2b2b2b;
+    -fx-text-fill: white;
+}
+
+.menu-item:hover {
+    -fx-background-color: #3c3c3c;
+}
+
+/* 滚动条 */
+.scroll-bar:vertical {
+    -fx-background-color: #2b2b2b;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #555555;
+    -fx-background-radius: 5;
+}
+
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #666666;
+}
+
+/* 文本区域 */
+.text-area {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: white;
+    -fx-highlight-fill: #0096c9;
+}
+
+.text-area .content {
+    -fx-background-color: #1e1e1e;
+}
+
+/* 标签 */
+.label {
+    -fx-text-fill: white;
+}
+
+/* 分隔符 */
+.separator .line {
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+}
+
+/* 对话框 */
+.dialog-pane {
+    -fx-background-color: #2b2b2b;
+}
+
+.dialog-pane .label {
+    -fx-text-fill: white;
+}
+
+.dialog-pane:header .header-panel {
+    -fx-background-color: #1e1e1e;
+}
+
+.dialog-pane:header .header-panel .label {
+    -fx-font-size: 16;
+    -fx-font-weight: bold;
+}
+
+/* 表格视图 */
+.table-view {
+    -fx-background-color: #2b2b2b;
+    -fx-text-fill: white;
+}
+
+.table-view .column-header {
+    -fx-background-color: #1e1e1e;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: white;
+}
+
+.table-row-cell {
+    -fx-background-color: #2b2b2b;
+    -fx-text-fill: white;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #333333;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #0096c9;
+}
+
+/* 树视图 */
+.tree-view {
+    -fx-background-color: #2b2b2b;
+}
+
+.tree-cell {
+    -fx-text-fill: white;
+}
+
+.tree-cell:selected {
+    -fx-background-color: #0096c9;
+}
+
+/* 选项卡 */
+.tab-pane {
+    -fx-background-color: #2b2b2b;
+}
+
+.tab {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: white;
+}
+
+.tab:selected {
+    -fx-background-color: #1e1e1e;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #2b2b2b;
+}

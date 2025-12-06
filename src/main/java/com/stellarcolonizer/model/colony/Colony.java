@@ -1,8 +1,12 @@
 package com.stellarcolonizer.model.colony;
 
+import com.stellarcolonizer.model.colony.enums.BuildingType;
+import com.stellarcolonizer.model.colony.enums.GrowthFocus;
+import com.stellarcolonizer.model.colony.enums.PopType;
 import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.faction.Faction;
-import com.stellarcolonizer.model.economy.ResourceType;
+import com.stellarcolonizer.model.galaxy.enums.ResourceType;
+import com.stellarcolonizer.model.galaxy.enums.PlanetTrait;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
 import javafx.beans.property.*;
 

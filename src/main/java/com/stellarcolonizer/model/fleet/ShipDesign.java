@@ -1,6 +1,7 @@
 package com.stellarcolonizer.model.fleet;
 
-import com.stellarcolonizer.model.economy.ResourceType;
+import com.stellarcolonizer.model.fleet.enums.ShipClass;
+import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
