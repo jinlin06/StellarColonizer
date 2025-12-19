@@ -5,6 +5,8 @@ import com.stellarcolonizer.model.galaxy.enums.HexType;
 import com.stellarcolonizer.model.galaxy.enums.PlanetType;
 import com.stellarcolonizer.model.galaxy.enums.StarType;
 
+import javafx.geometry.Point2D;
+
 import java.util.*;
 
 import static com.stellarcolonizer.model.galaxy.enums.HexType.EMPTY;

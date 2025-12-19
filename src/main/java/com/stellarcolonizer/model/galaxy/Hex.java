@@ -5,7 +5,6 @@ import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.galaxy.enums.HexType;
 
-import javax.swing.text.html.parser.Entity;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -90,7 +89,7 @@ public class Hex {
         }
     }
 
-    public List<Entity> getEntities() { return new ArrayList<>(entities); }
+    public List<Fleet> getEntities() { return new ArrayList<>(entities); }
 
     public float getVisibility() { return visibility; }
     public void setVisibility(float visibility) { this.visibility = visibility; }

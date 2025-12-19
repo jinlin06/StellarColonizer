@@ -1,8 +1,6 @@
 // StarSystem.java - 恒星系
 package com.stellarcolonizer.model.galaxy;
 
-import com.stellarcolonizer.model.faction.Faction;
-import com.stellarcolonizer.model.colony.Colony;
 import com.stellarcolonizer.model.galaxy.enums.StarType;
 import javafx.geometry.Point2D;
 

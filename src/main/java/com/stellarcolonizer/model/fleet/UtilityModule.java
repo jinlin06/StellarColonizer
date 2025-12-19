@@ -145,7 +145,7 @@ class UtilityModule extends ShipModule {
     @Override
     public int getCargoBonus() {
         if (utilityType.get() == UtilityType.CARGO_BAY) {
-            return (int) specialEffects.getOrDefault("cargo_capacity", 0f);
+            return specialEffects.getOrDefault("cargo_capacity", 0f).intValue();
         }
         return 0;
     }
