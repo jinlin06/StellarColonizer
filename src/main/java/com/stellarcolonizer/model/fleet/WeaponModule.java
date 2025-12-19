@@ -9,7 +9,6 @@ import javafx.beans.property.*;
 import java.util.HashMap;
 import java.util.Map;
 
-// 武器模块
 class WeaponModule extends ShipModule {
 
     private final ObjectProperty<WeaponType> weaponType;
@@ -55,45 +54,43 @@ class WeaponModule extends ShipModule {
     }
 
     private float calculateBaseRange(WeaponType type) {
-        switch (type) {
-            case LASER: return 1000;
-            case PLASMA: return 800;
-            case RAILGUN: return 1500;
-            case MISSILE: return 2000;
-            case KINETIC: return 600;
-            case ION: return 700;
-            case PARTICLE: return 900;
-            case TORPEDO: return 1200;
-            default: return 500;
-        }
+        return switch (type) {
+            case LASER -> 1000;
+            case PLASMA -> 800;
+            case RAILGUN -> 1500;
+            case MISSILE -> 2000;
+            case KINETIC -> 600;
+            case ION -> 700;
+            case PARTICLE -> 900;
+            case TORPEDO -> 1200;
+            default -> 500;
+        };
     }
 
     private float calculateBaseAccuracy(WeaponType type) {
-        switch (type) {
-            case LASER: return 95;
-            case PLASMA: return 85;
-            case RAILGUN: return 80;
-            case MISSILE: return 75;
-            case KINETIC: return 70;
-            case ION: return 90;
-            case PARTICLE: return 88;
-            case TORPEDO: return 65;
-            default: return 75;
-        }
+        return switch (type) {
+            case LASER -> 95;
+            case PLASMA -> 85;
+            case RAILGUN -> 80;
+            case MISSILE -> 75;
+            case KINETIC -> 70;
+            case ION -> 90;
+            case PARTICLE -> 88;
+            case TORPEDO -> 65;
+        };
     }
 
     private float calculateBasePenetration(WeaponType type) {
-        switch (type) {
-            case LASER: return 30;
-            case PLASMA: return 50;
-            case RAILGUN: return 80;
-            case MISSILE: return 60;
-            case KINETIC: return 40;
-            case ION: return 10; // 离子武器主要破坏电子系统
-            case PARTICLE: return 70;
-            case TORPEDO: return 90;
-            default: return 50;
-        }
+        return switch (type) {
+            case LASER -> 30;
+            case PLASMA -> 50;
+            case RAILGUN -> 80;
+            case MISSILE -> 60;
+            case KINETIC -> 40;
+            case ION -> 10; // 离子武器主要破坏电子系统
+            case PARTICLE -> 70;
+            case TORPEDO -> 90;
+        };
     }
 
     private void initializeWeaponCosts(WeaponType type) {

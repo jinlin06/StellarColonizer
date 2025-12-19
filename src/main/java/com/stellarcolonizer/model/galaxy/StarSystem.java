@@ -1,6 +1,11 @@
 // StarSystem.java - 恒星系
 package com.stellarcolonizer.model.galaxy;
 
+import com.stellarcolonizer.model.faction.Faction;
+import com.stellarcolonizer.model.colony.Colony;
+import com.stellarcolonizer.model.galaxy.enums.StarType;
+import javafx.geometry.Point2D;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +17,7 @@ public class StarSystem {
     private Point2D position; // 在六边形内的相对位置
     private float habitability; // 总体宜居度 0-1
 
-    public StarSystem(String name, StarType starType) {
+    public StarSystem(String name, com.stellarcolonizer.model.galaxy.enums.StarType starType) {
         this.name = name;
         this.starType = starType;
         this.planets = new ArrayList<>();
@@ -48,10 +53,10 @@ public class StarSystem {
                 .toList();
     }
 
-    public boolean hasColony(Faction faction) {
+    public boolean hasColony(com.stellarcolonizer.model.faction.Faction faction) {
         return planets.stream()
                 .anyMatch(p -> {
-                    Colony colony = p.getColony();
+                    com.stellarcolonizer.model.colony.Colony colony = p.getColony();
                     return colony != null && colony.getFaction().equals(faction);
                 });
     }
@@ -61,7 +66,7 @@ public class StarSystem {
     public void setName(String name) { this.name = name; }
 
     public StarType getStarType() { return starType; }
-    public void setStarType(StarType starType) { this.starType = starType; }
+    public void setStarType(com.stellarcolonizer.model.galaxy.enums.StarType starType) { this.starType = starType; }
 
     public List<Planet> getPlanets() { return new ArrayList<>(planets); }
 

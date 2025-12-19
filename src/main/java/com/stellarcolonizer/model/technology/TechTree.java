@@ -1,5 +1,6 @@
 package com.stellarcolonizer.model.technology;
 
+import com.stellarcolonizer.model.technology.enums.TechCategory;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

@@ -1,7 +1,9 @@
 // HexMapView.java - 六边形地图视图组件
 package com.stellarcolonizer.view.components;
 
+import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.galaxy.*;
+import com.stellarcolonizer.model.galaxy.enums.PlanetType;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.MouseEvent;

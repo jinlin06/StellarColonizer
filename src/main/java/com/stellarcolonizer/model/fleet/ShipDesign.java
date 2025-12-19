@@ -14,29 +14,29 @@ public class ShipDesign {
     private final ObjectProperty<ShipClass> shipClass;
     private final IntegerProperty version;
 
-    private final IntegerProperty hullSize;
-    private final IntegerProperty powerOutput;
-    private final IntegerProperty crewCapacity;
-    private final IntegerProperty cargoCapacity;
-    private final IntegerProperty fuelCapacity;
+    private IntegerProperty hullSize;
+    private IntegerProperty powerOutput;
+    private IntegerProperty crewCapacity;
+    private IntegerProperty cargoCapacity;
+    private IntegerProperty fuelCapacity;
 
-    private final FloatProperty hitPoints;
-    private final FloatProperty armor;
-    private final FloatProperty shieldStrength;
-    private final FloatProperty evasion;
+    private FloatProperty hitPoints;
+    private FloatProperty armor;
+    private FloatProperty shieldStrength;
+    private FloatProperty evasion;
 
-    private final FloatProperty enginePower;
-    private final FloatProperty warpSpeed;
-    private final FloatProperty maneuverability;
+    private FloatProperty enginePower;
+    private FloatProperty warpSpeed;
+    private FloatProperty maneuverability;
 
     private final ObservableList<ShipModule> modules;
 
     private final Map<ResourceType, Float> constructionCost;
     private final Map<ResourceType, Float> maintenanceCost;
 
-    private final IntegerProperty maxModules;
-    private final IntegerProperty maxWeapons;
-    private final IntegerProperty maxUtility;
+    private IntegerProperty maxModules;
+    private IntegerProperty maxWeapons;
+    private IntegerProperty maxUtility;
 
     private final BooleanProperty isValidDesign;
     private final StringProperty validationMessage;
@@ -65,7 +65,7 @@ public class ShipDesign {
     private void initializeBaseStats(ShipClass shipClass) {
         switch (shipClass) {
             case CORVETTE:
-                hullSize = new SimpleIntegerProperty(1000);
+                hullSize =  new  SimpleIntegerProperty(1000);
                 powerOutput = new SimpleIntegerProperty(500);
                 crewCapacity = new SimpleIntegerProperty(50);
                 cargoCapacity = new SimpleIntegerProperty(100);

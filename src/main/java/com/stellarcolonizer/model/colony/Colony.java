@@ -530,6 +530,10 @@ public class Colony {
         return baseEfficiency;
     }
 
+    public float getResourceProduction(ResourceType resource) {
+        return getNetProduction().getOrDefault(resource, 0f);
+    }
+
     public String getStatusSummary() {
         StringBuilder summary = new StringBuilder();
         summary.append("殖民地: ").append(name.get()).append("\n");

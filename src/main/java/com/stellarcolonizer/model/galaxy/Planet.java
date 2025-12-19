@@ -93,7 +93,7 @@ public class Planet {
 
         // 殖民地加成
         if (colony != null) {
-            base += colony.getResourceProduction(resource);
+            // base += colony.getResourceProduction(resource); // TODO: 实现Colony的getResourceProduction方法
         }
 
         // 特性加成

@@ -1,7 +1,7 @@
 package com.stellarcolonizer.model.faction;
 
 // 玩家派系类
-class PlayerFaction extends Faction {
+public class PlayerFaction extends Faction {
 
     public PlayerFaction(String name) {
         super(name, false);

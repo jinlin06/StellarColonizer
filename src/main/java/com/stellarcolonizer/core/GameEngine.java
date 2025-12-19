@@ -1,12 +1,13 @@
 package com.stellarcolonizer.core;
 
+import com.stellarcolonizer.model.colony.Colony;
 import com.stellarcolonizer.model.galaxy.*;
-import com.stellarcolonizer.model.economy.ResourceSystem;
+import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.faction.PlayerFaction;
-import com.stellarcolonizer.service.event.EventBus;
-import com.stellarcolonizer.service.event.GameEvent;
-import com.stellarcolonizer.service.event.GameEventListener;
+import com.stellarcolonizer.model.service.event.EventBus;
+import com.stellarcolonizer.model.service.event.GameEvent;
+import com.stellarcolonizer.model.service.event.GameEventListener;
 import com.stellarcolonizer.util.io.SaveManager;
 import javafx.animation.AnimationTimer;
 
@@ -18,7 +19,7 @@ public class GameEngine {
 
     private GameState gameState;
     private Galaxy galaxy;
-    private ResourceSystem resourceSystem;
+    private ResourceStockpile resourceStockpile;
     private List<Faction> factions;
     private PlayerFaction playerFaction;
 
@@ -48,7 +49,7 @@ public class GameEngine {
         this.galaxy = generator.generateGalaxy(100);
 
         // 初始化资源系统
-        this.resourceSystem = new ResourceSystem();
+        this.resourceStockpile = new ResourceStockpile();
 
         // 创建玩家派系
         this.playerFaction = new PlayerFaction("人类联邦");
@@ -80,7 +81,7 @@ public class GameEngine {
         for (int i = 0; i < aiNames.length; i++) {
             Faction aiFaction = new Faction(aiNames[i], true);
             aiFaction.setColor(colors[i]);
-            aiFaction.setAIController(new AIController(aiFaction));
+            aiFaction.setAIController(new com.stellarcolonizer.model.service.ai.AIController(aiFaction));
             factions.add(aiFaction);
         }
     }
@@ -95,12 +96,11 @@ public class GameEngine {
                 homeworld.setColony(colony);
 
                 // 给予初始资源
-                faction.getResourceStockpile().addResource("ENERGY", 1000);
-                faction.getResourceStockpile().addResource("METAL", 500);
-                faction.getResourceStockpile().addResource("FOOD", 300);
+                faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
+                faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
+                faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
 
-                eventBus.publish(new GameEvent("COLONY_ESTABLISHED",
-                        faction.getName() + " 在 " + homeworld.getName() + " 建立了殖民地"));
+                eventBus.publish(new GameEvent("COLONY_ESTABLISHED", faction.getName() + " 在 " + homeworld.getName() + " 建立了殖民地"));
             }
         }
     }
@@ -108,7 +108,7 @@ public class GameEngine {
     private Planet findSuitableHomeworld(Faction faction) {
         for (StarSystem system : galaxy.getStarSystems()) {
             for (Planet planet : system.getPlanets()) {
-                if (planet.getType() == PlanetType.TERRA && planet.getColony() == null) {
+                if (planet.getType() == com.stellarcolonizer.model.galaxy.enums.PlanetType.TERRA && planet.getColony() == null) {
                     return planet;
                 }
             }
@@ -136,7 +136,7 @@ public class GameEngine {
         gameState.update(deltaTime);
 
         for (Faction faction : factions) {
-            faction.update(deltaTime);
+            // faction.update(deltaTime); // TODO: 实现Faction的update方法
 
             if (faction.isAI() && faction.getAIController() != null) {
                 faction.getAIController().makeDecision(gameState);
@@ -169,7 +169,7 @@ public class GameEngine {
     // Getter方法
     public GameState getGameState() { return gameState; }
     public Galaxy getGalaxy() { return galaxy; }
-    public ResourceSystem getResourceSystem() { return resourceSystem; }
+    public ResourceStockpile getResourceSystem() { return resourceStockpile; }
     public List<Faction> getFactions() { return factions; }
     public PlayerFaction getPlayerFaction() { return playerFaction; }
     public EventBus getEventBus() { return eventBus; }

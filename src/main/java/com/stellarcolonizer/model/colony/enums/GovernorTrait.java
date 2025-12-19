@@ -4,7 +4,7 @@ import com.stellarcolonizer.model.colony.Colony;
 import javafx.scene.paint.Color;
 
 // 管理者特质枚举
-enum GovernorTrait {
+public enum GovernorTrait {
     ORGANIZER("组织者", "+20行政，+10后勤",
             "提高殖民地管理效率", Color.BLUE) {
         @Override

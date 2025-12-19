@@ -49,10 +49,13 @@ public class MainController {
 
     private void setupEventListeners() {
         // 游戏事件监听
-        gameEngine.addEventListener(event -> {
-            javafx.application.Platform.runLater(() -> {
-                addEventToLog(event.getMessage());
-            });
+        gameEngine.addEventListener(new GameEventListener() {
+            @Override
+            public void onEvent(GameEvent event) {
+                javafx.application.Platform.runLater(() -> {
+                    addEventToLog(event.getMessage());
+                });
+            }
         });
 
         // 下一回合按钮

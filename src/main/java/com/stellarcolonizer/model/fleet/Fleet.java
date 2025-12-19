@@ -446,7 +446,7 @@ public class Fleet {
                 return ships.size() * 1000;
             case FUEL:
                 return ships.stream()
-                        .mapToFloat(s -> s.getDesign().getFuelCapacity())
+                        .mapToLong(s -> s.getDesign().getFuelCapacity())
                         .sum();
             default:
                 return 1000;

@@ -2,6 +2,8 @@
 package com.stellarcolonizer.model.galaxy;
 
 import com.stellarcolonizer.model.faction.Faction;
+import com.stellarcolonizer.model.fleet.Fleet;
+import com.stellarcolonizer.model.galaxy.enums.HexType;
 
 import javax.swing.text.html.parser.Entity;
 import java.util.ArrayList;
@@ -12,7 +14,7 @@ public class Hex {
     private CubeCoord coord;
     private HexType type;
     private StarSystem starSystem; // 如果该六边形有星系
-    private List<Entity> entities;
+    private List<Fleet> entities;
     private float visibility; // 0-1，战争迷雾
     private Faction exploredBy; // 探索过的派系
 
@@ -27,28 +29,23 @@ public class Hex {
         return starSystem != null;
     }
 
-    public void addEntity(Entity entity) {
+    public void addEntity(Fleet entity) {
         entities.add(entity);
-        entity.setCurrentHex(this);
+        // entity.setCurrentHex(this); // 需要在Fleet类中实现这个方法
     }
 
-    public void removeEntity(Entity entity) {
+    public void removeEntity(Fleet entity) {
         entities.remove(entity);
-        entity.setCurrentHex(null);
+        // entity.setCurrentHex(null); // 需要在Fleet类中实现这个方法
     }
 
     public boolean containsFleet(Faction faction) {
         return entities.stream()
-                .filter(e -> e instanceof Fleet)
-                .map(e -> (Fleet) e)
                 .anyMatch(f -> f.getFaction().equals(faction));
     }
 
     public List<Fleet> getFleets() {
-        return entities.stream()
-                .filter(e -> e instanceof Fleet)
-                .map(e -> (Fleet) e)
-                .toList();
+        return new ArrayList<>(entities);
     }
 
     public void updateVisibility(Faction faction, float sensorStrength) {
