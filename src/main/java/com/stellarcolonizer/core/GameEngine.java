@@ -22,6 +22,9 @@ public class GameEngine {
     private ResourceStockpile resourceStockpile;
     private List<Faction> factions;
     private PlayerFaction playerFaction;
+    
+    // 玩家起始位置
+    private Hex playerStartHex;
 
     private AnimationTimer gameLoop;
     private boolean isPaused = false;
@@ -38,35 +41,47 @@ public class GameEngine {
 
     public void initialize() {
         System.out.println("初始化游戏引擎...");
-
-        // 创建游戏状态
+        
+        // 创建新的星系
+        GalaxyGenerator generator = new GalaxyGenerator();
+        galaxy = generator.generateGalaxy(50); // 生成50个星系
+        
+        // 创建玩家阵营
+        playerFaction = new PlayerFaction("玩家");
+        galaxy.addFaction(playerFaction);
+        
+        // 设置玩家起始位置
+        setupPlayerStartLocation();
+        
+        // 初始化游戏状态
         gameState = new GameState();
         gameState.setCurrentTurn(1);
-        gameState.setGameSpeed(GameSpeed.NORMAL);
-
-        // 生成星系
-        GalaxyGenerator generator = new GalaxyGenerator();
-        this.galaxy = generator.generateGalaxy(100);
-
-        // 初始化资源系统
-        this.resourceStockpile = new ResourceStockpile();
-
-        // 创建玩家派系
-        this.playerFaction = new PlayerFaction("人类联邦");
-        this.playerFaction.setColor(javafx.scene.paint.Color.BLUE);
-        this.factions.add(playerFaction);
-
-        // 创建AI派系
-        createAIFactions();
-
-        // 设置初始殖民地
-        setupInitialColonies();
-
-        // 启动游戏循环
-        startGameLoop();
-
-        // 发送游戏开始事件
-        eventBus.publish(new GameEvent("GAME_STARTED", "游戏开始"));
+        
+        System.out.println("游戏引擎初始化完成");
+    }
+    
+    private void setupPlayerStartLocation() {
+        // 查找一个有宜居行星的星系作为玩家起始位置
+        for (StarSystem system : galaxy.getStarSystems()) {
+            for (Planet planet : system.getPlanets()) {
+                if (planet.getType() == com.stellarcolonizer.model.galaxy.enums.PlanetType.TERRA) {
+                    playerStartHex = galaxy.getHexForStarSystem(system);
+                    if (playerStartHex != null) {
+                        // 在起始位置创建一个殖民地
+                        Colony colony = new Colony(planet, playerFaction);
+                        playerFaction.addColony(colony);
+                        planet.setColony(colony);
+                        return;
+                    }
+                }
+            }
+        }
+        
+        // 如果没找到TERRA行星，则选择任意一个星系作为起始位置
+        if (playerStartHex == null && !galaxy.getStarSystems().isEmpty()) {
+            StarSystem firstSystem = galaxy.getStarSystems().get(0);
+            playerStartHex = galaxy.getHexForStarSystem(firstSystem);
+        }
     }
 
     private void createAIFactions() {
@@ -172,6 +187,7 @@ public class GameEngine {
     public ResourceStockpile getResourceSystem() { return resourceStockpile; }
     public List<Faction> getFactions() { return factions; }
     public PlayerFaction getPlayerFaction() { return playerFaction; }
+    public Hex getPlayerStartHex() { return playerStartHex; }
     public EventBus getEventBus() { return eventBus; }
 
     public void pause() { isPaused = true; }

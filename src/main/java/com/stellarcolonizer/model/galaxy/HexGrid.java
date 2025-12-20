@@ -75,14 +75,18 @@ public class HexGrid {
     }
 
     public Point2D cubeToPixel(CubeCoord coord) {
-        double x = hexSize * (Math.sqrt(3) * coord.q + Math.sqrt(3)/2 * coord.r);
-        double y = hexSize * (3.0/2 * coord.r);
+        // 增加六边形之间的间隙，使用更大的间距因子
+        double spacingFactor = 1.2; // 20%的间隙（原来是1.1）
+        double x = hexSize * spacingFactor * (Math.sqrt(3) * coord.q + Math.sqrt(3)/2 * coord.r);
+        double y = hexSize * spacingFactor * (3.0/2 * coord.r);
         return new Point2D(x, y);
     }
 
     public CubeCoord pixelToCube(double x, double y) {
-        double q = (Math.sqrt(3)/3 * x - 1.0/3 * y) / hexSize;
-        double r = (2.0/3 * y) / hexSize;
+        // 在像素到立方体坐标转换中也要考虑相同的间距因子
+        double spacingFactor = 1.2;
+        double q = (Math.sqrt(3)/3 * x - 1.0/3 * y) / (hexSize * spacingFactor);
+        double r = (2.0/3 * y) / (hexSize * spacingFactor);
         return roundCube(q, r, -q - r);
     }
 

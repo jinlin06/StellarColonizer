@@ -3,9 +3,8 @@
 <!-- main.fxml - 主界面布局 -->
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import com.stellarcolonizer.view.components.HexMapView?>
 
-<BorderPane fx:id="mainPane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+<BorderPane fx:id="mainContainer" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.stellarcolonizer.view.controllers.MainController">
 
     <!-- 顶部菜单栏 -->
@@ -23,7 +22,7 @@
             <Menu text="视图">
                 <MenuItem text="缩放 +" />
                 <MenuItem text="缩放 -" />
-                <MenuItem text="重置视图" />
+                <MenuItem text="重置视图" onAction="#onCenterViewClicked"/>
                 <SeparatorMenuItem />
                 <CheckMenuItem text="显示网格" />
                 <CheckMenuItem text="显示资源" />
@@ -38,7 +37,7 @@
 
     <!-- 中心地图区域 -->
     <center>
-        <HexMapView fx:id="hexMapView" />
+        <Pane/>
     </center>
 
     <!-- 右侧边栏 -->
@@ -90,7 +89,7 @@
             <Separator orientation="VERTICAL" />
             <Label text="F1 帮助" style="-fx-text-fill: #888888;" />
             <Label text="ESC 取消" style="-fx-text-fill: #888888;" />
-            <Label text="空格 下一回合" style="-fx-text-fill: #888888;" />
+            <Label text="空格 居中视图" style="-fx-text-fill: #888888;" />
         </HBox>
     </bottom>
 

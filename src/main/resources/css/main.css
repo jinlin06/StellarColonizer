@@ -92,6 +92,34 @@
     -fx-font-weight: bold;
 }
 
+/* 信息对话框 */
+.info-dialog {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 2, 2);
+}
+
+.info-dialog .title-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.info-dialog .content-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #333333;
+}
+
+.info-dialog .scroll-pane {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dddddd;
+    -fx-border-width: 1px;
+    -fx-padding: 15px;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+}
+
 /* 表格视图 */
 .table-view {
     -fx-background-color: #2b2b2b;

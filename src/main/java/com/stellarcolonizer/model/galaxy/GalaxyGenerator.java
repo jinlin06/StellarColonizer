@@ -27,26 +27,25 @@ public class GalaxyGenerator {
 
         Galaxy galaxy = new Galaxy();
 
-        // 生成六边形网格
+        // 生成六边形网格，使用更大的六边形以增加间隙
         int radius = calculateGridRadius(starCount);
-        HexGrid hexGrid = new HexGrid(radius, 50.0); // 六边形大小50像素
+        HexGrid hexGrid = new HexGrid(radius, 100.0); // 增大六边形尺寸从90.0到100.0
         galaxy.setHexGrid(hexGrid);
 
         // 获取所有可用的六边形
         List<Hex> availableHexes = new ArrayList<>(hexGrid.getAllHexes());
         Collections.shuffle(availableHexes, random);
 
-        // 生成恒星系
+        // 生成恒星系，增加生成的数量以确保有足够的星系参与连接
         int placedStars = 0;
-        for (int i = 0; i < Math.min(starCount, availableHexes.size()); i++) {
+        int attemptCount = Math.min(starCount * 2, availableHexes.size()); // 尝试放置更多星系
+        for (int i = 0; i < attemptCount; i++) {
             Hex hex = availableHexes.get(i);
             StarSystem starSystem = generateStarSystem();
             hex.setStarSystem(starSystem);
 
-            // 在六边形内随机位置放置星系
-            double x = random.nextDouble() * 0.6 - 0.3; // -0.3 到 0.3
-            double y = random.nextDouble() * 0.6 - 0.3;
-            starSystem.setPosition(new Point2D(x, y));
+            // 不再使用随机偏移，让星系位于六边形中心
+            starSystem.setPosition(new Point2D(0, 0));
 
             galaxy.addStarSystem(starSystem);
             placedStars++;
@@ -57,6 +56,9 @@ public class GalaxyGenerator {
         // 生成星云和小行星带
         generateNebulas(galaxy, placedStars / 4);
         generateAsteroidFields(galaxy, placedStars / 5);
+        
+        // 生成星系间的连接路径
+        galaxy.generateStarSystemConnections();
 
         return galaxy;
     }
@@ -181,4 +183,3 @@ public class GalaxyGenerator {
         return (int) Math.sqrt(hexesNeeded / Math.PI) + 2;
     }
 }
-

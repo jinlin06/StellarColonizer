@@ -4,17 +4,18 @@ package com.stellarcolonizer.view.components;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.galaxy.*;
 import com.stellarcolonizer.model.galaxy.enums.PlanetType;
+import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.geometry.Point2D;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 public class HexMapView extends Pane {
 
@@ -22,13 +23,17 @@ public class HexMapView extends Pane {
     private GraphicsContext gc;
 
     private HexGrid hexGrid;
+    private Galaxy galaxy; // 添加对整个银河系的引用，以便访问连接信息
     private Faction playerFaction;
+    
+    // 玩家起始位置
+    private Hex playerStartHex;
 
     // 视图参数
     private double offsetX = 0;
     private double offsetY = 0;
     private double scale = 1.0;
-    private double hexSize = 50.0;
+    private double hexSize = 80.0; // 与GalaxyGenerator中保持一致
 
     // 选择状态
     private Hex selectedHex;
@@ -38,6 +43,12 @@ public class HexMapView extends Pane {
     private boolean isDragging = false;
     private double dragStartX, dragStartY;
     private double dragStartOffsetX, dragStartOffsetY;
+
+    // 动画定时器
+    private AnimationTimer animationTimer;
+    
+    // 标记是否需要在下次绘制时居中显示玩家起始位置
+    private boolean needsCentering = false;
 
     public HexMapView() {
         this.canvas = new Canvas();
@@ -56,6 +67,24 @@ public class HexMapView extends Pane {
         // 设置交互事件
         setupMouseEvents();
         setupScrollEvents();
+        setupKeyEvents();
+        
+        // 启动动画定时器
+        setupAnimationTimer();
+        
+        // 确保面板可以获得焦点以接收键盘事件
+        this.setFocusTraversable(true);
+        this.setOnMouseClicked(e -> this.requestFocus()); // 点击时也请求焦点
+        
+        // 添加场景图属性变更监听器，确保在节点加入场景图后能获得焦点
+        this.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                // 在下一帧请求焦点
+                javafx.application.Platform.runLater(() -> {
+                    this.requestFocus();
+                });
+            }
+        });
     }
 
     public void setHexGrid(HexGrid hexGrid) {
@@ -65,10 +94,28 @@ public class HexMapView extends Pane {
         }
         draw();
     }
+    
+    public void setGalaxy(Galaxy galaxy) {
+        this.galaxy = galaxy;
+        draw();
+    }
 
     public void setPlayerFaction(Faction playerFaction) {
         this.playerFaction = playerFaction;
         draw();
+    }
+    
+    public void setPlayerStartHex(Hex playerStartHex) {
+        this.playerStartHex = playerStartHex;
+        // 标记需要居中显示
+        if (playerStartHex != null) {
+            needsCentering = true;
+            // 使用 Platform.runLater 确保在下一个 UI 循环中执行居中操作
+            javafx.application.Platform.runLater(() -> {
+                centerOnHex(playerStartHex);
+                needsCentering = false;
+            });
+        }
     }
 
     public Hex getSelectedHex() {
@@ -89,6 +136,36 @@ public class HexMapView extends Pane {
         highlightedHexes.clear();
         draw();
     }
+    
+    /**
+     * 将指定的六边形居中显示
+     */
+    public void centerOnHex(Hex hex) {
+        if (hex == null || hexGrid == null) return;
+        
+        Point2D center = hexGrid.cubeToPixel(hex.getCoord());
+        offsetX = getWidth() / 2 - center.getX() * scale;
+        offsetY = getHeight() / 2 - center.getY() * scale;
+        
+        // 直接触发重绘而不是调用 draw() 方法
+        paint();
+    }
+
+    private void setupAnimationTimer() {
+        animationTimer = new AnimationTimer() {
+            private long lastUpdate = 0;
+            
+            @Override
+            public void handle(long now) {
+                // 每16毫秒更新一次（约60 FPS），或者根据需要调整频率
+                if (now - lastUpdate >= 16_000_000) { // 16毫秒
+                    draw(); // 重新绘制以更新行星位置
+                    lastUpdate = now;
+                }
+            }
+        };
+        animationTimer.start();
+    }
 
     private void setupMouseEvents() {
         // 点击选择
@@ -105,6 +182,26 @@ public class HexMapView extends Pane {
 
     private void setupScrollEvents() {
         this.setOnScroll(this::handleScroll);
+    }
+    
+    private void setupKeyEvents() {
+        // 添加按键事件监听器
+        this.setOnKeyPressed(this::handleKeyPress);
+        this.setFocusTraversable(true); // 确保可以接收键盘事件
+    }
+    
+    private void handleKeyPress(KeyEvent event) {
+        System.out.println("Key pressed: " + event.getCode() + ", consuming: " + event.isConsumed());
+        switch (event.getCode()) {
+            case SPACE:
+                // 按空格键将视角调整到玩家起始位置
+                System.out.println("Space key pressed, playerStartHex: " + playerStartHex);
+                if (playerStartHex != null) {
+                    centerOnHex(playerStartHex);
+                }
+                event.consume(); // 消费事件防止传播
+                break;
+        }
     }
 
     private void handleMouseClick(MouseEvent event) {
@@ -131,13 +228,11 @@ public class HexMapView extends Pane {
     }
 
     private void handleMousePressed(MouseEvent event) {
-        if (event.isSecondaryButtonDown()) {
-            isDragging = true;
-            dragStartX = event.getX();
-            dragStartY = event.getY();
-            dragStartOffsetX = offsetX;
-            dragStartOffsetY = offsetY;
-        }
+        isDragging = true;
+        dragStartX = event.getX();
+        dragStartY = event.getY();
+        dragStartOffsetX = offsetX;
+        dragStartOffsetY = offsetY;
     }
 
     private void handleMouseDragged(MouseEvent event) {
@@ -194,13 +289,253 @@ public class HexMapView extends Pane {
         draw();
         event.consume();
     }
-
+    
+    /**
+     * 创建连接标识符以避免重复绘制（星系连接）
+     */
+    private String createConnectionId(StarSystem system1, StarSystem system2) {
+        // 使用系统名称排序确保一致性
+        String firstName = system1.getName();
+        String secondName = system2.getName();
+        return firstName.compareTo(secondName) < 0 ? 
+            firstName + "|" + secondName : secondName + "|" + firstName;
+    }
+    
+    /**
+     * 创建连接标识符以避免重复绘制（六边形连接）
+     */
+    private String createConnectionId(Hex hex1, Hex hex2) {
+        // 使用坐标排序确保一致性
+        CubeCoord coord1 = hex1.getCoord();
+        CubeCoord coord2 = hex2.getCoord();
+        
+        // 创建坐标字符串
+        String coordStr1 = coord1.q + "," + coord1.r + "," + coord1.s;
+        String coordStr2 = coord2.q + "," + coord2.r + "," + coord2.s;
+        
+        // 排序确保一致性
+        return coordStr1.compareTo(coordStr2) < 0 ? 
+            coordStr1 + "|" + coordStr2 : coordStr2 + "|" + coordStr1;
+    }
+    
+    /**
+     * 绘制六边形网格线和所有连接路径（包括空六边形）
+     */
+    private void drawAllConnections() {
+        gc.setLineWidth(2);
+        gc.setStroke(Color.rgb(100, 150, 200, 0.5)); // 浅蓝绿色半透明连接线
+        
+        // 全局去重集合，确保每对单元格之间最多只有一条连线
+        Set<String> allDrawnConnections = new HashSet<>();
+        
+        // 如果有星系连接信息，优先绘制星系连接
+        if (galaxy != null) {
+            // 绘制星系之间的连接（仅绘制实际存在的连接）
+            for (StarSystem system : galaxy.getStarSystems()) {
+                Hex fromHex = galaxy.getHexForStarSystem(system);
+                if (fromHex == null) continue;
+                
+                Point2D fromCenter = hexGrid.cubeToPixel(fromHex.getCoord());
+                double fromX = fromCenter.getX() * scale + offsetX;
+                double fromY = fromCenter.getY() * scale + offsetY;
+                
+                List<StarSystem> connections = galaxy.getConnectedSystems(system);
+                for (StarSystem connectedSystem : connections) {
+                    Hex toHex = galaxy.getHexForStarSystem(connectedSystem);
+                    if (toHex == null) continue;
+                    
+                    // 创建连接标识符确保每对单元格之间最多只有一条连线
+                    String fromCoord = fromHex.getCoord().toString();
+                    String toCoord = toHex.getCoord().toString();
+                    String connectionId = fromCoord.compareTo(toCoord) < 0 ? 
+                        fromCoord + "|" + toCoord : toCoord + "|" + fromCoord;
+                    
+                    if (allDrawnConnections.contains(connectionId)) {
+                        continue;
+                    }
+                    
+                    allDrawnConnections.add(connectionId);
+                    
+                    Point2D toCenter = hexGrid.cubeToPixel(toHex.getCoord());
+                    double toX = toCenter.getX() * scale + offsetX;
+                    double toY = toCenter.getY() * scale + offsetY;
+                    
+                    // 绘制直线连接（不再使用曲线）
+                    gc.strokeLine(fromX, fromY, toX, toY);
+                }
+            }
+            
+            // 绘制六边形之间的连接（包括空的）
+            Map<Hex, Set<Hex>> hexConnections = galaxy.getHexConnections();
+            if (hexConnections != null) {
+                for (Map.Entry<Hex, Set<Hex>> entry : hexConnections.entrySet()) {
+                    Hex fromHex = entry.getKey();
+                    Point2D fromCenter = hexGrid.cubeToPixel(fromHex.getCoord());
+                    double fromX = fromCenter.getX() * scale + offsetX;
+                    double fromY = fromCenter.getY() * scale + offsetY;
+                    
+                    for (Hex toHex : entry.getValue()) {
+                        // 创建连接标识符确保每对单元格之间最多只有一条连线
+                        String fromCoord = fromHex.getCoord().toString();
+                        String toCoord = toHex.getCoord().toString();
+                        String connectionId = fromCoord.compareTo(toCoord) < 0 ? 
+                            fromCoord + "|" + toCoord : toCoord + "|" + fromCoord;
+                        
+                        if (allDrawnConnections.contains(connectionId)) {
+                            continue;
+                        }
+                        
+                        allDrawnConnections.add(connectionId);
+                        
+                        Point2D toCenter = hexGrid.cubeToPixel(toHex.getCoord());
+                        double toX = toCenter.getX() * scale + offsetX;
+                        double toY = toCenter.getY() * scale + offsetY;
+                        
+                        // 绘制直线连接
+                        gc.strokeLine(fromX, fromY, toX, toY);
+                    }
+                }
+            }
+        } else if (hexGrid != null) {
+            // 如果没有星系信息，绘制基本的六边形邻接关系
+            for (Hex hex : hexGrid.getAllHexes()) {
+                Point2D center = hexGrid.cubeToPixel(hex.getCoord());
+                
+                // 应用缩放和偏移
+                double screenX = center.getX() * scale + offsetX;
+                double screenY = center.getY() * scale + offsetY;
+                
+                // 获取邻居并绘制到邻居的连线（仅绘制实际的邻接关系）
+                for (Hex neighbor : hexGrid.getNeighbors(hex)) {
+                    // 创建连接标识符确保每对单元格之间最多只有一条连线
+                    String hexCoord = hex.getCoord().toString();
+                    String neighborCoord = neighbor.getCoord().toString();
+                    String lineId = hexCoord.compareTo(neighborCoord) < 0 ? 
+                        hexCoord + "|" + neighborCoord : neighborCoord + "|" + hexCoord;
+                    
+                    if (allDrawnConnections.contains(lineId)) {
+                        continue;
+                    }
+                    
+                    allDrawnConnections.add(lineId);
+                    
+                    Point2D neighborCenter = hexGrid.cubeToPixel(neighbor.getCoord());
+                    
+                    // 应用缩放和偏移
+                    double neighborScreenX = neighborCenter.getX() * scale + offsetX;
+                    double neighborScreenY = neighborCenter.getY() * scale + offsetY;
+                    
+                    // 绘制连接线
+                    gc.strokeLine(screenX, screenY, neighborScreenX, neighborScreenY);
+                }
+            }
+        }
+    }
+    
+    /**
+     * 绘制两个点之间的连接曲线（已废弃，现在全部使用直线连接）
+     */
+    private void drawConnectionCurve(double fromX, double fromY, double toX, double toY) {
+        // 绘制直线连接
+        gc.strokeLine(fromX, fromY, toX, toY);
+    }
+    
+    /**
+     * 绘制带箭头的直线连接
+     */
+    private void drawDirectedLine(double fromX, double fromY, double toX, double toY) {
+        // 绘制直线
+        gc.strokeLine(fromX, fromY, toX, toY);
+        
+        // 绘制箭头
+        drawArrowHead(fromX, fromY, toX, toY);
+    }
+    
+    /**
+     * 绘制带箭头的曲线连接
+     */
+    private void drawDirectedConnectionCurve(double fromX, double fromY, double toX, double toY) {
+        // 计算控制点，使曲线向外弯曲
+        double midX = (fromX + toX) / 2;
+        double midY = (fromY + toY) / 2;
+        
+        // 计算垂直向量并偏移作为控制点
+        double dx = toX - fromX;
+        double dy = toY - fromY;
+        double length = Math.sqrt(dx * dx + dy * dy);
+        
+        // 归一化并向外偏移
+        double ndx = -dy / length;
+        double ndy = dx / length;
+        
+        // 控制点偏移量随着距离增加
+        double offset = Math.min(80, length / 2.5);
+        double controlX = midX + ndx * offset;
+        double controlY = midY + ndy * offset;
+        
+        // 绘制二次贝塞尔曲线
+        gc.beginPath();
+        gc.moveTo(fromX, fromY);
+        gc.quadraticCurveTo(controlX, controlY, toX, toY);
+        gc.stroke();
+        
+        // 绘制箭头
+        drawArrowHead(controlX, controlY, toX, toY);
+    }
+    
+    /**
+     * 在路径末端绘制箭头
+     */
+    private void drawArrowHead(double fromX, double fromY, double toX, double toY) {
+        // 计算箭头角度
+        double angle = Math.atan2(toY - fromY, toX - fromX);
+        double arrowLength = 10;
+        
+        // 计算箭头两边的点
+        double x1 = toX - arrowLength * Math.cos(angle - Math.PI/6);
+        double y1 = toY - arrowLength * Math.sin(angle - Math.PI/6);
+        double x2 = toX - arrowLength * Math.cos(angle + Math.PI/6);
+        double y2 = toY - arrowLength * Math.sin(angle + Math.PI/6);
+        
+        // 绘制箭头
+        gc.beginPath();
+        gc.moveTo(toX, toY);
+        gc.lineTo(x1, y1);
+        gc.moveTo(toX, toY);
+        gc.lineTo(x2, y2);
+        gc.stroke();
+    }
+    
+    /**
+     * 获取六边形的唯一标识符
+     */
+    private String getHexIdentifier(Hex hex) {
+        CubeCoord coord = hex.getCoord();
+        return coord.q + "," + coord.r + "," + coord.s;
+    }
+    
     private void draw() {
         if (hexGrid == null || canvas.getWidth() <= 0 || canvas.getHeight() <= 0) {
             return;
         }
 
+        // 如果需要居中显示玩家起始位置，则执行居中操作
+        if (needsCentering && playerStartHex != null) {
+            centerOnHex(playerStartHex);
+            needsCentering = false;
+        }
+
+        paint();
+    }
+    
+    /**
+     * 实际的绘制方法，避免在居中操作时产生递归调用
+     */
+    private void paint() {
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        // 绘制所有连接（包括空六边形之间的连接）
+        drawAllConnections();
 
         // 绘制所有六边形
         for (Hex hex : hexGrid.getAllHexes()) {
@@ -225,20 +560,27 @@ public class HexMapView extends Pane {
         // 应用缩放和偏移
         double screenX = center.getX() * scale + offsetX;
         double screenY = center.getY() * scale + offsetY;
-        double screenSize = hexSize * scale;
+        // 减小六边形的视觉大小以创建更大的间隙
+        double screenSize = hexSize * 0.8 * scale; // 从0.9减小到0.8以增加间隙
 
         // 计算六边形顶点
         double[] xPoints = new double[6];
         double[] yPoints = new double[6];
 
         for (int i = 0; i < 6; i++) {
-            double angle = 2 * Math.PI / 6 * i;
+            double angle = 2 * Math.PI / 6 * (i + 0.5); // 增加0.5使六边形的一个角朝上
             xPoints[i] = screenX + screenSize * Math.cos(angle);
             yPoints[i] = screenY + screenSize * Math.sin(angle);
         }
 
         // 设置填充颜色（基于六边形类型）
         Color fillColor = getHexColor(hex);
+        
+        // 如果是玩家起始位置，使用特殊的颜色
+        if (hex == playerStartHex) {
+            fillColor = Color.rgb(255, 215, 0); // 金色表示玩家起始位置，更加醒目
+        }
+        
         gc.setFill(fillColor);
         gc.fillPolygon(xPoints, yPoints, 6);
 
@@ -291,18 +633,18 @@ public class HexMapView extends Pane {
         Color starColor = Color.web(system.getStarType().getColor());
         gc.setFill(starColor);
 
-        double starRadius = size * 0.3;
+        double starRadius = size * 0.25; // 减小恒星尺寸
         gc.fillOval(centerX - starRadius, centerY - starRadius,
                 starRadius * 2, starRadius * 2);
 
         // 添加光晕效果
         gc.setFill(Color.web(system.getStarType().getColor(), 0.3));
-        double glowRadius = starRadius * 1.5;
+        double glowRadius = starRadius * 1.3; // 减小光晕尺寸
         gc.fillOval(centerX - glowRadius, centerY - glowRadius,
                 glowRadius * 2, glowRadius * 2);
 
         // 如果缩放足够大，绘制行星轨道
-        if (scale > 0.5) {
+        if (scale > 0.7) { // 提高缩放阈值
             drawPlanetOrbits(system, centerX, centerY, size);
         }
     }
@@ -311,15 +653,21 @@ public class HexMapView extends Pane {
         List<Planet> planets = system.getPlanets();
         int planetCount = planets.size();
 
-        for (int i = 0; i < planetCount; i++) {
-            Planet planet = planets.get(i);
-            double orbitRadius = size * 0.5 + i * size * 0.2;
+        // 限制显示的行星数量以减少视觉混乱
+        int maxPlanetsToShow = Math.min(planetCount, 4); // 最多显示4个行星
 
-            // 绘制轨道
-            gc.setStroke(Color.GRAY);
-            gc.setLineWidth(0.5);
-            gc.strokeOval(centerX - orbitRadius, centerY - orbitRadius,
-                    orbitRadius * 2, orbitRadius * 2);
+        for (int i = 0; i < maxPlanetsToShow; i++) {
+            Planet planet = planets.get(i);
+            // 调整轨道半径计算方式，使轨道更紧凑
+            double orbitRadius = size * 0.4 + i * size * 0.25; // 减小轨道间距
+
+            // 绘制轨道（只在较高缩放级别时显示）
+            if (scale > 1.0) {
+                gc.setStroke(Color.GRAY);
+                gc.setLineWidth(0.3); // 减细轨道线
+                gc.strokeOval(centerX - orbitRadius, centerY - orbitRadius,
+                        orbitRadius * 2, orbitRadius * 2);
+            }
 
             // 绘制行星
             double angle = 2 * Math.PI * (System.currentTimeMillis() % 10000) / 10000;
@@ -328,12 +676,13 @@ public class HexMapView extends Pane {
 
             Color planetColor = getPlanetColor(planet.getType());
             gc.setFill(planetColor);
-            double planetSize = Math.max(2, size * 0.1);
+            // 调整行星大小比例，使其更小以适应更紧凑的布局
+            double planetSize = Math.max(2, size * 0.1); // 减小行星尺寸
             gc.fillOval(planetX - planetSize, planetY - planetSize,
                     planetSize * 2, planetSize * 2);
 
-            // 如果行星有殖民地，添加标记
-            if (planet.getColony() != null) {
+            // 如果行星有殖民地，添加标记（只在高缩放级别显示）
+            if (planet.getColony() != null && scale > 1.2) {
                 drawColonyMarker(planetX, planetY, planetSize, planet.getColony().getFaction());
             }
         }
@@ -380,9 +729,10 @@ public class HexMapView extends Pane {
             double[] yPoints = new double[6];
 
             for (int i = 0; i < 6; i++) {
-                double angle = 2 * Math.PI / 6 * i;
-                xPoints[i] = centerX + size * Math.cos(angle);
-                yPoints[i] = centerY + size * Math.sin(angle);
+                double angle = 2 * Math.PI / 6 * (i + 0.5); // 保持与drawHex一致的角度
+                // 使用完整的尺寸绘制迷雾，以完全覆盖六边形
+                xPoints[i] = centerX + (hexSize * 0.8 * scale) * Math.cos(angle);
+                yPoints[i] = centerY + (hexSize * 0.8 * scale) * Math.sin(angle);
             }
 
             gc.fillPolygon(xPoints, yPoints, 6);
@@ -395,7 +745,8 @@ public class HexMapView extends Pane {
 
         double screenX = center.getX() * scale + offsetX;
         double screenY = center.getY() * scale + offsetY;
-        double screenSize = hexSize * scale;
+        // 与drawHex保持一致的大小
+        double screenSize = hexSize * 0.8 * scale;
 
         // 绘制高亮边框
         gc.setStroke(color);
@@ -405,7 +756,7 @@ public class HexMapView extends Pane {
         double[] yPoints = new double[6];
 
         for (int i = 0; i < 6; i++) {
-            double angle = 2 * Math.PI / 6 * i;
+            double angle = 2 * Math.PI / 6 * (i + 0.5); // 保持与drawHex一致的角度
             xPoints[i] = screenX + screenSize * Math.cos(angle);
             yPoints[i] = screenY + screenSize * Math.sin(angle);
         }
@@ -413,4 +764,3 @@ public class HexMapView extends Pane {
         gc.strokePolygon(xPoints, yPoints, 6);
     }
 }
-
