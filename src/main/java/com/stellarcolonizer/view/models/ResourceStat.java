@@ -5,7 +5,7 @@ import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
-class ResourceStat {
+public class ResourceStat {
     private final StringProperty name;
     private final FloatProperty production;
     private final FloatProperty consumption;

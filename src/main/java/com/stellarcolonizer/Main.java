@@ -22,6 +22,7 @@ public class Main extends Application {
 
         // 初始化游戏引擎
         gameEngine = new GameEngine();
+        gameEngine.initialize(); // 提前初始化游戏引擎
         controller.setGameEngine(gameEngine);
 
         // 设置舞台
@@ -35,8 +36,6 @@ public class Main extends Application {
         primaryStage.setMinHeight(800);
         primaryStage.show();
 
-        // 初始化游戏
-        gameEngine.initialize();
     }
 
     public static GameEngine getGameEngine() {

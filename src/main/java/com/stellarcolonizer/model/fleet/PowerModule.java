@@ -5,7 +5,7 @@ import com.stellarcolonizer.model.fleet.enums.ModuleType;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 
 // 电力模块
-class PowerModule extends ShipModule {
+public class PowerModule extends ShipModule {
 
     public PowerModule(int powerOutput) {
         super("基础发电机", ModuleType.POWER, 50, -powerOutput); // 负数表示能源输出

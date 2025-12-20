@@ -10,7 +10,7 @@ import java.util.Map;
 
 import static com.stellarcolonizer.model.colony.enums.BuildingType.*;
 
-class BasicBuilding extends Building {
+public class BasicBuilding extends Building {
 
     private final Map<ResourceType, Float> productionBonuses;
     private final Map<ResourceType, Float> efficiencyBonuses;

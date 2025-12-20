@@ -2,11 +2,19 @@
 package com.stellarcolonizer.view.components;
 
 import com.stellarcolonizer.model.colony.*;
-import com.stellarcolonizer.model.economy.ResourceType;
+import com.stellarcolonizer.model.colony.enums.BuildingType;
+import com.stellarcolonizer.model.colony.enums.GrowthFocus;
+import com.stellarcolonizer.model.colony.enums.PopType;
+import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.faction.Faction;
+import com.stellarcolonizer.view.models.ResourceStat;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;

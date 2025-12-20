@@ -11,7 +11,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import java.util.HashMap;
 import java.util.Map;
 
-class UtilityModule extends ShipModule {
+public class UtilityModule extends ShipModule {
 
     private final ObjectProperty<UtilityType> utilityType;
     private final FloatProperty utilityValue;

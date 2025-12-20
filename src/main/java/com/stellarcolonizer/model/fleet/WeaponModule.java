@@ -9,7 +9,7 @@ import javafx.beans.property.*;
 import java.util.HashMap;
 import java.util.Map;
 
-class WeaponModule extends ShipModule {
+public class WeaponModule extends ShipModule {
 
     private final ObjectProperty<WeaponType> weaponType;
     private final FloatProperty damage;

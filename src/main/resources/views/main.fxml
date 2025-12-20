@@ -1,5 +1,6 @@
-<!-- main.fxml - 主界面布局 -->
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!-- main.fxml - 主界面布局 -->
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import com.stellarcolonizer.view.components.HexMapView?>

@@ -8,6 +8,7 @@ import com.stellarcolonizer.model.galaxy.enums.StarType;
 import javafx.geometry.Point2D;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.stellarcolonizer.model.galaxy.enums.HexType.EMPTY;
 
@@ -151,7 +152,7 @@ public class GalaxyGenerator {
         HexGrid grid = galaxy.getHexGrid();
         List<Hex> hexes = grid.getAllHexes().stream()
                 .filter(h -> h.getType() == EMPTY && h.getStarSystem() == null)
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.shuffle(hexes, random);
 
@@ -164,7 +165,7 @@ public class GalaxyGenerator {
         HexGrid grid = galaxy.getHexGrid();
         List<Hex> hexes = grid.getAllHexes().stream()
                 .filter(h -> h.getType() == EMPTY && h.getStarSystem() == null)
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.shuffle(hexes, random);
 

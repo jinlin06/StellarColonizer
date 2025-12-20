@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 // 防御模块
-class DefenseModule extends ShipModule {
+public class DefenseModule extends ShipModule {
 
     private final ObjectProperty<DefenseType> defenseType;
     private final FloatProperty defenseValue;

@@ -2,6 +2,9 @@ package com.stellarcolonizer.view.controllers;
 
 import com.stellarcolonizer.core.GameEngine;
 import com.stellarcolonizer.model.galaxy.*;
+import com.stellarcolonizer.model.service.event.GameEvent;
+import com.stellarcolonizer.model.service.event.GameEventListener;
+import com.stellarcolonizer.model.technology.TechTree;
 import com.stellarcolonizer.view.components.*;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -196,6 +199,36 @@ public class MainController {
         ColonyManagerView colonyManager = new ColonyManagerView(gameEngine.getPlayerFaction());
 
         dialog.getDialogPane().setContent(colonyManager);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        dialog.showAndWait();
+    }
+
+    @FXML
+    private void showDiplomacy() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("外交");
+        dialog.setHeaderText("与其他势力建立外交关系");
+
+        dialog.getDialogPane().setPrefSize(800, 600);
+
+        Label label = new Label("外交功能正在开发中...");
+        dialog.getDialogPane().setContent(label);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        dialog.showAndWait();
+    }
+
+    @FXML
+    private void showBuildMenu() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("建造菜单");
+        dialog.setHeaderText("建造设施和舰船");
+
+        dialog.getDialogPane().setPrefSize(800, 600);
+
+        Label label = new Label("建造功能正在开发中...");
+        dialog.getDialogPane().setContent(label);
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
         dialog.showAndWait();

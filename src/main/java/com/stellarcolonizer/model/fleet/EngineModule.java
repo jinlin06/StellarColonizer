@@ -7,7 +7,7 @@ import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleFloatProperty;
 
 // 引擎模块
-class EngineModule extends ShipModule {
+public class EngineModule extends ShipModule {
 
     private final FloatProperty thrust; // 推力
 

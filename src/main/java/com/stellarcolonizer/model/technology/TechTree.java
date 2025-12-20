@@ -37,54 +37,54 @@ public class TechTree {
     private void initializeTechnologies() {
         // 物理学分支
         Technology physics = new Technology("BASIC_PHYSICS", "基础物理学",
-                "掌握基本物理原理", TechCategory.PHYSICS, 100);
+                "掌握基本物理原理", TechCategory.PHYSICS, 100, 30);
 
         Technology quantumMechanics = new Technology("QUANTUM_MECHANICS", "量子力学",
-                "理解微观世界的规律", TechCategory.PHYSICS, 250);
+                "理解微观世界的规律", TechCategory.PHYSICS, 250, 30);
         quantumMechanics.addPrerequisite("BASIC_PHYSICS");
 
         Technology ftlTheory = new Technology("FTL_THEORY", "超光速理论",
-                "超越光速的旅行成为可能", TechCategory.PHYSICS, 500);
+                "超越光速的旅行成为可能", TechCategory.PHYSICS, 500, 30);
         ftlTheory.addPrerequisite("QUANTUM_MECHANICS");
 
         // 工程学分支
         Technology basicEngineering = new Technology("BASIC_ENGINEERING", "基础工程学",
-                "掌握基本工程原理", TechCategory.ENGINEERING, 100);
+                "掌握基本工程原理", TechCategory.MATERIALS_ENGINEERING, 100, 30);
 
         Technology nanotechnology = new Technology("NANOTECHNOLOGY", "纳米技术",
-                "在分子尺度上操纵物质", TechCategory.ENGINEERING, 300);
+                "在分子尺度上操纵物质", TechCategory.NANOTECHNOLOGY, 300, 30);
         nanotechnology.addPrerequisite("BASIC_ENGINEERING");
 
         Technology molecularAssembly = new Technology("MOLECULAR_ASSEMBLY", "分子组装",
-                "原子级的精确制造", TechCategory.ENGINEERING, 600);
+                "原子级的精确制造", TechCategory.MATERIALS_ENGINEERING, 600, 30);
         molecularAssembly.addPrerequisite("NANOTECHNOLOGY");
 
         // 军事学分支
         Technology basicWeapons = new Technology("BASIC_WEAPONS", "基础武器学",
-                "掌握基本武器原理", TechCategory.MILITARY, 100);
+                "掌握基本武器原理", TechCategory.MILITARY_TECH, 100, 30);
 
         Technology laserWeapons = new Technology("LASER_WEAPONS", "激光武器",
-                "高能定向能量武器", TechCategory.MILITARY, 200);
+                "高能定向能量武器", TechCategory.MILITARY_TECH, 200, 30);
         laserWeapons.addPrerequisite("BASIC_WEAPONS");
 
         Technology plasmaWeapons = new Technology("PLASMA_WEAPONS", "等离子武器",
-                "高温等离子体武器", TechCategory.MILITARY, 350);
+                "高温等离子体武器", TechCategory.MILITARY_TECH, 350, 30);
         plasmaWeapons.addPrerequisite("LASER_WEAPONS");
 
         // 社会学分支
         Technology basicSociology = new Technology("BASIC_SOCIOLOGY", "基础社会学",
-                "理解社会运作原理", TechCategory.SOCIOLOGY, 100);
+                "理解社会运作原理", TechCategory.SOCIOLOGY, 100, 30);
 
         Technology collectiveConsciousness = new Technology("COLLECTIVE_CONSCIOUSNESS", "集体意识",
-                "社会思维的协调统一", TechCategory.SOCIOLOGY, 300);
+                "社会思维的协调统一", TechCategory.SOCIOLOGY, 300, 30);
         collectiveConsciousness.addPrerequisite("BASIC_SOCIOLOGY");
 
         // 生物学分支
         Technology basicBiology = new Technology("BASIC_BIOLOGY", "基础生物学",
-                "掌握生命科学基础", TechCategory.BIOLOGY, 100);
+                "掌握生命科学基础", TechCategory.BIOLOGY, 100, 30);
 
         Technology geneticEngineering = new Technology("GENETIC_ENGINEERING", "基因工程",
-                "改造和优化生命形式", TechCategory.BIOLOGY, 400);
+                "改造和优化生命形式", TechCategory.BIOENGINEERING, 400, 30);
         geneticEngineering.addPrerequisite("BASIC_BIOLOGY");
 
         // 添加所有科技
@@ -151,8 +151,9 @@ public class TechTree {
 
         ResearchProject currentProject = researchQueue.get(0);
         float effectivePoints = researchPoints * researchSpeedBonus.get();
+        int intEffectivePoints = Math.round(effectivePoints);
 
-        boolean completed = currentProject.progress(effectivePoints);
+        boolean completed = currentProject.progress(intEffectivePoints);
 
         if (completed) {
             researchQueue.remove(0);
@@ -241,6 +242,9 @@ public class TechTree {
 
     public ObservableList<Technology> getTechnologies() { return technologies; }
     public ObservableList<ResearchProject> getResearchQueue() { return researchQueue; }
+    public ObjectProperty<ObservableList<ResearchProject>> researchQueueProperty() { 
+        return new SimpleObjectProperty<>(researchQueue); 
+    }
 
     public int getCurrentResearchPoints() { return currentResearchPoints.get(); }
     public IntegerProperty currentResearchPointsProperty() { return currentResearchPoints; }
