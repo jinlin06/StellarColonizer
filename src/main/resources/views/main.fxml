@@ -66,6 +66,7 @@
                 <Button text="科技" onAction="#showTechTree" style="-fx-background-color: #9C27B0; -fx-text-fill: white;" />
                 <Button text="外交" onAction="#showDiplomacy" style="-fx-background-color: #FF9800; -fx-text-fill: white;" />
                 <Button text="建造" onAction="#showBuildMenu" style="-fx-background-color: #009688; -fx-text-fill: white;" />
+                <Button text="设计舰船" onAction="#showShipDesigner" style="-fx-background-color: #795548; -fx-text-fill: white;" />
                 <Button text="殖民地" onAction="#showColonyManager" style="-fx-background-color: #E91E63; -fx-text-fill: white;" />
             </VBox>
 

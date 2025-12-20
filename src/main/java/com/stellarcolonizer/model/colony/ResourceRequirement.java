@@ -3,7 +3,7 @@ package com.stellarcolonizer.model.colony;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 
 // 资源需求类
-class ResourceRequirement {
+public class ResourceRequirement {
     private final ResourceType resourceType;
     private final float amount;
 

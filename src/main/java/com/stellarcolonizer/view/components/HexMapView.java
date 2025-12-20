@@ -76,6 +76,9 @@ public class HexMapView extends Pane {
         this.setFocusTraversable(true);
         this.setOnMouseClicked(e -> this.requestFocus()); // 点击时也请求焦点
         
+        // 让画布接收鼠标事件
+        canvas.setMouseTransparent(false);
+        
         // 添加场景图属性变更监听器，确保在节点加入场景图后能获得焦点
         this.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene != null) {
@@ -85,9 +88,17 @@ public class HexMapView extends Pane {
                 });
             }
         });
+        
+        // 添加一个事件处理器，专门用于调试
+        /*
+        this.addEventHandler(HexSelectedEvent.HEX_SELECTED, event -> {
+            System.out.println("HexMapView: Internal HexSelectedEvent handler triggered for hex: " + event.getSelectedHex().getCoord());
+        });
+        */
     }
 
     public void setHexGrid(HexGrid hexGrid) {
+        System.out.println("HexMapView: Setting hexGrid: " + hexGrid);
         this.hexGrid = hexGrid;
         if (hexGrid != null) {
             this.hexSize = hexGrid.getHexSize();
@@ -159,6 +170,7 @@ public class HexMapView extends Pane {
             public void handle(long now) {
                 // 每16毫秒更新一次（约60 FPS），或者根据需要调整频率
                 if (now - lastUpdate >= 16_000_000) { // 16毫秒
+                    // 重新启用动画定时器
                     draw(); // 重新绘制以更新行星位置
                     lastUpdate = now;
                 }
@@ -170,11 +182,14 @@ public class HexMapView extends Pane {
     private void setupMouseEvents() {
         // 点击选择
         this.setOnMouseClicked(this::handleMouseClick);
+        this.canvas.setOnMouseClicked(this::handleMouseClick); // 同时在画布上注册点击事件
 
         // 拖动地图
         this.setOnMousePressed(this::handleMousePressed);
+        this.canvas.setOnMousePressed(this::handleMousePressed); // 同时在画布上注册按下事件
         this.setOnMouseDragged(this::handleMouseDragged);
         this.setOnMouseReleased(this::handleMouseReleased);
+        this.canvas.setOnMouseReleased(this::handleMouseReleased); // 同时在画布上注册释放事件
 
         // 鼠标悬停
         this.setOnMouseMoved(this::handleMouseMoved);
@@ -191,11 +206,9 @@ public class HexMapView extends Pane {
     }
     
     private void handleKeyPress(KeyEvent event) {
-        System.out.println("Key pressed: " + event.getCode() + ", consuming: " + event.isConsumed());
         switch (event.getCode()) {
             case SPACE:
                 // 按空格键将视角调整到玩家起始位置
-                System.out.println("Space key pressed, playerStartHex: " + playerStartHex);
                 if (playerStartHex != null) {
                     centerOnHex(playerStartHex);
                 }
@@ -205,7 +218,9 @@ public class HexMapView extends Pane {
     }
 
     private void handleMouseClick(MouseEvent event) {
-        if (hexGrid == null) return;
+        if (hexGrid == null) {
+            return;
+        }
 
         // 计算点击位置对应的六边形坐标
         double screenX = event.getX();
@@ -223,7 +238,8 @@ public class HexMapView extends Pane {
             draw();
 
             // 触发选择事件
-            fireEvent(new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex));
+            HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
+            fireEvent(hexEvent);
         }
     }
 
@@ -233,6 +249,7 @@ public class HexMapView extends Pane {
         dragStartY = event.getY();
         dragStartOffsetX = offsetX;
         dragStartOffsetY = offsetY;
+        event.consume(); // 消费事件防止传播
     }
 
     private void handleMouseDragged(MouseEvent event) {
@@ -243,10 +260,12 @@ public class HexMapView extends Pane {
             offsetY = dragStartOffsetY + deltaY;
             draw();
         }
+        event.consume(); // 消费事件防止传播
     }
 
     private void handleMouseReleased(MouseEvent event) {
         isDragging = false;
+        event.consume(); // 消费事件防止传播
     }
 
     private void handleMouseMoved(MouseEvent event) {
@@ -262,6 +281,7 @@ public class HexMapView extends Pane {
                 // 可以显示工具提示或高亮
             }
         }
+        event.consume(); // 消费事件防止传播
     }
 
     private void handleScroll(ScrollEvent event) {

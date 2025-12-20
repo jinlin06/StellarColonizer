@@ -5,8 +5,9 @@ import com.stellarcolonizer.model.galaxy.Hex;
 import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.service.event.GameEvent;
 import com.stellarcolonizer.model.service.event.GameEventListener;
-import com.stellarcolonizer.view.components.HexMapView;
-import com.stellarcolonizer.view.components.HexSelectedEvent;
+import com.stellarcolonizer.model.technology.TechTree;
+import com.stellarcolonizer.view.components.*;
+import com.stellarcolonizer.view.components.StarSystemInfoView; // 添加导入
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -53,15 +54,6 @@ public class MainController {
 
     private GameEngine gameEngine;
 
-    @FXML
-    public void initialize() {
-        // 初始化地图视图
-        hexMapView = new HexMapView();
-        mainContainer.setCenter(hexMapView);
-        // 确保地图视图能够接收键盘事件
-        hexMapView.requestFocus();
-    }
-
     public void setGameEngine(GameEngine gameEngine) {
         this.gameEngine = gameEngine;
 
@@ -70,12 +62,6 @@ public class MainController {
         hexMapView.setGalaxy(gameEngine.getGalaxy());
         hexMapView.setPlayerFaction(gameEngine.getPlayerFaction());
         hexMapView.setPlayerStartHex(gameEngine.getPlayerStartHex()); // 设置玩家起始位置
-
-        // 设置六边形选择监听
-        hexMapView.addEventHandler(HexSelectedEvent.HEX_SELECTED, event -> {
-            Hex selectedHex = event.getSelectedHex();
-            onHexSelected(selectedHex);
-        });
 
         // 初始化资源显示
         updateResourceDisplay();
@@ -89,21 +75,40 @@ public class MainController {
             // 再次延时确保UI完全加载
             javafx.application.Platform.runLater(() -> {
                 hexMapView.requestFocus();
-                System.out.println("Focus requested for HexMapView");
             });
+        });
+        
+        // 设置游戏事件监听器
+        setupEventListeners();
+    }
+
+    @FXML
+    public void initialize() {
+        // 初始化地图视图
+        hexMapView = new HexMapView();
+        mainContainer.setCenter(hexMapView);
+        // 确保地图视图能够接收键盘事件
+        hexMapView.requestFocus();
+        
+        // 设置六边形选择监听（提前设置，避免事件丢失）
+        hexMapView.addEventHandler(HexSelectedEvent.HEX_SELECTED, event -> {
+            Hex selectedHex = event.getSelectedHex();
+            onHexSelected(selectedHex);
         });
     }
 
     private void setupEventListeners() {
         // 游戏事件监听
-        gameEngine.addEventListener(new GameEventListener() {
-            @Override
-            public void onEvent(GameEvent event) {
-                javafx.application.Platform.runLater(() -> {
-                    addEventToLog(event.getMessage());
-                });
-            }
-        });
+        if (gameEngine != null) {
+            gameEngine.addEventListener(new GameEventListener() {
+                @Override
+                public void onEvent(GameEvent event) {
+                    javafx.application.Platform.runLater(() -> {
+                        addEventToLog(event.getMessage());
+                    });
+                }
+            });
+        }
 
         // 下一回合按钮
         nextTurnButton.setOnAction(event -> {
@@ -124,19 +129,8 @@ public class MainController {
     }
 
     private void showStarSystemInfo(StarSystem system) {
-        StringBuilder info = new StringBuilder();
-        info.append("恒星系: ").append(system.getName()).append("\n");
-        info.append("恒星类型: ").append(system.getStarType().getDisplayName()).append("\n");
-        info.append("行星数量: ").append(system.getPlanets().size()).append("\n\n");
-
-        info.append("行星列表:\n");
-        for (int i = 0; i < system.getPlanets().size(); i++) {
-            var planet = system.getPlanets().get(i);
-            info.append((i + 1)).append(". ").append(planet.getName())
-                    .append(" (").append(planet.getType().getDisplayName()).append(")\n");
-        }
-
-        showInfoDialog("恒星系信息", info.toString());
+        // 使用新的星系信息展示窗口
+        StarSystemInfoView.showSystemInfo(system, gameEngine.getPlayerFaction());
     }
 
     private void showHexInfo(Hex hex) {
@@ -157,23 +151,26 @@ public class MainController {
         // 创建标题标签
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("title-label");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
         
         // 创建内容标签
         Label contentLabel = new Label(content);
         contentLabel.getStyleClass().add("content-label");
         contentLabel.setWrapText(true);
+        contentLabel.setStyle("-fx-font-family: 'Consolas', 'Courier New', monospace; -fx-font-size: 14px; -fx-text-fill: #ffffff;");
         
         // 创建滚动面板
         ScrollPane scrollPane = new ScrollPane(contentLabel);
         scrollPane.setFitToWidth(true);
-        scrollPane.setPrefSize(400, 300);
+        scrollPane.setPrefSize(450, 300);
         scrollPane.getStyleClass().add("scroll-pane");
+        scrollPane.setStyle("-fx-background: #2d2d2d; -fx-border-color: #555555; -fx-padding: 15px;");
         
         // 创建容器
         VBox vbox = new VBox(15);
         vbox.getChildren().addAll(titleLabel, scrollPane);
         vbox.setPadding(new Insets(20));
-        vbox.getStyleClass().add("info-dialog");
+        vbox.setStyle("-fx-background-color: #3c3c3c;");
         
         Scene scene = new Scene(vbox, 450, 350);
         scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
@@ -225,29 +222,131 @@ public class MainController {
     private void showFleetManager() {
         System.out.println("显示舰队管理器");
         // TODO: 实现舰队管理器界面
+        // showInfoDialog("舰队管理器", "舰队管理器界面正在开发中...\n\n在这里您可以:\n- 查看您的舰队\n- 管理舰船配置\n- 发送舰队执行任务\n- 查看舰队状态");
+        
+        // 创建并显示舰队管理器界面
+        try {
+            // 先检查gameEngine和playerFaction是否存在
+            if (gameEngine == null || gameEngine.getPlayerFaction() == null) {
+                showInfoDialog("错误", "游戏尚未初始化完成");
+                return;
+            }
+            
+            FleetManagerUI fleetManagerUI = new FleetManagerUI(gameEngine.getPlayerFaction());
+            showComponentInWindow(fleetManagerUI, "舰队管理器");
+        } catch (Exception e) {
+            e.printStackTrace();
+            showInfoDialog("错误", "无法打开舰队管理器: " + e.getMessage());
+        }
     }
     
     @FXML
     private void showTechTree() {
         System.out.println("显示科技树");
         // TODO: 实现科技树界面
+        // showInfoDialog("科技树", "科技树界面正在开发中...\n\n在这里您可以:\n- 查看可研发的技术\n- 选择研究项目\n- 查看技术效果\n- 解锁新的能力");
+        
+        // 创建并显示科技树界面
+        try {
+            // 先检查gameEngine和playerFaction是否存在
+            if (gameEngine == null || gameEngine.getPlayerFaction() == null) {
+                showInfoDialog("错误", "游戏尚未初始化完成");
+                return;
+            }
+            
+            // 创建一个新的TechTree实例
+            TechTree techTree = new TechTree("玩家科技树");
+            TechTreeUI techTreeUI = new TechTreeUI(techTree);
+            showComponentInWindow(techTreeUI, "科技树");
+        } catch (Exception e) {
+            e.printStackTrace();
+            showInfoDialog("错误", "无法打开科技树: " + e.getMessage());
+        }
     }
     
     @FXML
     private void showDiplomacy() {
         System.out.println("显示外交界面");
         // TODO: 实现外交界面
+        showInfoDialog("外交界面", "外交界面正在开发中...\n\n在这里您可以:\n- 查看与其他派系的关系\n- 发送外交提案\n- 管理条约和协议\n- 进行贸易谈判");
     }
     
     @FXML
     private void showBuildMenu() {
         System.out.println("显示建造菜单");
         // TODO: 实现建造菜单界面
+        // showInfoDialog("建造菜单", "建造菜单界面正在开发中...\n\n在这里您可以:\n- 建造新的舰船\n- 升级设施\n- 生产资源\n- 管理建设项目");
+        
+        // 创建并显示舰船设计器界面
+        try {
+            // 先检查gameEngine是否存在
+            if (gameEngine == null) {
+                showInfoDialog("错误", "游戏尚未初始化完成");
+                return;
+            }
+            
+            ShipDesignerUI shipDesignerUI = new ShipDesignerUI();
+            showComponentInWindow(shipDesignerUI, "舰船设计器");
+        } catch (Exception e) {
+            e.printStackTrace();
+            showInfoDialog("错误", "无法打开舰船设计器: " + e.getMessage());
+        }
+    }
+    
+    @FXML
+    private void showShipDesigner() {
+        System.out.println("显示舰船设计");
+        try {
+            // 先检查gameEngine是否存在
+            if (gameEngine == null) {
+                showInfoDialog("错误", "游戏尚未初始化完成");
+                return;
+            }
+            
+            ShipDesignerUI shipDesignerUI = new ShipDesignerUI();
+            showComponentInWindow(shipDesignerUI, "舰船设计器");
+        } catch (Exception e) {
+            e.printStackTrace();
+            showInfoDialog("错误", "无法打开舰船设计器: " + e.getMessage());
+        }
     }
     
     @FXML
     private void showColonyManager() {
         System.out.println("显示殖民地管理器");
         // TODO: 实现殖民地管理器界面
+        // showInfoDialog("殖民地管理器", "殖民地管理器界面正在开发中...\n\n在这里您可以:\n- 管理殖民地人口\n- 分配劳动力\n- 建设设施\n- 查看殖民地生产");
+        
+        // 创建并显示殖民地管理器界面
+        try {
+            // 先检查gameEngine和playerFaction是否存在
+            if (gameEngine == null || gameEngine.getPlayerFaction() == null) {
+                showInfoDialog("错误", "游戏尚未初始化完成");
+                return;
+            }
+            
+            ColonyManagerView colonyManagerView = new ColonyManagerView(gameEngine.getPlayerFaction());
+            showComponentInWindow(colonyManagerView, "殖民地管理器");
+        } catch (Exception e) {
+            e.printStackTrace();
+            showInfoDialog("错误", "无法打开殖民地管理器: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 在新窗口中显示组件
+     * @param component 要显示的组件
+     * @param title 窗口标题
+     */
+    private void showComponentInWindow(javafx.scene.Parent component, String title) {
+        javafx.stage.Stage dialog = new javafx.stage.Stage();
+        dialog.setTitle(title);
+        dialog.initModality(javafx.stage.Modality.NONE); // 非模态窗口，允许同时打开多个界面
+        
+        javafx.scene.Scene scene = new javafx.scene.Scene(component);
+        scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
+        
+        dialog.setScene(scene);
+        dialog.show();
     }
 }
