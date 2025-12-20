@@ -148,6 +148,15 @@ public class MainController {
         dialog.initModality(Modality.WINDOW_MODAL);
         dialog.setResizable(true);
         
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            dialog.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
         // 创建标题标签
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("title-label");
@@ -342,6 +351,15 @@ public class MainController {
         javafx.stage.Stage dialog = new javafx.stage.Stage();
         dialog.setTitle(title);
         dialog.initModality(javafx.stage.Modality.NONE); // 非模态窗口，允许同时打开多个界面
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            dialog.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
         
         javafx.scene.Scene scene = new javafx.scene.Scene(component);
         scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());

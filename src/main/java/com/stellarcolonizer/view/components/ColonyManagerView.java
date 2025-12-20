@@ -18,6 +18,7 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
 
 import java.util.Map;
 
@@ -289,10 +290,56 @@ public class ColonyManagerView extends VBox {
         ComboBox<PopType> fromTypeCombo = new ComboBox<>();
         fromTypeCombo.getItems().addAll(PopType.values());
         fromTypeCombo.setPromptText("从职业");
+        // 设置显示职业的中文名称
+        fromTypeCombo.setCellFactory(lv -> new ListCell<PopType>() {
+            @Override
+            protected void updateItem(PopType item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
+        fromTypeCombo.setButtonCell(new ListCell<PopType>() {
+            @Override
+            protected void updateItem(PopType item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("从职业");
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
 
         ComboBox<PopType> toTypeCombo = new ComboBox<>();
         toTypeCombo.getItems().addAll(PopType.values());
         toTypeCombo.setPromptText("到职业");
+        // 设置显示职业的中文名称
+        toTypeCombo.setCellFactory(lv -> new ListCell<PopType>() {
+            @Override
+            protected void updateItem(PopType item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
+        toTypeCombo.setButtonCell(new ListCell<PopType>() {
+            @Override
+            protected void updateItem(PopType item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("到职业");
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
 
         Spinner<Integer> amountSpinner = new Spinner<>(0, 1000000, 1000, 100);
         amountSpinner.setEditable(true);
@@ -377,12 +424,56 @@ public class ColonyManagerView extends VBox {
         // 管理者列表（可选）
         ListView<ColonyGovernor> governorListView = createGovernorListView();
 
+        // 成长重点选择
+        VBox focusPanel = new VBox(5);
+        focusPanel.setStyle("-fx-background-color: #333333; -fx-padding: 10; -fx-background-radius: 5;");
+        
+        Label focusLabel = new Label("成长重点:");
+        focusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+        
+        ComboBox<GrowthFocus> focusCombo = new ComboBox<>();
+        focusCombo.getItems().addAll(GrowthFocus.values());
+        focusCombo.setPromptText("选择成长重点");
+        // 设置显示成长重点的中文名称
+        focusCombo.setCellFactory(lv -> new ListCell<GrowthFocus>() {
+            @Override
+            protected void updateItem(GrowthFocus item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
+        focusCombo.setButtonCell(new ListCell<GrowthFocus>() {
+            @Override
+            protected void updateItem(GrowthFocus item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("选择成长重点");
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
+        
+        Button setFocusButton = new Button("设定成长重点");
+        setFocusButton.setStyle("-fx-background-color: #FF9800; -fx-text-fill: white;");
+        setFocusButton.setOnAction(e -> {
+            if (focusCombo.getValue() != null) {
+                setGrowthFocus(focusCombo.getValue());
+            }
+        });
+        
+        focusPanel.getChildren().addAll(focusLabel, focusCombo, setFocusButton);
+
         // 分配按钮
         Button assignButton = new Button("分配管理者");
         assignButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
         assignButton.setOnAction(e -> assignGovernor());
 
-        tabContent.getChildren().addAll(governorInfo, governorListView, assignButton);
+        tabContent.getChildren().addAll(governorInfo, governorListView, focusPanel, assignButton);
         return tabContent;
     }
 
@@ -549,6 +640,18 @@ public class ColonyManagerView extends VBox {
         // 创建建筑列表
         ListView<BuildingType> buildingTypeList = new ListView<>();
         buildingTypeList.getItems().addAll(BuildingType.values());
+        // 设置显示建筑类型的中文名称
+        buildingTypeList.setCellFactory(lv -> new ListCell<BuildingType>() {
+            @Override
+            protected void updateItem(BuildingType item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
 
         dialog.getDialogPane().setContent(buildingTypeList);
 
@@ -592,10 +695,21 @@ public class ColonyManagerView extends VBox {
         if (selectedColony == null || buildingListView.getSelectionModel().isEmpty()) return;
 
         Building selectedBuilding = buildingListView.getSelectionModel().getSelectedItem();
+        // 显示确认对话框
         Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmDialog.setTitle("确认拆除");
-        confirmDialog.setHeaderText("确定要拆除 " + selectedBuilding.getName() + " 吗？");
-        confirmDialog.setContentText("将返还50%的建筑资源。");
+        confirmDialog.setTitle("确认拆解");
+        confirmDialog.setHeaderText(null);
+        confirmDialog.setContentText("确定要拆解 " + selectedBuilding.getName() + " 吗？");
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            Stage stage = (Stage) confirmDialog.getDialogPane().getScene().getWindow();
+            stage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
 
         confirmDialog.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {

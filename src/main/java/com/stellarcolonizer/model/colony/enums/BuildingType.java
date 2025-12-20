@@ -1,17 +1,17 @@
 package com.stellarcolonizer.model.colony.enums;
 
 public enum BuildingType {
-    FOOD_PRODUCTION("食物生产", "生产食物", "🏭"),
-    ENERGY_PRODUCTION("能源生产", "生产能源", "⚡"),
-    MINERAL_PRODUCTION("矿物生产", "生产矿物", "⛏️"),
-    RESEARCH("研究设施", "生产科研", "🔬"),
+    FOOD_PRODUCTION("农场", "生产食物", "🏭"),
+    ENERGY_PRODUCTION("发电厂", "生产能源", "⚡"),
+    MINERAL_PRODUCTION("矿场", "生产矿物", "⛏️"),
+    RESEARCH("科研所", "生产科研", "🔬"),
     HOUSING("居住区", "提供住房", "🏠"),
     ADMINISTRATION("行政中心", "提高管理效率", "🏛️"),
     DEFENSE("防御设施", "提供防御", "🛡️"),
-    TRADE("贸易设施", "促进贸易", "💰"),
-    ENTERTAINMENT("娱乐设施", "提高幸福度", "🎭"),
-    HEALTHCARE("医疗设施", "提高人口健康", "🏥"),
-    EDUCATION("教育设施", "提高人口素质", "📚"),
+    TRADE("市场", "促进贸易", "💰"),
+    ENTERTAINMENT("剧院", "提高幸福度", "🎭"),
+    HEALTHCARE("医院", "提高人口健康", "🏥"),
+    EDUCATION("学校", "提高人口素质", "📚"),
     TRANSPORTATION("交通设施", "提高运输效率", "🚄"),
     SPECIAL("特殊建筑", "特殊功能", "⭐");
 

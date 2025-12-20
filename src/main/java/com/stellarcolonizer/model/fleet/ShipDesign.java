@@ -40,6 +40,9 @@ public class ShipDesign {
 
     private final BooleanProperty isValidDesign;
     private final StringProperty validationMessage;
+    
+    // 科技加成
+    private FloatProperty hullSizeMultiplier; // 船体空间加成乘数
 
     public ShipDesign(String name, ShipClass shipClass) {
         this.name = new SimpleStringProperty(name);
@@ -57,6 +60,9 @@ public class ShipDesign {
 
         this.isValidDesign = new SimpleBooleanProperty(false);
         this.validationMessage = new SimpleStringProperty("");
+        
+        // 初始化科技加成
+        this.hullSizeMultiplier = new SimpleFloatProperty(1.0f);
 
         addDefaultModules();
         updateDesign();
@@ -65,7 +71,7 @@ public class ShipDesign {
     private void initializeBaseStats(ShipClass shipClass) {
         switch (shipClass) {
             case CORVETTE:
-                hullSize =  new  SimpleIntegerProperty(1000);
+                hullSize =  new  SimpleIntegerProperty(900);
                 powerOutput = new SimpleIntegerProperty(500);
                 crewCapacity = new SimpleIntegerProperty(50);
                 cargoCapacity = new SimpleIntegerProperty(100);
@@ -82,7 +88,7 @@ public class ShipDesign {
                 break;
 
             case FRIGATE:
-                hullSize = new SimpleIntegerProperty(2500);
+                hullSize = new SimpleIntegerProperty(1800);
                 powerOutput = new SimpleIntegerProperty(1200);
                 crewCapacity = new SimpleIntegerProperty(120);
                 cargoCapacity = new SimpleIntegerProperty(250);
@@ -99,7 +105,7 @@ public class ShipDesign {
                 break;
 
             case DESTROYER:
-                hullSize = new SimpleIntegerProperty(5000);
+                hullSize = new SimpleIntegerProperty(3500);
                 powerOutput = new SimpleIntegerProperty(2500);
                 crewCapacity = new SimpleIntegerProperty(250);
                 cargoCapacity = new SimpleIntegerProperty(500);
@@ -116,7 +122,7 @@ public class ShipDesign {
                 break;
 
             case CRUISER:
-                hullSize = new SimpleIntegerProperty(10000);
+                hullSize = new SimpleIntegerProperty(8000);
                 powerOutput = new SimpleIntegerProperty(5000);
                 crewCapacity = new SimpleIntegerProperty(500);
                 cargoCapacity = new SimpleIntegerProperty(1000);
@@ -133,7 +139,7 @@ public class ShipDesign {
                 break;
 
             case BATTLESHIP:
-                hullSize = new SimpleIntegerProperty(20000);
+                hullSize = new SimpleIntegerProperty(18000);
                 powerOutput = new SimpleIntegerProperty(10000);
                 crewCapacity = new SimpleIntegerProperty(1000);
                 cargoCapacity = new SimpleIntegerProperty(2000);
@@ -150,7 +156,7 @@ public class ShipDesign {
                 break;
 
             case CARRIER:
-                hullSize = new SimpleIntegerProperty(30000);
+                hullSize = new SimpleIntegerProperty(28000);
                 powerOutput = new SimpleIntegerProperty(15000);
                 crewCapacity = new SimpleIntegerProperty(1500);
                 cargoCapacity = new SimpleIntegerProperty(5000);
@@ -174,42 +180,41 @@ public class ShipDesign {
     private void initializeDesignLimits(ShipClass shipClass) {
         switch (shipClass) {
             case CORVETTE:
-                maxModules = new SimpleIntegerProperty(3);
-                maxWeapons = new SimpleIntegerProperty(2);
-                maxUtility = new SimpleIntegerProperty(1);
+                maxModules = new SimpleIntegerProperty(Integer.MAX_VALUE); // 移除限制
+                maxWeapons = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
+                maxUtility = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
                 break;
             case FRIGATE:
-                maxModules = new SimpleIntegerProperty(5);
-                maxWeapons = new SimpleIntegerProperty(3);
-                maxUtility = new SimpleIntegerProperty(2);
+                maxModules = new SimpleIntegerProperty(Integer.MAX_VALUE); // 移除限制
+                maxWeapons = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
+                maxUtility = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
                 break;
             case DESTROYER:
-                maxModules = new SimpleIntegerProperty(8);
-                maxWeapons = new SimpleIntegerProperty(5);
-                maxUtility = new SimpleIntegerProperty(3);
+                maxModules = new SimpleIntegerProperty(Integer.MAX_VALUE); // 移除限制
+                maxWeapons = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
+                maxUtility = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
                 break;
             case CRUISER:
-                maxModules = new SimpleIntegerProperty(12);
-                maxWeapons = new SimpleIntegerProperty(8);
-                maxUtility = new SimpleIntegerProperty(4);
+                maxModules = new SimpleIntegerProperty(Integer.MAX_VALUE); // 移除限制
+                maxWeapons = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
+                maxUtility = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
                 break;
             case BATTLESHIP:
-                maxModules = new SimpleIntegerProperty(16);
-                maxWeapons = new SimpleIntegerProperty(12);
-                maxUtility = new SimpleIntegerProperty(4);
+                maxModules = new SimpleIntegerProperty(Integer.MAX_VALUE); // 移除限制
+                maxWeapons = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
+                maxUtility = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
                 break;
             case CARRIER:
-                maxModules = new SimpleIntegerProperty(20);
-                maxWeapons = new SimpleIntegerProperty(6);
-                maxUtility = new SimpleIntegerProperty(14);
+                maxModules = new SimpleIntegerProperty(Integer.MAX_VALUE); // 移除限制
+                maxWeapons = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
+                maxUtility = new SimpleIntegerProperty(Integer.MAX_VALUE);  // 移除限制
                 break;
         }
     }
 
     private void addDefaultModules() {
-        modules.add(new HullModule(hullSize.get()));
-        modules.add(new EngineModule(enginePower.get()));
-        modules.add(new PowerModule(powerOutput.get()));
+        // 不再在这里添加默认模块，因为在ShipDesignerUI中会专门处理
+        // 这样可以确保初始设计符合规则
     }
 
     public boolean addModule(ShipModule module) {
@@ -235,22 +240,11 @@ public class ShipDesign {
     }
 
     public boolean canAddModule(ShipModule module) {
-        if (module instanceof WeaponModule) {
-            int weaponCount = (int) modules.stream().filter(m -> m instanceof WeaponModule).count();
-            if (weaponCount >= maxWeapons.get()) {
-                return false;
-            }
-        } else if (module instanceof UtilityModule) {
-            int utilityCount = (int) modules.stream().filter(m -> m instanceof UtilityModule).count();
-            if (utilityCount >= maxUtility.get()) {
-                return false;
-            }
-        }
+        // 移除武器和功能模块的数量限制检查
 
-        if (modules.size() >= maxModules.get()) {
-            return false;
-        }
+        // 移除总模块数量限制检查
 
+        // 检查能源是否足够
         int totalPowerRequirement = modules.stream().mapToInt(ShipModule::getPowerRequirement).sum();
         totalPowerRequirement += module.getPowerRequirement();
 
@@ -258,7 +252,12 @@ public class ShipDesign {
             return false;
         }
 
-        int totalSize = modules.stream().mapToInt(ShipModule::getSize).sum();
+        // 检查船体空间是否足够（这是主要的修改点）
+        // 计算除船体模块外的所有模块占用的空间
+        int totalSize = modules.stream()
+                .filter(m -> !(m instanceof HullModule))  // 船体模块不计入占用空间
+                .mapToInt(ShipModule::getSize)
+                .sum();
         totalSize += module.getSize();
 
         if (totalSize > hullSize.get()) {
@@ -282,11 +281,27 @@ public class ShipDesign {
     }
 
     public int getUsedHullSpace() {
-        return modules.stream().mapToInt(ShipModule::getSize).sum();
+        // 返回除船体模块外所有模块占用的空间
+        return modules.stream()
+                .filter(m -> !(m instanceof HullModule))  // 船体模块不计入占用空间
+                .mapToInt(ShipModule::getSize)
+                .sum();
     }
 
     public int getFreeHullSpace() {
         return hullSize.get() - getUsedHullSpace();
+    }
+    
+    public int getMaxModules() {
+        return maxModules.get();
+    }
+    
+    public int getMaxWeapons() {
+        return maxWeapons.get();
+    }
+    
+    public int getMaxUtility() {
+        return maxUtility.get();
     }
 
     private void updateDesign() {
@@ -365,18 +380,26 @@ public class ShipDesign {
         boolean valid = true;
         StringBuilder message = new StringBuilder();
 
+        // 检查能源平衡
         int powerBalance = getAvailablePower();
         if (powerBalance < 0) {
             valid = false;
             message.append("能源不足！缺少 ").append(-powerBalance).append(" 单位能源\n");
         }
 
-        int freeSpace = getFreeHullSpace();
-        if (freeSpace < 0) {
+        // 检查船体空间（这是主要的修改点）
+        // 计算除船体模块外的所有模块占用的空间
+        int totalSize = modules.stream()
+                .filter(m -> !(m instanceof HullModule))  // 船体模块不计入占用空间
+                .mapToInt(ShipModule::getSize)
+                .sum();
+        if (totalSize > hullSize.get()) {
             valid = false;
-            message.append("船体空间不足！超载 ").append(-freeSpace).append(" 单位\n");
+            int overload = totalSize - hullSize.get();
+            message.append("船体空间不足！超载 ").append(overload).append(" 单位\n");
         }
 
+        // 检查船员数量
         if (crewCapacity.get() < 10) {
             valid = false;
             message.append("船员不足！最少需要10名船员\n");
@@ -461,7 +484,15 @@ public class ShipDesign {
     public int getVersion() { return version.get(); }
     public IntegerProperty versionProperty() { return version; }
 
-    public int getHullSize() { return hullSize.get(); }
+    public int getHullSize() { 
+        // 应用科技加成
+        return (int) (hullSize.get() * hullSizeMultiplier.get()); 
+    }
+    
+    public FloatProperty hullSizeMultiplierProperty() { return hullSizeMultiplier; }
+    public float getHullSizeMultiplier() { return hullSizeMultiplier.get(); }
+    public void setHullSizeMultiplier(float multiplier) { hullSizeMultiplier.set(multiplier); }
+    
     public int getPowerOutput() { return powerOutput.get(); }
     public int getCrewCapacity() { return crewCapacity.get(); }
     public int getCargoCapacity() { return cargoCapacity.get(); }
@@ -492,10 +523,6 @@ public class ShipDesign {
 
     public Map<ResourceType, Float> getConstructionCost() { return new EnumMap<>(constructionCost); }
     public Map<ResourceType, Float> getMaintenanceCost() { return new EnumMap<>(maintenanceCost); }
-
-    public int getMaxModules() { return maxModules.get(); }
-    public int getMaxWeapons() { return maxWeapons.get(); }
-    public int getMaxUtility() { return maxUtility.get(); }
 
     public boolean isValidDesign() { return isValidDesign.get(); }
     public BooleanProperty validDesignProperty() { return isValidDesign; }

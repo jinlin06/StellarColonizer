@@ -735,9 +735,9 @@ public class TechTreeUI extends BorderPane {
 
             if (technology.isResearched()) {
                 style.append("-fx-effect: dropshadow(gaussian, ").append(TechTreeUI.this.toHex(technology.getColor()))
-                        .append(", 10, 0.7);");
+                        .append(", 10, 0, 0, 0);");
             } else if (techTree.canResearch(technology)) {
-                style.append("-fx-effect: dropshadow(gaussian, #FFD700, 5, 0.5);");
+                style.append("-fx-effect: dropshadow(gaussian, #FFD700, 5, 0, 0, 0);");
             }
 
             return style.toString();

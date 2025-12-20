@@ -18,7 +18,7 @@ public class UtilityModule extends ShipModule {
     private final Map<String, Float> specialEffects;
 
     public UtilityModule(String name, UtilityType utilityType, float utilityValue) {
-        super(name, ModuleType.UTILITY, 20, 10);
+        super(name, ModuleType.UTILITY, 150, 10); // 减少空间占用到150
 
         this.utilityType = new SimpleObjectProperty<>(utilityType);
         this.utilityValue = new SimpleFloatProperty(utilityValue);

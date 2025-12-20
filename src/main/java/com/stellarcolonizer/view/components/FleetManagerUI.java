@@ -19,6 +19,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.stage.Stage;
 
 import java.util.*;
 
@@ -452,16 +453,14 @@ public class FleetManagerUI extends BorderPane {
         title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         title.setTextFill(Color.WHITE);
 
-        buildShipButton = new Button("建造舰船");
         scrapShipButton = new Button("拆解舰船");
         transferShipButton = new Button("转移舰船");
 
         String buttonStyle = "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-min-width: 120;";
-        buildShipButton.setStyle(buttonStyle);
         scrapShipButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-min-width: 120;");
         transferShipButton.setStyle(buttonStyle);
 
-        panel.getChildren().addAll(title, buildShipButton, scrapShipButton, transferShipButton);
+        panel.getChildren().addAll(title, scrapShipButton, transferShipButton);
         return panel;
     }
 
@@ -482,6 +481,31 @@ public class FleetManagerUI extends BorderPane {
         missionComboBox = new ComboBox<>();
         missionComboBox.getItems().addAll(FleetMission.values());
         missionComboBox.setPrefWidth(150);
+        
+        // 设置任务下拉框显示中文名称
+        missionComboBox.setCellFactory(lv -> new ListCell<FleetMission>() {
+            @Override
+            protected void updateItem(FleetMission item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
+        
+        missionComboBox.setButtonCell(new ListCell<FleetMission>() {
+            @Override
+            protected void updateItem(FleetMission item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("选择任务");
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
 
         missionBox.getChildren().addAll(missionLabel, missionComboBox);
 
@@ -533,9 +557,6 @@ public class FleetManagerUI extends BorderPane {
 
         // 更改任务
         changeMissionButton.setOnAction(e -> changeFleetMission());
-
-        // 建造舰船
-        buildShipButton.setOnAction(e -> showBuildShipDialog());
 
         // 拆解舰船
         scrapShipButton.setOnAction(e -> scrapSelectedShip());
@@ -957,6 +978,17 @@ public class FleetManagerUI extends BorderPane {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+            stage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
         alert.showAndWait();
     }
 

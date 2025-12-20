@@ -17,7 +17,6 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.util.Map;
 
 public class StarSystemInfoView extends VBox {
     
@@ -346,6 +345,15 @@ public class StarSystemInfoView extends VBox {
         buildingStage.setTitle("建筑管理 - " + planet.getName());
         buildingStage.initModality(Modality.WINDOW_MODAL);
         
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            buildingStage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
         VBox root = new VBox(10);
         root.setPadding(new Insets(10));
         root.setStyle("-fx-background-color: #2b2b2b;");
@@ -397,6 +405,29 @@ public class StarSystemInfoView extends VBox {
         ComboBox<BuildingType> buildingTypeCombo = new ComboBox<>();
         buildingTypeCombo.getItems().addAll(BuildingType.values());
         buildingTypeCombo.setPromptText("选择建筑类型");
+        // 设置显示建筑类型的中文名称
+        buildingTypeCombo.setCellFactory(lv -> new ListCell<BuildingType>() {
+            @Override
+            protected void updateItem(BuildingType item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
+        buildingTypeCombo.setButtonCell(new ListCell<BuildingType>() {
+            @Override
+            protected void updateItem(BuildingType item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("选择建筑类型");
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
         
         VBox content = new VBox(10);
         content.getChildren().add(buildingTypeCombo);
@@ -460,6 +491,17 @@ public class StarSystemInfoView extends VBox {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+            stage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
         alert.showAndWait();
     }
     
@@ -468,6 +510,15 @@ public class StarSystemInfoView extends VBox {
         dialog.setTitle("星系详情 - " + system.getName());
         dialog.initModality(Modality.WINDOW_MODAL);
         dialog.setResizable(true);
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                StarSystemInfoView.class.getResourceAsStream("/images/icon.png"));
+            dialog.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
         
         StarSystemInfoView view = new StarSystemInfoView(system, playerFaction);
         

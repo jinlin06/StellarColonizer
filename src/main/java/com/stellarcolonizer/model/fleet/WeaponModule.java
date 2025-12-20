@@ -30,7 +30,7 @@ public class WeaponModule extends ShipModule {
     private final boolean isTurret;            // 是否是炮塔
 
     public WeaponModule(String name, WeaponType weaponType, float damage, float fireRate) {
-        super(name, ModuleType.WEAPON, 50, 20);
+        super(name, ModuleType.WEAPON, 200, 20); // 减少空间占用到200
 
         this.weaponType = new SimpleObjectProperty<>(weaponType);
         this.damage = new SimpleFloatProperty(damage);

@@ -5,10 +5,10 @@ import com.stellarcolonizer.model.fleet.enums.ModuleType;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 
 // 船体模块
-class HullModule extends ShipModule {
+public class HullModule extends ShipModule {
 
     public HullModule(int hullSize) {
-        super("基础船体", ModuleType.HULL, hullSize, 0);
+        super("基础船体", ModuleType.HULL, 0, 0); // 船体模块不占用自身空间
     }
 
     @Override
@@ -67,4 +67,3 @@ class HullModule extends ShipModule {
         return size.get() / 50; // 每50单位船体提供1单位燃料
     }
 }
-

@@ -1,7 +1,10 @@
 // ShipModule.java - 舰船模块基类
 package com.stellarcolonizer.model.fleet;
 
+import com.stellarcolonizer.model.fleet.enums.DefenseType;
 import com.stellarcolonizer.model.fleet.enums.ModuleType;
+import com.stellarcolonizer.model.fleet.enums.UtilityType;
+import com.stellarcolonizer.model.fleet.enums.WeaponType;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.technology.Technology;
 import javafx.beans.property.*;
@@ -29,6 +32,9 @@ public abstract class ShipModule {
     protected final BooleanProperty isActive;
     protected final FloatProperty integrity;         // 完整性（0-100%）
 
+    // 是否已解锁
+    protected final BooleanProperty unlocked;
+
     public ShipModule(String name, ModuleType type, int size, int powerRequirement) {
         this.name = new SimpleStringProperty(name);
         this.type = new SimpleObjectProperty<>(type);
@@ -42,6 +48,9 @@ public abstract class ShipModule {
 
         this.requiredTechnology = "BASIC_MODULE";
         this.techLevel = new SimpleIntegerProperty(1);
+        
+        // 默认情况下模块是锁定的，需要科技解锁
+        this.unlocked = new SimpleBooleanProperty(false);
 
         this.isActive = new SimpleBooleanProperty(true);
         this.integrity = new SimpleFloatProperty(100.0f);
@@ -92,16 +101,66 @@ public abstract class ShipModule {
 
     public ShipModule createCopy() {
         try {
-            ShipModule copy = (ShipModule) this.getClass()
-                    .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class)
-                    .newInstance(name.get(), type.get(), size.get(), powerRequirement.get());
-
-            // 复制其他属性
-            copy.weight.set(this.weight.get());
-            copy.integrity.set(this.integrity.get());
-            copy.isActive.set(this.isActive.get());
-
-            return copy;
+            // 尝试不同的构造函数签名
+            Class<?> clazz = this.getClass();
+            
+            // 首先尝试四参数构造函数 (String, ModuleType, int, int)
+            try {
+                return (ShipModule) clazz
+                        .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class)
+                        .newInstance(name.get(), type.get(), size.get(), powerRequirement.get());
+            } catch (NoSuchMethodException e) {
+                // 如果失败，尝试武器模块的构造函数 (String, WeaponType, float, float)
+                if (this instanceof WeaponModule) {
+                    WeaponModule weapon = (WeaponModule) this;
+                    return (ShipModule) clazz
+                            .getDeclaredConstructor(String.class, WeaponType.class, float.class, float.class)
+                            .newInstance(name.get(), weapon.getWeaponType(), weapon.getDamage(), weapon.getFireRate());
+                }
+                
+                // 如果还失败，尝试防御模块的构造函数 (String, DefenseType, float)
+                if (this instanceof DefenseModule) {
+                    DefenseModule defense = (DefenseModule) this;
+                    return (ShipModule) clazz
+                            .getDeclaredConstructor(String.class, DefenseType.class, float.class)
+                            .newInstance(name.get(), defense.getDefenseType(), defense.getDefenseValue());
+                }
+                
+                // 如果还失败，尝试功能模块的构造函数 (String, UtilityType, float)
+                if (this instanceof UtilityModule) {
+                    UtilityModule utility = (UtilityModule) this;
+                    return (ShipModule) clazz
+                            .getDeclaredConstructor(String.class, UtilityType.class, float.class)
+                            .newInstance(name.get(), utility.getUtilityType(), utility.getUtilityValue());
+                }
+                
+                // 如果还失败，尝试引擎模块的构造函数 (float)
+                if (this instanceof EngineModule) {
+                    EngineModule engine = (EngineModule) this;
+                    return (ShipModule) clazz
+                            .getDeclaredConstructor(float.class)
+                            .newInstance(engine.getThrust());
+                }
+                
+                // 如果还失败，尝试电力模块的构造函数 (int)
+                if (this instanceof PowerModule) {
+                    PowerModule power = (PowerModule) this;
+                    return (ShipModule) clazz
+                            .getDeclaredConstructor(int.class)
+                            .newInstance(power.getPowerOutput());
+                }
+                
+                // 如果还失败，尝试船体模块的构造函数 (int)
+                if (this instanceof HullModule) {
+                    HullModule hull = (HullModule) this;
+                    return (ShipModule) clazz
+                            .getDeclaredConstructor(int.class)
+                            .newInstance(hull.getSize());
+                }
+                
+                // 如果所有尝试都失败，抛出原始异常
+                throw e;
+            }
         } catch (Exception e) {
             throw new RuntimeException("无法复制模块: " + e.getMessage(), e);
         }
@@ -132,6 +191,10 @@ public abstract class ShipModule {
     public String getRequiredTechnology() { return requiredTechnology; }
     public int getTechLevel() { return techLevel.get(); }
     public IntegerProperty techLevelProperty() { return techLevel; }
+    
+    public boolean isUnlocked() { return unlocked.get(); }
+    public BooleanProperty unlockedProperty() { return unlocked; }
+    public void setUnlocked(boolean unlocked) { this.unlocked.set(unlocked); }
 
     public boolean isActive() { return isActive.get(); }
     public BooleanProperty activeProperty() { return isActive; }

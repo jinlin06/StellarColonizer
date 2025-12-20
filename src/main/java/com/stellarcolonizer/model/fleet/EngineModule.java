@@ -12,7 +12,7 @@ public class EngineModule extends ShipModule {
     private final FloatProperty thrust; // 推力
 
     public EngineModule(float baseThrust) {
-        super("基础引擎", ModuleType.ENGINE, 100, 50);
+        super("基础引擎", ModuleType.ENGINE, 300, 50); // 减少空间占用到300
         this.thrust = new SimpleFloatProperty(baseThrust);
     }
 

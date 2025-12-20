@@ -20,7 +20,7 @@ public class DefenseModule extends ShipModule {
     private final FloatProperty coverage;     // 覆盖范围（0-100%）
 
     public DefenseModule(String name, DefenseType defenseType, float defenseValue) {
-        super(name, ModuleType.DEFENSE, 30, 15);
+        super(name, ModuleType.DEFENSE, 180, 15); // 减少空间占用到180
 
         this.defenseType = new SimpleObjectProperty<>(defenseType);
         this.defenseValue = new SimpleFloatProperty(defenseValue);

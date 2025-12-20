@@ -8,7 +8,7 @@ import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 public class PowerModule extends ShipModule {
 
     public PowerModule(int powerOutput) {
-        super("基础发电机", ModuleType.POWER, 50, -powerOutput); // 负数表示能源输出
+        super("基础发电机", ModuleType.POWER, 250, -powerOutput); // 负数表示能源输出，减少空间占用到250
         this.powerOutput.set(powerOutput);
     }
 
