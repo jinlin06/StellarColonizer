@@ -58,7 +58,7 @@ public class Colony {
 
         this.productionRates = new EnumMap<>(ResourceType.class);
         this.consumptionRates = new EnumMap<>(ResourceType.class);
-        initializeProductionRates();
+        initializeProductionRates(); // 注意这个调用在initializePopulation之后！
 
         this.buildings = new ArrayList<>();
         this.usedBuildingSlots = new SimpleIntegerProperty(0);
@@ -74,20 +74,30 @@ public class Colony {
         this.garrisonSize = new SimpleIntegerProperty(1000);
 
         this.governor = new SimpleObjectProperty<>(null);
+        
+        System.out.println("[" + name.get() + "] 殖民地创建完成");
     }
 
     private void initializePopulation() {
-        populationByType.put(PopType.WORKERS, 600000);
-        populationByType.put(PopType.FARMERS, 200000);
-        populationByType.put(PopType.SCIENTISTS, 100000);
-        populationByType.put(PopType.SOLDIERS, 50000);
-        populationByType.put(PopType.ARTISANS, 50000);
+        // 减少初始人口数量，使游戏初期生产更平衡
+        populationByType.put(PopType.WORKERS, 6000);
+        populationByType.put(PopType.FARMERS, 2000);
+        populationByType.put(PopType.SCIENTISTS, 1000);
+        populationByType.put(PopType.SOLDIERS, 500);
+        populationByType.put(PopType.ARTISANS, 500);
+        
+        // 输出调试信息
+        System.out.println("[" + name.get() + "] 初始化人口:");
+        for (Map.Entry<PopType, Integer> entry : populationByType.entrySet()) {
+            System.out.println("[" + name.get() + "] " + entry.getKey().getDisplayName() + ": " + entry.getValue());
+        }
     }
 
     private void initializeResources() {
-        resourceStockpile.addResource(ResourceType.ENERGY, 1000);
-        resourceStockpile.addResource(ResourceType.METAL, 500);
-        resourceStockpile.addResource(ResourceType.FOOD, 300);
+        // 参考群星机制设置初始资源
+        resourceStockpile.addResource(ResourceType.ENERGY, 200);
+        resourceStockpile.addResource(ResourceType.METAL, 200);
+        resourceStockpile.addResource(ResourceType.FOOD, 200);
         resourceStockpile.addResource(ResourceType.SCIENCE, 100);
     }
 
@@ -97,26 +107,25 @@ public class Colony {
             consumptionRates.put(type, new SimpleFloatProperty(0));
         }
 
-        float baseEnergy = planet.getType().getBaseEnergy() * 10;
-        float baseMetal = planet.getType().getBaseMetal() * 5;
-        float baseFood = calculateBaseFoodProduction();
-
-        productionRates.get(ResourceType.ENERGY).set(baseEnergy);
-        productionRates.get(ResourceType.METAL).set(baseMetal);
-        productionRates.get(ResourceType.FOOD).set(baseFood);
-
-        consumptionRates.get(ResourceType.FOOD).set(calculateFoodConsumption());
-        consumptionRates.get(ResourceType.ENERGY).set(10.0f);
+        // 注意：这里的问题在于initializeProductionRates在initializePopulation之前被调用了
+        // 所以我们需要在processTurn中重新计算初始生产率
+        
+        // 输出调试信息
+        System.out.println("[" + name.get() + "] 初始化生产率完成");
     }
 
     private float calculateBaseFoodProduction() {
         int farmers = populationByType.getOrDefault(PopType.FARMERS, 0);
         float habitability = planet.getHabitability();
-        return farmers * 0.01f * habitability;
+        float result = farmers * 0.1f * habitability;  // 大幅提高基础食物生产率
+        System.out.println("[" + name.get() + "] 计算基础食物生产: 农民数=" + farmers + ", 适居度=" + habitability + ", 结果=" + result);
+        return result;
     }
 
     private float calculateFoodConsumption() {
-        return totalPopulation.get() * 0.01f;
+        float result = totalPopulation.get() * 0.001f;  // 大幅下调食物消耗
+        System.out.println("[" + name.get() + "] 计算食物消耗: 人口=" + totalPopulation.get() + ", 结果=" + result);
+        return result;
     }
 
     private void addStartingBuildings() {
@@ -143,6 +152,23 @@ public class Colony {
     }
 
     public void processTurn() {
+        System.out.println("[" + name.get() + "] 处理回合开始，人口总数: " + totalPopulation.get());
+        // 打印人口分布
+        for (Map.Entry<PopType, Integer> entry : populationByType.entrySet()) {
+            System.out.println("[" + name.get() + "] " + entry.getKey().getDisplayName() + ": " + entry.getValue());
+        }
+        
+        // 重新计算初始生产率（因为initializeProductionRates在initializePopulation之前被调用）
+        float baseEnergy = planet.getType().getBaseEnergy() * 10;
+        float baseMetal = planet.getType().getBaseMetal() * 5;
+        float baseFood = calculateBaseFoodProduction() + 10.0f;  // 添加基础食物产量确保不会为负
+
+        productionRates.get(ResourceType.ENERGY).set(baseEnergy);
+        productionRates.get(ResourceType.METAL).set(baseMetal);
+        productionRates.get(ResourceType.FOOD).set(baseFood);
+        
+        System.out.println("[" + name.get() + "] 重新计算基础生产率: 能量=" + baseEnergy + ", 金属=" + baseMetal + ", 食物=" + baseFood);
+        
         updatePopulation();
         calculateProduction();
         calculateConsumption();
@@ -151,6 +177,7 @@ public class Colony {
         updateStability();
         processBuildings();
         processRandomEvents();
+        System.out.println("[" + name.get() + "] 处理回合结束");
     }
 
     private void updatePopulation() {
@@ -179,51 +206,134 @@ public class Colony {
     }
 
     private void calculateProduction() {
+        // 先重置所有生产率
         for (FloatProperty rate : productionRates.values()) {
             rate.set(0);
         }
 
-        productionRates.get(ResourceType.ENERGY).set(
-                populationByType.getOrDefault(PopType.WORKERS, 0) * 0.02f
-        );
+        // 基于人口计算基础生产率 (参考群星机制)
+        float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.05f;  // 每个工人生产0.05能量
+        float metalProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.025f;   // 每个工人生产0.025金属
+        float foodProduction = calculateBaseFoodProduction() * 2.0f;  // 大幅提高食物生产率，确保覆盖消耗
+        float scienceProduction = populationByType.getOrDefault(PopType.SCIENTISTS, 0) * 0.05f;  // 每个科学家生产0.05科研
+        
+        // 添加额外的食物生产，确保始终为正
+        foodProduction += 5.0f;  // 基础食物生产兜底
+        
+        // 燃料的基础生产（基于工人数量）
+        float fuelProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.01f;  // 每个工人生产0.01燃料
 
-        productionRates.get(ResourceType.METAL).set(
-                populationByType.getOrDefault(PopType.WORKERS, 0) * 0.01f
-        );
+        productionRates.get(ResourceType.ENERGY).set(energyProduction);
+        productionRates.get(ResourceType.METAL).set(metalProduction);
+        productionRates.get(ResourceType.FOOD).set(foodProduction);
+        productionRates.get(ResourceType.SCIENCE).set(scienceProduction);
+        productionRates.get(ResourceType.FUEL).set(fuelProduction);
+        
+        // 只有当星球拥有特定稀有资源时才生产该资源
+        Map<ResourceType, Float> planetResources = planet.getResources();
+        for (Map.Entry<ResourceType, Float> entry : planetResources.entrySet()) {
+            ResourceType resourceType = entry.getKey();
+            float resourceAmount = entry.getValue();
+            
+            // 只处理稀有资源
+            if (isRareResource(resourceType) && resourceAmount > 0) {
+                // 基于星球上的资源储量和工人数量计算生产率
+                float productionRate = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.001f * (resourceAmount / 100f);
+                productionRates.get(resourceType).set(productionRate);
+            }
+        }
 
-        productionRates.get(ResourceType.FOOD).set(calculateBaseFoodProduction());
-        productionRates.get(ResourceType.SCIENCE).set(
-                populationByType.getOrDefault(PopType.SCIENTISTS, 0) * 0.005f
-        );
+        // 输出调试信息
+        System.out.println("[" + name.get() + "] 计算生产: 能量=" + energyProduction + 
+                          ", 金属=" + metalProduction + 
+                          ", 食物=" + foodProduction + 
+                          ", 科研=" + scienceProduction +
+                          ", 燃料=" + fuelProduction);
 
+        // 建筑加成
         for (Building building : buildings) {
             Map<ResourceType, Float> bonuses = building.getProductionBonuses();
             for (Map.Entry<ResourceType, Float> bonus : bonuses.entrySet()) {
                 float current = productionRates.get(bonus.getKey()).get();
                 productionRates.get(bonus.getKey()).set(current + bonus.getValue());
+                
+                if (bonus.getValue() != 0) {
+                    System.out.println("[" + name.get() + "] 建筑加成: " + bonus.getKey().getDisplayName() + 
+                                      " +" + bonus.getValue());
+                }
             }
         }
 
+        // 行星特征加成
         for (PlanetTrait trait : planet.getTraits()) {
             for (ResourceType type : ResourceType.values()) {
                 float multiplier = trait.getResourceMultiplier(type);
-                float current = productionRates.get(type).get();
-                productionRates.get(type).set(current * multiplier);
+                if (multiplier != 1.0f) {
+                    float current = productionRates.get(type).get();
+                    productionRates.get(type).set(current * multiplier);
+                    System.out.println("[" + name.get() + "] 行星特征加成: " + type.getDisplayName() + 
+                                      " *" + multiplier);
+                }
             }
+        }
+        
+        // 输出最终生产率
+        System.out.println("[" + name.get() + "] 最终生产率: 能量=" + productionRates.get(ResourceType.ENERGY).get() + 
+                          ", 金属=" + productionRates.get(ResourceType.METAL).get() + 
+                          ", 食物=" + productionRates.get(ResourceType.FOOD).get() + 
+                          ", 科研=" + productionRates.get(ResourceType.SCIENCE).get() +
+                          ", 燃料=" + productionRates.get(ResourceType.FUEL).get());
+                          
+        // 输出稀有资源生产率
+        for (ResourceType type : ResourceType.values()) {
+            if (isRareResource(type) && productionRates.get(type).get() > 0) {
+                System.out.println("[" + name.get() + "] " + type.getDisplayName() + 
+                                  " 生产率=" + productionRates.get(type).get());
+            }
+        }
+    }
+    
+    // 辅助方法：判断是否为稀有资源
+    private boolean isRareResource(ResourceType type) {
+        switch (type) {
+            case EXOTIC_MATTER:
+            case NEUTRONIUM:
+            case CRYSTAL:
+            case DARK_MATTER:
+            case ANTI_MATTER:
+            case LIVING_METAL:
+                return true;
+            default:
+                return false;
         }
     }
 
     private void calculateConsumption() {
-        float foodConsumption = totalPopulation.get() * 0.01f;
+        // 参考群星机制设置消耗率，大幅下调食物消耗确保不会出现负增长
+        float foodConsumption = totalPopulation.get() * 0.0001f;  // 每人消耗0.0001食物（大幅下调）
         consumptionRates.get(ResourceType.FOOD).set(foodConsumption);
 
-        float energyConsumption = 10.0f;
+        float energyConsumption = 1.0f;  // 基础能量消耗
         for (Building building : buildings) {
-            energyConsumption += building.getMaintenanceCost(ResourceType.ENERGY);
+            energyConsumption += building.getMaintenanceCost(ResourceType.ENERGY);  // 建筑维护消耗
         }
-        energyConsumption += totalPopulation.get() * 0.001f;
+        energyConsumption += totalPopulation.get() * 0.0001f;  // 人口相关能量消耗
 
         consumptionRates.get(ResourceType.ENERGY).set(energyConsumption);
+        
+        // 稀有资源消耗（用于建筑维护或其他用途）
+        float fuelConsumption = totalPopulation.get() * 0.00001f;  // 人口燃料消耗
+        consumptionRates.get(ResourceType.FUEL).set(fuelConsumption);
+        
+        // 输出调试信息
+        System.out.println("[" + name.get() + "] 计算消耗: 食物=" + foodConsumption + 
+                          ", 能量=" + energyConsumption +
+                          ", 燃料=" + fuelConsumption);
+                          
+        // 输出最终消耗率
+        System.out.println("[" + name.get() + "] 最终消耗率: 食物=" + consumptionRates.get(ResourceType.FOOD).get() + 
+                          ", 能量=" + consumptionRates.get(ResourceType.ENERGY).get() +
+                          ", 燃料=" + consumptionRates.get(ResourceType.FUEL).get());
     }
 
     private void updateResourceStockpile() {
@@ -232,10 +342,16 @@ public class Colony {
             float consumption = consumptionRates.get(type).get();
             float net = production - consumption;
 
-            if (net > 0) {
-                resourceStockpile.addResource(type, net);
-            } else if (net < 0) {
-                resourceStockpile.consumeResource(type, -net);
+            // 添加资源，即使是负数（表示消耗）
+            resourceStockpile.addResource(type, net); // 直接使用净产量，不应用任何系数
+            
+            // 调试信息
+            if (net != 0) {
+                System.out.println("[" + name.get() + "] " + type.getDisplayName() + 
+                    " 产量: " + String.format("%.2f", production) + 
+                    ", 消耗: " + String.format("%.2f", consumption) + 
+                    ", 净产量: " + String.format("%.2f", net) + 
+                    ", 总量: " + String.format("%.2f", resourceStockpile.getResource(type)));
             }
         }
 
@@ -512,6 +628,14 @@ public class Colony {
             float consumption = consumptionRates.get(type).get();
             net.put(type, production - consumption);
         }
+        
+        System.out.println("获取净产量，总计: " + net.size() + " 种");
+        for (Map.Entry<ResourceType, Float> entry : net.entrySet()) {
+            if (entry.getValue() != 0) {
+                System.out.println("  " + entry.getKey().getDisplayName() + ": " + String.format("%.2f", entry.getValue()));
+            }
+        }
+        
         return net;
     }
 

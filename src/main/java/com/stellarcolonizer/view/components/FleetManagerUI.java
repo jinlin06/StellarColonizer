@@ -430,6 +430,7 @@ public class FleetManagerUI extends BorderPane {
         mergeFleetButton = new Button("合并舰队");
         repairFleetButton = new Button("修理舰队");
         resupplyFleetButton = new Button("补给舰队");
+        buildShipButton = new Button("建造舰船"); // 添加建造舰船按钮
 
         // 设置按钮样式
         String buttonStyle = "-fx-background-color: #2196F3; -fx-text-fill: white; -fx-min-width: 120;";
@@ -438,9 +439,10 @@ public class FleetManagerUI extends BorderPane {
         mergeFleetButton.setStyle(buttonStyle);
         repairFleetButton.setStyle(buttonStyle);
         resupplyFleetButton.setStyle(buttonStyle);
+        buildShipButton.setStyle(buttonStyle); // 设置建造舰船按钮样式
 
         panel.getChildren().addAll(title, moveFleetButton, splitFleetButton,
-                mergeFleetButton, repairFleetButton, resupplyFleetButton);
+                mergeFleetButton, repairFleetButton, resupplyFleetButton, buildShipButton);
         return panel;
     }
 
@@ -557,6 +559,9 @@ public class FleetManagerUI extends BorderPane {
 
         // 更改任务
         changeMissionButton.setOnAction(e -> changeFleetMission());
+
+        // 建造舰船
+        buildShipButton.setOnAction(e -> showBuildShipDialog());
 
         // 拆解舰船
         scrapShipButton.setOnAction(e -> scrapSelectedShip());
@@ -886,10 +891,16 @@ public class FleetManagerUI extends BorderPane {
         ListView<ShipDesign> designList = new ListView<>(availableDesigns);
         designList.setPrefHeight(300);
         designList.setCellFactory(lv -> new DesignListCell());
+        
+        // 设置列表样式，与主界面风格保持一致
+        designList.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
 
         // 造船厂选择
         ComboBox<Colony> shipyardCombo = new ComboBox<>(shipyards);
         shipyardCombo.setPromptText("选择造船厂");
+        
+        // 设置下拉框样式，与主界面风格保持一致
+        shipyardCombo.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white;");
 
         VBox content = new VBox(10,
                 new Label("选择舰船设计:"),
@@ -897,9 +908,37 @@ public class FleetManagerUI extends BorderPane {
                 new Label("选择造船厂:"),
                 shipyardCombo
         );
+        
+        // 设置内容面板样式，与主界面风格保持一致
+        content.setPadding(new Insets(10));
+        content.setStyle("-fx-font-family: 'Arial'; -fx-background-color: #2b2b2b;");
+        
+        // 设置标签样式
+        for (javafx.scene.Node node : content.getChildren()) {
+            if (node instanceof Label) {
+                ((Label) node).setTextFill(Color.WHITE);
+                ((Label) node).setFont(Font.font("Arial", 14));
+            }
+        }
 
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+            stage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
+        // 设置弹窗样式，与主界面风格保持一致
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.setStyle("-fx-font-family: 'Arial'; " +
+                           "-fx-background-color: #2b2b2b;");
+        dialogPane.setPrefSize(500, 500);
 
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
@@ -913,10 +952,30 @@ public class FleetManagerUI extends BorderPane {
             return null;
         });
 
-        dialog.showAndWait().ifPresent(design -> {
-            // 执行建造逻辑
-            showAlert("开始建造", design.getFullName() + " 已加入建造队列。");
-        });
+        // 修复：正确处理对话框结果
+        Optional<ShipDesign> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            ShipDesign design = result.get();
+            Colony selectedShipyard = shipyardCombo.getValue();
+            
+            if (design != null && selectedShipyard != null) {
+                // 执行建造逻辑
+                // 创建新舰船实例
+                String shipName = selectedFleet.generateUniqueShipName(design);
+                Ship newShip = new Ship(shipName, design, selectedFleet.getFaction());
+                
+                // 将新舰船添加到选定的舰队中
+                selectedFleet.addShip(newShip);
+                
+                // 更新UI
+                updateFleetDetails();
+                updateShipList();
+                
+                showAlert("建造完成", design.getFullName() + " 已建造并加入 " + selectedFleet.getName() + "。");
+            } else {
+                showAlert("建造失败", "请选择一个舰船设计和造船厂。");
+            }
+        }
     }
 
     private void scrapSelectedShip() {
@@ -988,6 +1047,23 @@ public class FleetManagerUI extends BorderPane {
         } catch (Exception e) {
             System.err.println("无法加载窗口图标: " + e.getMessage());
         }
+        
+        // 设置弹窗样式，与主界面风格保持一致
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.setStyle("-fx-font-family: 'Arial'; " +
+                           "-fx-background-color: #2b2b2b;");
+        dialogPane.setPrefSize(450, 350);
+        dialogPane.setMinSize(450, 350);
+        dialogPane.setMaxSize(450, 350);
+        
+        // 设置内容标签样式
+        Label contentLabel = (Label) dialogPane.lookup(".content.label");
+        if (contentLabel != null) {
+            contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        }
+        
+        // 设置标题样式
+        dialogPane.lookup(".alert-title").setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         
         alert.showAndWait();
     }

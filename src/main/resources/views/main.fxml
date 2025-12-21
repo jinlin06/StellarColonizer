@@ -51,10 +51,12 @@
                     <Label fx:id="turnLabel" text="回合: 1" style="-fx-text-fill: white;" />
                     <Button fx:id="nextTurnButton" text="下一回合" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" />
                 </HBox>
-                <Label fx:id="energyLabel" text="能量: 0" style="-fx-text-fill: yellow;" />
-                <Label fx:id="metalLabel" text="金属: 0" style="-fx-text-fill: #888888;" />
-                <Label fx:id="foodLabel" text="食物: 0" style="-fx-text-fill: #00ff00;" />
-                <Label fx:id="scienceLabel" text="科研: 0" style="-fx-text-fill: cyan;" />
+                <!-- 添加滚动面板来显示所有资源 -->
+                <ScrollPane fitToWidth="true" prefHeight="200">
+                    <VBox fx:id="resourcesContainer" spacing="2">
+                        <!-- 资源将在这里动态添加 -->
+                    </VBox>
+                </ScrollPane>
             </VBox>
 
             <Separator />
@@ -65,7 +67,6 @@
                 <Button text="舰队" onAction="#showFleetManager" style="-fx-background-color: #2196F3; -fx-text-fill: white;" />
                 <Button text="科技" onAction="#showTechTree" style="-fx-background-color: #9C27B0; -fx-text-fill: white;" />
                 <Button text="外交" onAction="#showDiplomacy" style="-fx-background-color: #FF9800; -fx-text-fill: white;" />
-                <Button text="建造" onAction="#showBuildMenu" style="-fx-background-color: #009688; -fx-text-fill: white;" />
                 <Button text="设计舰船" onAction="#showShipDesigner" style="-fx-background-color: #795548; -fx-text-fill: white;" />
                 <Button text="殖民地" onAction="#showColonyManager" style="-fx-background-color: #E91E63; -fx-text-fill: white;" />
             </VBox>

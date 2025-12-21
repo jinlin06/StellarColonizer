@@ -19,15 +19,16 @@ public class ResourceStockpile {
     }
 
     private void initializeCapacities() {
-        // 设置默认容量
-        capacity.put(ResourceType.ENERGY, 10000f);
-        capacity.put(ResourceType.METAL, 5000f);
-        capacity.put(ResourceType.FOOD, 3000f);
-        capacity.put(ResourceType.SCIENCE, 2000f);
+        // 设置默认容量为更大的值，避免资源停止增长
+        capacity.put(ResourceType.ENERGY, 10000000f);
+        capacity.put(ResourceType.METAL, 10000000f);
+        capacity.put(ResourceType.FOOD, 10000000f);
+        capacity.put(ResourceType.SCIENCE, 10000000f);
+        capacity.put(ResourceType.FUEL, 10000000f);
 
         // 稀有资源容量较小
         for (ResourceType rare : ResourceType.getRareResources()) {
-            capacity.put(rare, 1000f);
+            capacity.put(rare, 1000000f);
         }
     }
 
@@ -40,11 +41,20 @@ public class ResourceStockpile {
         float maxCapacity = capacity.getOrDefault(type, Float.MAX_VALUE);
 
         float newAmount = current + amount;
+        
         if (newAmount > maxCapacity) {
             newAmount = maxCapacity; // 超过容量部分丢弃
         }
+        
+        // 不允许资源为负数，最小为0
+        if (newAmount < 0) {
+            newAmount = 0;
+        }
 
         resources.put(type, newAmount);
+        
+        // 调试信息
+        // System.out.println("资源更新: " + type.getDisplayName() + " 增加 " + amount + ", 总量: " + newAmount);
     }
 
     public boolean consumeResource(ResourceType type, float amount) {
@@ -95,7 +105,18 @@ public class ResourceStockpile {
     }
 
     public Map<ResourceType, Float> getAllResources() {
-        return new EnumMap<>(resources);
+        // 返回所有资源的副本，包括值为0的资源
+        Map<ResourceType, Float> allResources = new EnumMap<>(ResourceType.class);
+        for (ResourceType type : ResourceType.values()) {
+            allResources.put(type, getResource(type));
+        }
+        System.out.println("获取所有资源，总计: " + allResources.size() + " 种");
+        for (Map.Entry<ResourceType, Float> entry : allResources.entrySet()) {
+            if (entry.getValue() != 0) {
+                System.out.println("  " + entry.getKey().getDisplayName() + ": " + entry.getValue());
+            }
+        }
+        return allResources;
     }
 
     public float getTotalValue() {

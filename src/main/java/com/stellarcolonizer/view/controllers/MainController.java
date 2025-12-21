@@ -1,8 +1,11 @@
 package com.stellarcolonizer.view.controllers;
 
 import com.stellarcolonizer.core.GameEngine;
+import com.stellarcolonizer.model.colony.Colony;
+import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.galaxy.Hex;
 import com.stellarcolonizer.model.galaxy.StarSystem;
+import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.service.event.GameEvent;
 import com.stellarcolonizer.model.service.event.GameEventListener;
 import com.stellarcolonizer.model.technology.TechTree;
@@ -24,6 +27,9 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.layout.HBox;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 public class MainController {
 
     @FXML
@@ -35,17 +41,10 @@ public class MainController {
     @FXML
     private Label turnLabel;
     
-    @FXML
-    private Label energyLabel;
+
     
     @FXML
-    private Label metalLabel;
-    
-    @FXML
-    private Label foodLabel;
-    
-    @FXML
-    private Label scienceLabel;
+    private VBox resourcesContainer; // 新添加的资源容器
 
     @FXML
     private TextArea eventLog;
@@ -190,12 +189,105 @@ public class MainController {
     private void updateResourceDisplay() {
         if (gameEngine == null || gameEngine.getPlayerFaction() == null) return;
 
-        // 更新UI控件中的资源显示
-        // 注意：这里应该从游戏引擎中获取真实的资源数值，目前使用示例值
-        energyLabel.setText("能量: 1000");
-        metalLabel.setText("金属: 500");
-        foodLabel.setText("食物: 300");
-        scienceLabel.setText("科研: 100");
+        // 获取玩家阵营的真实资源数据（从第一个殖民地获取）
+        Map<ResourceType, Float> totalResources = new EnumMap<>(ResourceType.class);
+        Map<ResourceType, Float> totalNetProduction = new EnumMap<>(ResourceType.class);
+        
+        // 初始化所有资源类型
+        for (ResourceType type : ResourceType.values()) {
+            totalResources.put(type, 0f);
+            totalNetProduction.put(type, 0f);
+        }
+        
+        System.out.println("更新资源显示，殖民地数量: " + gameEngine.getPlayerFaction().getColonies().size());
+        
+        // 遍历所有殖民地计算资源总量和净产量
+        for (Colony colony : gameEngine.getPlayerFaction().getColonies()) {
+            ResourceStockpile stockpile = colony.getResourceStockpile();
+            Map<ResourceType, Float> resources = stockpile.getAllResources();
+            Map<ResourceType, Float> netProduction = colony.getNetProduction();
+            
+            System.out.println("殖民地: " + colony.getName());
+            System.out.println("资源库存: " + resources.size() + " 种");
+            System.out.println("净产量: " + netProduction.size() + " 种");
+            
+            // 累加资源总量
+            for (ResourceType type : ResourceType.values()) {
+                float resourceAmount = resources.getOrDefault(type, 0f);
+                float netAmount = netProduction.getOrDefault(type, 0f);
+                
+                totalResources.put(type, totalResources.get(type) + resourceAmount);
+                totalNetProduction.put(type, totalNetProduction.get(type) + netAmount);
+                
+                if (resourceAmount != 0 || netAmount != 0) {
+                    System.out.println("  " + type.getDisplayName() + 
+                        " 库存: " + String.format("%.2f", resourceAmount) + 
+                        " 净产量: " + String.format("%.2f", netAmount));
+                }
+            }
+        }
+
+        // 清空资源容器
+        resourcesContainer.getChildren().clear();
+        
+        // 为每种资源创建标签并添加到容器中
+        for (ResourceType type : ResourceType.values()) {
+            float amount = totalResources.get(type);
+            float net = totalNetProduction.get(type); // 使用实际的净产量
+            
+            Label resourceLabel = new Label(formatResourceText(type, amount, net));
+            resourceLabel.setTextFill(Color.web(type.getColor()));
+            resourcesContainer.getChildren().add(resourceLabel);
+        }
+    }
+    
+    // 格式化资源显示文本
+    private String formatResourceText(ResourceType type, float amount, float net) {
+        return String.format("%s: %s (%s/回合)", 
+            type.getDisplayName(), 
+            formatNumber(amount), 
+            formatNumberWithSign(net));
+    }
+    
+    // 格式化简短资源显示文本
+    private String formatResourceTextShort(ResourceType type, float amount, float net) {
+        return String.format("%s: %s (%s/回合)", 
+            type.getDisplayName(), 
+            formatNumber(amount), 
+            formatNumberWithSign(net));
+    }
+    
+    // 格式化数字，添加k、w等单位
+    private String formatNumber(float number) {
+        // 处理负数显示
+        if (number < 0) {
+            return "-" + formatNumberPositive(-number);
+        }
+        return formatNumberPositive(number);
+    }
+    
+    // 格式化正数
+    private String formatNumberPositive(float number) {
+        if (number >= 1000000) {
+            return String.format("%.1fW", number / 1000000);
+        } else if (number >= 1000) {
+            return String.format("%.1fk", number / 1000);
+        } else {
+            // 对于小于1000的数字，保留1位小数
+            return String.format("%.1f", number);
+        }
+    }
+
+    // 格式化带符号的数字
+    private String formatNumberWithSign(float number) {
+        if (number >= 1000000) {
+            return String.format("%+.1fW", number / 1000000);
+        } else if (number >= 1000) {
+            return String.format("%+.1fk", number / 1000);
+        } else {
+            // 对于小于1000的数字，保留1位小数
+            return String.format("%+.1f", number);
+        }
     }
 
     private void updateTurnDisplay() {
@@ -278,28 +370,6 @@ public class MainController {
         System.out.println("显示外交界面");
         // TODO: 实现外交界面
         showInfoDialog("外交界面", "外交界面正在开发中...\n\n在这里您可以:\n- 查看与其他派系的关系\n- 发送外交提案\n- 管理条约和协议\n- 进行贸易谈判");
-    }
-    
-    @FXML
-    private void showBuildMenu() {
-        System.out.println("显示建造菜单");
-        // TODO: 实现建造菜单界面
-        // showInfoDialog("建造菜单", "建造菜单界面正在开发中...\n\n在这里您可以:\n- 建造新的舰船\n- 升级设施\n- 生产资源\n- 管理建设项目");
-        
-        // 创建并显示舰船设计器界面
-        try {
-            // 先检查gameEngine是否存在
-            if (gameEngine == null) {
-                showInfoDialog("错误", "游戏尚未初始化完成");
-                return;
-            }
-            
-            ShipDesignerUI shipDesignerUI = new ShipDesignerUI();
-            showComponentInWindow(shipDesignerUI, "舰船设计器");
-        } catch (Exception e) {
-            e.printStackTrace();
-            showInfoDialog("错误", "无法打开舰船设计器: " + e.getMessage());
-        }
     }
     
     @FXML

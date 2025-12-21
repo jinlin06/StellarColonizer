@@ -66,7 +66,7 @@ public class ShipDesignerUI extends BorderPane {
 
     // 设计列表
     private ComboBox<ShipDesign> existingDesigns;
-    private ObservableList<ShipDesign> savedDesigns;
+    private static final ObservableList<ShipDesign> savedDesigns = FXCollections.observableArrayList();
 
     // 模块分类
     private TabPane moduleTabs;
@@ -80,7 +80,6 @@ public class ShipDesignerUI extends BorderPane {
     public ShipDesignerUI() {
         this.availableModules = FXCollections.observableArrayList();
         this.currentModules = FXCollections.observableArrayList();
-        this.savedDesigns = FXCollections.observableArrayList();
         this.researchedTechnologies = new java.util.HashSet<>();
 
         // 添加一些示例已研发的科技
@@ -89,7 +88,12 @@ public class ShipDesignerUI extends BorderPane {
         initializeUI();
         setupEventHandlers();
         loadDefaultModules();
+        
+        // 创建一个空的初始设计，而不是自动保存
         createNewDesign(ShipClass.CORVETTE);
+        
+        // 确保现有的保存设计在组合框中可见
+        existingDesigns.setItems(savedDesigns);
     }
 
     private void initializeUI() {
@@ -133,11 +137,61 @@ public class ShipDesignerUI extends BorderPane {
         shipClassComboBox.getItems().addAll(ShipClass.values());
         shipClassComboBox.setValue(ShipClass.CORVETTE);
         shipClassComboBox.setPrefWidth(150);
+        
+        // 设置显示舰船等级的中文名称
+        shipClassComboBox.setCellFactory(lv -> new ListCell<ShipClass>() {
+            @Override
+            protected void updateItem(ShipClass item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
+        
+        shipClassComboBox.setButtonCell(new ListCell<ShipClass>() {
+            @Override
+            protected void updateItem(ShipClass item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("请选择舰船等级");
+                } else {
+                    setText(item.getDisplayName());
+                }
+            }
+        });
 
         // 设计列表
         existingDesigns = new ComboBox<>(savedDesigns);
         existingDesigns.setPromptText("选择现有设计");
         existingDesigns.setPrefWidth(200);
+        
+        // 设置显示设计方案的名称
+        existingDesigns.setCellFactory(lv -> new ListCell<ShipDesign>() {
+            @Override
+            protected void updateItem(ShipDesign item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getFullName());
+                }
+            }
+        });
+        
+        existingDesigns.setButtonCell(new ListCell<ShipDesign>() {
+            @Override
+            protected void updateItem(ShipDesign item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("选择现有设计");
+                } else {
+                    setText(item.getFullName());
+                }
+            }
+        });
 
         // 新设计按钮
         newDesignButton = new Button("新建设计");
@@ -198,38 +252,6 @@ public class ShipDesignerUI extends BorderPane {
         return panel;
     }
 
-    private ListView<ShipModule> createModuleList(ModuleType moduleType) {
-        ListView<ShipModule> listView = new ListView<>();
-        listView.setPrefHeight(200);
-        listView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
-
-        // 根据类型筛选模块
-        ObservableList<ShipModule> filteredModules = availableModules.filtered(
-                module -> module.getType() == moduleType
-        );
-        listView.setItems(filteredModules);
-        listView.setCellFactory(lv -> new ModuleListCell());
-
-        return listView;
-    }
-
-    private VBox createModuleDetailPanel() {
-        VBox panel = new VBox(5);
-        panel.setPadding(new Insets(10));
-        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
-
-        Label title = new Label("模块详情");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        title.setTextFill(Color.WHITE);
-
-        // 模块属性显示
-        VBox details = new VBox(3);
-        details.setId("module-details");
-
-        panel.getChildren().addAll(title, details);
-        return panel;
-    }
-
     private VBox createDesignPanel() {
         VBox panel = new VBox(10);
         panel.setPadding(new Insets(10));
@@ -252,49 +274,70 @@ public class ShipDesignerUI extends BorderPane {
         currentModulesList.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
         currentModulesList.setCellFactory(lv -> new ModuleListCell());
 
-        // 模块操作按钮
-        HBox moduleButtons = new HBox(10);
+        // 操作按钮
+        HBox buttonPanel = new HBox(10);
         addModuleButton = new Button("添加模块");
         removeModuleButton = new Button("移除模块");
 
-        addModuleButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        String buttonStyle = "-fx-background-color: #4CAF50; -fx-text-fill: white;";
+        addModuleButton.setStyle(buttonStyle);
         removeModuleButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
 
-        moduleButtons.getChildren().addAll(addModuleButton, removeModuleButton);
+        buttonPanel.getChildren().addAll(addModuleButton, removeModuleButton);
 
-        panel.getChildren().addAll(title, shipInfo, modulesTitle, currentModulesList, moduleButtons);
+        panel.getChildren().addAll(title, shipInfo, modulesTitle, currentModulesList, buttonPanel);
         return panel;
     }
 
     private HBox createShipInfoPanel() {
-        HBox panel = new HBox(10);
+        HBox panel = new HBox(20);
         panel.setPadding(new Insets(10));
         panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
 
-        // 舰船名称
-        VBox nameBox = new VBox(2);
+        VBox leftColumn = new VBox(5);
+        VBox middleColumn = new VBox(5);
+        VBox rightColumn = new VBox(5);
+
+        // 左列信息
+        shipNameLabel = new Label("未命名设计");
+        shipNameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        shipNameLabel.setTextFill(Color.WHITE);
+
+        shipClassLabel = new Label("护卫舰");
+        shipClassLabel.setTextFill(Color.LIGHTGRAY);
+
         Label nameLabel = new Label("名称:");
         nameLabel.setTextFill(Color.LIGHTGRAY);
-        shipNameLabel = new Label();
-        shipNameLabel.setTextFill(Color.WHITE);
-        shipNameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        nameBox.getChildren().addAll(nameLabel, shipNameLabel);
 
-        // 舰船等级
-        VBox classBox = new VBox(2);
-        Label classLabel = new Label("等级:");
-        classLabel.setTextFill(Color.LIGHTGRAY);
-        shipClassLabel = new Label();
-        shipClassLabel.setTextFill(Color.WHITE);
-        classBox.getChildren().addAll(classLabel, shipClassLabel);
+        // 中列信息
+        hitPointsLabel = createStatLabel("生命值:", "1000");
+        shieldLabel = createStatLabel("护盾:", "100");
+        armorLabel = createStatLabel("装甲:", "50");
+        evasionLabel = createStatLabel("回避:", "30%");
 
-        panel.getChildren().addAll(nameBox, classBox);
+        // 右列信息
+        speedLabel = createStatLabel("速度:", "150");
+        warpSpeedLabel = createStatLabel("跃迁:", "1.0");
+        maneuverabilityLabel = createStatLabel("机动:", "80");
+        crewLabel = createStatLabel("船员:", "50");
+
+        leftColumn.getChildren().addAll(nameLabel, shipNameLabel, shipClassLabel);
+        middleColumn.getChildren().addAll(hitPointsLabel, shieldLabel, armorLabel, evasionLabel);
+        rightColumn.getChildren().addAll(speedLabel, warpSpeedLabel, maneuverabilityLabel, crewLabel);
+
+        panel.getChildren().addAll(leftColumn, middleColumn, rightColumn);
         return panel;
+    }
+
+    private Label createStatLabel(String name, String value) {
+        Label label = new Label(name + " " + value);
+        label.setTextFill(Color.LIGHTGRAY);
+        return label;
     }
 
     private VBox createPropertyPanel() {
         VBox panel = new VBox(10);
-        panel.setPrefWidth(350);
+        panel.setPrefWidth(300);
         panel.setPadding(new Insets(10));
         panel.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 5;");
 
@@ -302,128 +345,146 @@ public class ShipDesignerUI extends BorderPane {
         title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         title.setTextFill(Color.WHITE);
 
-        // 属性网格
-        GridPane attributeGrid = new GridPane();
-        attributeGrid.setHgap(10);
-        attributeGrid.setVgap(5);
-        attributeGrid.setPadding(new Insets(10));
-        attributeGrid.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+        // 基础属性
+        VBox basicStats = createBasicStatsPanel();
 
-        // 战斗属性
-        addAttributeRow(attributeGrid, 0, "生命值:", hitPointsLabel = new Label());
-        addAttributeRow(attributeGrid, 1, "护盾:", shieldLabel = new Label());
-        addAttributeRow(attributeGrid, 2, "装甲:", armorLabel = new Label());
-        addAttributeRow(attributeGrid, 3, "回避率:", evasionLabel = new Label());
+        // 资源成本
+        VBox costPanel = createCostPanel();
 
-        // 移动属性
-        addAttributeRow(attributeGrid, 4, "引擎功率:", speedLabel = new Label());
-        addAttributeRow(attributeGrid, 5, "曲速等级:", warpSpeedLabel = new Label());
-        addAttributeRow(attributeGrid, 6, "机动性:", maneuverabilityLabel = new Label());
+        // 维护成本
+        VBox maintenancePanel = createMaintenancePanel();
 
-        // 容量属性
-        addAttributeRow(attributeGrid, 7, "船员:", crewLabel = new Label());
-        addAttributeRow(attributeGrid, 8, "货舱:", cargoLabel = new Label());
-        addAttributeRow(attributeGrid, 9, "燃料:", fuelLabel = new Label());
-        
-        // 船体空间加成
-        addAttributeRow(attributeGrid, 10, "船体加成:", hullSizeMultiplierLabel = new Label());
+        // 战斗力评估
+        VBox evaluationPanel = createEvaluationPanel();
 
-        // 综合评分
-        VBox ratingBox = new VBox(5);
-        ratingBox.setPadding(new Insets(10));
-        ratingBox.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
-
-        Label ratingTitle = new Label("综合评分");
-        ratingTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        ratingTitle.setTextFill(Color.WHITE);
-
-        addRatingRow(ratingBox, "战斗力:", combatPowerLabel = new Label());
-        addRatingRow(ratingBox, "战略价值:", strategicValueLabel = new Label());
-
-        // 资源成本面板
-        costPanel = new VBox(5);
-        costPanel.setPadding(new Insets(10));
-        costPanel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
-
-        Label costTitle = new Label("建造成本");
-        costTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        costTitle.setTextFill(Color.WHITE);
-
-        // 维护成本面板
-        maintenancePanel = new VBox(5);
-        maintenancePanel.setPadding(new Insets(10));
-        maintenancePanel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
-
-        Label maintenanceTitle = new Label("维护成本");
-        maintenanceTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        maintenanceTitle.setTextFill(Color.WHITE);
-
-        panel.getChildren().addAll(
-                title, attributeGrid, ratingBox,
-                costTitle, costPanel,
-                maintenanceTitle, maintenancePanel
-        );
-
+        panel.getChildren().addAll(title, basicStats, costPanel, maintenancePanel, evaluationPanel);
         return panel;
     }
 
-    private void addAttributeRow(GridPane grid, int row, String label, Label value) {
-        Label nameLabel = new Label(label);
-        nameLabel.setTextFill(Color.LIGHTGRAY);
+    private VBox createBasicStatsPanel() {
+        VBox panel = new VBox(5);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
 
-        value.setTextFill(Color.WHITE);
-        value.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        Label title = new Label("基础属性");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        title.setTextFill(Color.WHITE);
 
-        grid.add(nameLabel, 0, row);
-        grid.add(value, 1, row);
+        cargoLabel = createStatLabel("货舱:", "100");
+        fuelLabel = createStatLabel("燃料:", "200");
+        combatPowerLabel = createStatLabel("战斗力:", "500");
+        strategicValueLabel = createStatLabel("战略价值:", "1000");
+        hullSizeMultiplierLabel = createStatLabel("船体加成:", "100%");
+
+        panel.getChildren().addAll(title, cargoLabel, fuelLabel, combatPowerLabel, strategicValueLabel, hullSizeMultiplierLabel);
+        return panel;
     }
 
-    private void addRatingRow(VBox box, String label, Label value) {
-        HBox row = new HBox(10);
+    private VBox createCostPanel() {
+        VBox panel = new VBox(5);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
 
-        Label nameLabel = new Label(label);
-        nameLabel.setTextFill(Color.LIGHTGRAY);
-        nameLabel.setPrefWidth(80);
+        Label title = new Label("建造成本");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        title.setTextFill(Color.WHITE);
 
-        value.setTextFill(Color.YELLOW);
-        value.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        costPanel = new VBox(3);
 
-        row.getChildren().addAll(nameLabel, value);
-        box.getChildren().add(row);
+        panel.getChildren().addAll(title, costPanel);
+        return panel;
+    }
+
+    private VBox createMaintenancePanel() {
+        VBox panel = new VBox(5);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+
+        Label title = new Label("维护成本");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        title.setTextFill(Color.WHITE);
+
+        maintenancePanel = new VBox(3);
+
+        panel.getChildren().addAll(title, maintenancePanel);
+        return panel;
+    }
+
+    private VBox createEvaluationPanel() {
+        VBox panel = new VBox(5);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+
+        Label title = new Label("评估");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        title.setTextFill(Color.WHITE);
+
+        // 战斗力和战略价值只是示例值，实际应该基于设计计算
+
+        panel.getChildren().addAll(title, combatPowerLabel, strategicValueLabel);
+        return panel;
+    }
+
+    private VBox createModuleDetailPanel() {
+        VBox panel = new VBox(5);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+
+        Label title = new Label("模块详情");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        title.setTextFill(Color.WHITE);
+
+        // 模块属性显示
+        VBox details = new VBox(3);
+        details.setId("module-details");
+
+        panel.getChildren().addAll(title, details);
+        return panel;
+    }
+
+    private ListView<ShipModule> createModuleList(ModuleType moduleType) {
+        ListView<ShipModule> listView = new ListView<>();
+        listView.setPrefHeight(200);
+        listView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+
+        // 根据类型筛选模块
+        ObservableList<ShipModule> filteredModules = availableModules.filtered(
+                module -> module.getType() == moduleType
+        );
+        listView.setItems(filteredModules);
+        listView.setCellFactory(lv -> new ModuleListCell());
+
+        return listView;
     }
 
     private HBox createBottomPanel() {
-        HBox panel = new HBox(20);
-        panel.setPadding(new Insets(10));
+        HBox panel = new HBox(10);
+        panel.setPadding(new Insets(5));
         panel.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 5;");
 
-        // 验证信息
-        VBox validationBox = new VBox(5);
-        validationLabel = new Label();
-        validationLabel.setTextFill(Color.RED);
-        validationLabel.setWrapText(true);
+        // 验证标签
+        validationLabel = new Label("设计有效 ✓");
+        validationLabel.setTextFill(Color.GREEN);
 
-        // 能源平衡指示器
-        HBox powerBox = new HBox(5);
+        // 能源平衡
+        VBox powerBalanceBox = new VBox(2);
         Label powerLabel = new Label("能源平衡:");
         powerLabel.setTextFill(Color.LIGHTGRAY);
-        powerBalanceBar = new ProgressBar();
-        powerBalanceBar.setPrefWidth(200);
+        powerBalanceBar = new ProgressBar(1.0);
+        powerBalanceBar.setPrefWidth(150);
         powerBalanceBar.setStyle("-fx-accent: #4CAF50;");
-        powerBox.getChildren().addAll(powerLabel, powerBalanceBar);
+        powerBalanceBox.getChildren().addAll(powerLabel, powerBalanceBar);
 
-        // 船体空间指示器
-        HBox spaceBox = new HBox(5);
+        // 船体空间
+        VBox hullSpaceBox = new VBox(2);
         Label spaceLabel = new Label("船体空间:");
         spaceLabel.setTextFill(Color.LIGHTGRAY);
-        hullSpaceBar = new ProgressBar();
-        hullSpaceBar.setPrefWidth(200);
+        hullSpaceBar = new ProgressBar(0.3);
+        hullSpaceBar.setPrefWidth(150);
         hullSpaceBar.setStyle("-fx-accent: #2196F3;");
-        spaceBox.getChildren().addAll(spaceLabel, hullSpaceBar);
+        hullSpaceBox.getChildren().addAll(spaceLabel, hullSpaceBar);
 
-        validationBox.getChildren().addAll(validationLabel, powerBox, spaceBox);
-
-        panel.getChildren().add(validationBox);
+        panel.getChildren().addAll(validationLabel, powerBalanceBox, hullSpaceBox);
         return panel;
     }
 
@@ -431,33 +492,10 @@ public class ShipDesignerUI extends BorderPane {
         // 舰船等级选择
         shipClassComboBox.setOnAction(e -> {
             ShipClass selectedClass = shipClassComboBox.getValue();
-            if (selectedClass != null) {
+            if (selectedClass != null && currentDesign != null 
+                && currentDesign.getShipClass() != selectedClass) {
+                // 只有当选择的舰船等级与当前设计不同时才创建新设计
                 createNewDesign(selectedClass);
-            }
-        });
-        
-        // 设置舰船等级下拉框显示中文名称
-        shipClassComboBox.setCellFactory(lv -> new ListCell<ShipClass>() {
-            @Override
-            protected void updateItem(ShipClass item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(item.getDisplayName());
-                }
-            }
-        });
-        
-        shipClassComboBox.setButtonCell(new ListCell<ShipClass>() {
-            @Override
-            protected void updateItem(ShipClass item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText("选择舰船等级");
-                } else {
-                    setText(item.getDisplayName());
-                }
             }
         });
 
@@ -469,35 +507,123 @@ public class ShipDesignerUI extends BorderPane {
             }
         });
 
-        // 新建设计
+        // 新建设计按钮
         newDesignButton.setOnAction(e -> {
             ShipClass selectedClass = shipClassComboBox.getValue();
-            if (selectedClass != null) {
-                createNewDesign(selectedClass);
-            }
+            createNewDesign(selectedClass);
         });
 
-        // 复制设计
+        // 复制设计按钮
         copyDesignButton.setOnAction(e -> {
             if (currentDesign != null) {
-                String newName = currentDesign.getName() + " 复制版";
-                ShipDesign copy = currentDesign.createCopy(newName);
-                savedDesigns.add(copy);
-                loadDesign(copy);
+                // 显示输入对话框让用户输入新设计名称
+                TextInputDialog dialog = new TextInputDialog(currentDesign.getName() + " 副本");
+                dialog.setTitle("复制设计");
+                dialog.setHeaderText("请输入新设计的名称");
+                dialog.setContentText("设计名称:");
+                
+                // 设置窗口图标
+                try {
+                    javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                        getClass().getResourceAsStream("/images/icon.png"));
+                    Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+                    stage.getIcons().add(icon);
+                } catch (Exception ex) {
+                    System.err.println("无法加载窗口图标: " + ex.getMessage());
+                }
+                
+                // 设置弹窗样式，与主界面风格保持一致
+                DialogPane dialogPane = dialog.getDialogPane();
+                dialogPane.setStyle("-fx-font-family: 'Arial'; " +
+                                   "-fx-background-color: #2b2b2b;");
+                dialogPane.setPrefSize(450, 200);
+                
+                // 设置文本框和标签样式
+                TextField textField = dialog.getEditor();
+                textField.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white;");
+                
+                Label contentLabel = (Label) dialogPane.lookup(".content.label");
+                if (contentLabel != null) {
+                    contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+                }
+                
+                Label headerLabel = (Label) dialogPane.lookup(".header-panel .label");
+                if (headerLabel != null) {
+                    headerLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+                }
+
+                dialog.showAndWait().ifPresent(name -> {
+                    ShipDesign copiedDesign = currentDesign.createCopy(name);
+                    savedDesigns.add(copiedDesign);
+                    existingDesigns.setValue(copiedDesign);
+                    // 确保列表更新
+                    existingDesigns.setItems(savedDesigns);
+                    
+                    showAlert("复制成功", "设计 \"" + name + "\" 已创建。");
+                });
+            } else {
+                showAlert("无法复制设计", "请先创建或选择一个舰船设计。");
             }
         });
 
-        // 保存设计
+        // 保存设计按钮
         saveDesignButton.setOnAction(e -> {
-            if (currentDesign != null && currentDesign.isValidDesign()) {
-                // 如果设计是新创建的，添加到列表
-                if (!savedDesigns.contains(currentDesign)) {
-                    savedDesigns.add(currentDesign);
-                    existingDesigns.setItems(savedDesigns);
+            if (currentDesign != null) {
+                // 显示输入对话框让用户输入设计名称
+                TextInputDialog dialog = new TextInputDialog(currentDesign.getName());
+                dialog.setTitle("保存设计");
+                dialog.setHeaderText("请输入设计的名称");
+                dialog.setContentText("设计名称:");
+                
+                // 设置窗口图标
+                try {
+                    javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                        getClass().getResourceAsStream("/images/icon.png"));
+                    Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+                    stage.getIcons().add(icon);
+                } catch (Exception ex) {
+                    System.err.println("无法加载窗口图标: " + ex.getMessage());
                 }
-                showAlert("设计已保存", currentDesign.getFullName() + " 已保存到设计库。");
+                
+                // 设置弹窗样式，与主界面风格保持一致
+                DialogPane dialogPane = dialog.getDialogPane();
+                dialogPane.setStyle("-fx-font-family: 'Arial'; " +
+                                   "-fx-background-color: #2b2b2b;");
+                dialogPane.setPrefSize(450, 200);
+                
+                // 设置文本框和标签样式
+                TextField textField = dialog.getEditor();
+                textField.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white;");
+                
+                Label contentLabel = (Label) dialogPane.lookup(".content.label");
+                if (contentLabel != null) {
+                    contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+                }
+                
+                Label headerLabel = (Label) dialogPane.lookup(".header-panel .label");
+                if (headerLabel != null) {
+                    headerLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+                }
+
+                dialog.showAndWait().ifPresent(name -> {
+                    // 更新当前设计的名称
+                    currentDesign.setName(name);
+                    
+                    // 如果设计尚未保存，则添加到保存列表中
+                    if (!savedDesigns.contains(currentDesign)) {
+                        savedDesigns.add(currentDesign);
+                    }
+                    
+                    // 更新UI显示
+                    shipNameLabel.setText(currentDesign.getFullName());
+                    existingDesigns.setValue(currentDesign);
+                    // 确保列表更新
+                    existingDesigns.setItems(savedDesigns);
+                    
+                    showAlert("保存成功", "设计 \"" + name + "\" 已保存。");
+                });
             } else {
-                showAlert("设计无效", "请修正设计中的问题后再保存。");
+                showAlert("无法保存设计", "请先创建一个舰船设计。");
             }
         });
 
@@ -714,11 +840,11 @@ public class ShipDesignerUI extends BorderPane {
     // 创建引擎模块的辅助方法
     private EngineModule createEngineModule(String name, float thrust, int size, int techLevel) {
         EngineModule module = new EngineModule(thrust);
-        // 设置名称
+        // 通过反射设置受保护字段
         try {
             java.lang.reflect.Field nameField = ShipModule.class.getDeclaredField("name");
             nameField.setAccessible(true);
-            ((javafx.beans.property.StringProperty) nameField.get(module)).set(name);
+            ((StringProperty) nameField.get(module)).set(name);
             
             java.lang.reflect.Field sizeField = ShipModule.class.getDeclaredField("size");
             sizeField.setAccessible(true);
@@ -743,11 +869,11 @@ public class ShipDesignerUI extends BorderPane {
     // 创建电力模块的辅助方法
     private PowerModule createPowerModule(String name, int powerOutput, int size, int techLevel) {
         PowerModule module = new PowerModule(powerOutput);
-        // 设置名称
+        // 通过反射设置受保护字段
         try {
             java.lang.reflect.Field nameField = ShipModule.class.getDeclaredField("name");
             nameField.setAccessible(true);
-            ((javafx.beans.property.StringProperty) nameField.get(module)).set(name);
+            ((StringProperty) nameField.get(module)).set(name);
             
             java.lang.reflect.Field sizeField = ShipModule.class.getDeclaredField("size");
             sizeField.setAccessible(true);
@@ -783,6 +909,8 @@ public class ShipDesignerUI extends BorderPane {
         addDefaultModulesForDesign(currentDesign, shipClass);
         
         updateUIFromDesign();
+        
+        // 不再自动添加到保存列表中，只在用户明确点击保存时才保存
     }
     
     private void addDefaultModulesForDesign(ShipDesign design, ShipClass shipClass) {
@@ -865,25 +993,25 @@ public class ShipDesignerUI extends BorderPane {
         if (currentDesign == null) return;
 
         // 更新基础属性
-        hitPointsLabel.setText(String.format("%.0f", currentDesign.getHitPoints()));
-        shieldLabel.setText(String.format("%.0f", currentDesign.getShieldStrength()));
-        armorLabel.setText(String.format("%.0f", currentDesign.getArmor()));
-        evasionLabel.setText(String.format("%.1f%%", currentDesign.getEvasion()));
+        hitPointsLabel.setText(String.format("生命值: %.0f", currentDesign.getHitPoints()));
+        shieldLabel.setText(String.format("护盾: %.0f", currentDesign.getShieldStrength()));
+        armorLabel.setText(String.format("装甲: %.0f", currentDesign.getArmor()));
+        evasionLabel.setText(String.format("回避: %.1f%%", currentDesign.getEvasion()));
 
-        speedLabel.setText(String.format("%.0f", currentDesign.getEnginePower()));
-        warpSpeedLabel.setText(String.format("%.1f", currentDesign.getWarpSpeed()));
-        maneuverabilityLabel.setText(String.format("%.1f", currentDesign.getManeuverability()));
+        speedLabel.setText(String.format("速度: %.0f", currentDesign.getEnginePower()));
+        warpSpeedLabel.setText(String.format("跃迁: %.1f", currentDesign.getWarpSpeed()));
+        maneuverabilityLabel.setText(String.format("机动: %.1f", currentDesign.getManeuverability()));
 
-        crewLabel.setText(String.format("%d", currentDesign.getCrewCapacity()));
-        cargoLabel.setText(String.format("%d", currentDesign.getCargoCapacity()));
-        fuelLabel.setText(String.format("%d", currentDesign.getFuelCapacity()));
+        crewLabel.setText(String.format("船员: %d", currentDesign.getCrewCapacity()));
+        cargoLabel.setText(String.format("货舱: %d", currentDesign.getCargoCapacity()));
+        fuelLabel.setText(String.format("燃料: %d", currentDesign.getFuelCapacity()));
         
         // 更新船体空间加成
-        hullSizeMultiplierLabel.setText(String.format("%.1f%%", currentDesign.getHullSizeMultiplier() * 100));
+        hullSizeMultiplierLabel.setText(String.format("船体加成: %.1f%%", currentDesign.getHullSizeMultiplier() * 100));
 
         // 更新评分
-        combatPowerLabel.setText(String.format("%.0f", currentDesign.calculateCombatPower()));
-        strategicValueLabel.setText(String.format("%.0f", currentDesign.calculateStrategicValue()));
+        combatPowerLabel.setText(String.format("战斗力: %.0f", currentDesign.calculateCombatPower()));
+        strategicValueLabel.setText(String.format("战略价值: %.0f", currentDesign.calculateStrategicValue()));
     }
 
     private void updateCostPanels() {
@@ -910,53 +1038,34 @@ public class ShipDesignerUI extends BorderPane {
         HBox row = new HBox(10);
 
         Label nameLabel = new Label(type.getDisplayName());
-        nameLabel.setTextFill(color);
-        nameLabel.setPrefWidth(100);
 
-        Label amountLabel = new Label(String.format("%.1f", amount));
-        amountLabel.setTextFill(Color.WHITE);
+        nameLabel.setTextFill(Color.LIGHTGRAY);
+        nameLabel.setPrefWidth(80);
 
-        // 资源图标
-        Label iconLabel = new Label(getResourceIcon(type));
+        Label valueLabel = new Label(String.format("%.1f", amount));
+        valueLabel.setTextFill(color);
 
-        row.getChildren().addAll(iconLabel, nameLabel, amountLabel);
+        row.getChildren().addAll(nameLabel, valueLabel);
         return row;
-    }
-
-    private String getResourceIcon(ResourceType type) {
-        switch (type) {
-            case METAL: return "⛏️";
-            case ENERGY: return "⚡";
-            case FOOD: return "🌾";
-            case SCIENCE: return "🔬";
-            case EXOTIC_MATTER: return "✨";
-            case NEUTRONIUM: return "⭐";
-            case CRYSTAL: return "💎";
-            case DARK_MATTER: return "🌑";
-            case ANTI_MATTER: return "💥";
-            case LIVING_METAL: return "🔩";
-            default: return "📦";
-        }
     }
 
     private void updateValidation() {
         if (currentDesign == null) return;
 
-        // 更新验证信息
-        String validationMessage = currentDesign.getValidationMessage();
+        // 更新验证标签
         if (currentDesign.isValidDesign()) {
             validationLabel.setTextFill(Color.GREEN);
             validationLabel.setText("设计有效 ✓");
         } else {
             validationLabel.setTextFill(Color.RED);
-            if (validationMessage == null || validationMessage.isEmpty()) {
+            if (currentDesign.getValidationMessage() == null || currentDesign.getValidationMessage().isEmpty()) {
                 validationLabel.setText("设计无效！请检查以下问题：\n" +
                                      "1. 能源平衡（确保电力模块提供足够能源）\n" +
                                      "2. 船体空间（确保模块总大小不超过船体容量）\n" +
                                      "3. 船员数量（确保至少有10名船员）\n" +
                                      "4. 模块限制（检查武器和功能模块数量限制）");
             } else {
-                validationLabel.setText("设计无效！\n" + validationMessage);
+                validationLabel.setText("设计无效！\n" + currentDesign.getValidationMessage());
             }
         }
 
@@ -973,26 +1082,25 @@ public class ShipDesignerUI extends BorderPane {
 
             if (availablePower < 0) {
                 powerBalanceBar.setStyle("-fx-accent: #f44336;"); // 红色 - 能源不足
-            } else if (availablePower < totalPowerOutput * 0.1) {
-                powerBalanceBar.setStyle("-fx-accent: #FF9800;"); // 橙色 - 能源紧张
             } else {
                 powerBalanceBar.setStyle("-fx-accent: #4CAF50;"); // 绿色 - 能源充足
             }
         } else {
             powerBalanceBar.setProgress(0);
-            powerBalanceBar.setStyle("-fx-accent: #f44336;"); // 红色 - 无能源输出
+            powerBalanceBar.setStyle("-fx-accent: #f44336;"); // 红色 - 无能源
         }
 
-        // 更新船体空间进度条（这是主要的修改点）
-        if (currentDesign.getHullSize() > 0) {
-            int usedSpace = currentDesign.getUsedHullSpace();
-            int totalSpace = currentDesign.getHullSize();
+        // 更新船体空间进度条
+        int totalSpace = currentDesign.getHullSize();
+        int usedSpace = currentDesign.getUsedHullSpace();
+        
+        if (totalSpace > 0) {
             float spaceRatio = (float) usedSpace / totalSpace;
             hullSpaceBar.setProgress(spaceRatio);
 
-            if (spaceRatio > 0.95) {
-                hullSpaceBar.setStyle("-fx-accent: #f44336;"); // 红色 - 空间严重不足
-            } else if (spaceRatio > 0.85) {
+            if (spaceRatio > 0.9) {
+                hullSpaceBar.setStyle("-fx-accent: #f44336;"); // 红色 - 空间不足
+            } else if (spaceRatio > 0.75) {
                 hullSpaceBar.setStyle("-fx-accent: #FF9800;"); // 橙色 - 空间紧张
             } else {
                 hullSpaceBar.setStyle("-fx-accent: #2196F3;"); // 蓝色 - 空间充足
@@ -1199,6 +1307,23 @@ public class ShipDesignerUI extends BorderPane {
         } catch (Exception e) {
             System.err.println("无法加载窗口图标: " + e.getMessage());
         }
+        
+        // 设置弹窗样式，与主界面风格保持一致
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.setStyle("-fx-font-family: 'Arial'; " +
+                           "-fx-background-color: #2b2b2b;");
+        dialogPane.setPrefSize(450, 350);
+        dialogPane.setMinSize(450, 350);
+        dialogPane.setMaxSize(450, 350);
+        
+        // 设置内容标签样式
+        Label contentLabel = (Label) dialogPane.lookup(".content.label");
+        if (contentLabel != null) {
+            contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+        }
+        
+        // 设置标题样式
+        dialogPane.lookup(".alert-title").setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         
         alert.showAndWait();
     }

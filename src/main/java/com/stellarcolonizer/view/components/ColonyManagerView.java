@@ -5,12 +5,14 @@ import com.stellarcolonizer.model.colony.*;
 import com.stellarcolonizer.model.colony.enums.BuildingType;
 import com.stellarcolonizer.model.colony.enums.GrowthFocus;
 import com.stellarcolonizer.model.colony.enums.PopType;
+import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.view.models.ResourceStat;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
@@ -564,6 +566,42 @@ public class ColonyManagerView extends VBox {
         }
     }
 
+    private void updateResourcePanel() {
+        VBox resourcesContent = (VBox) resourcePanel.lookup("#resources-content");
+        if (resourcesContent == null || selectedColony == null) return;
+
+        resourcesContent.getChildren().clear();
+
+        ResourceStockpile stockpile = selectedColony.getResourceStockpile();
+        Map<ResourceType, Float> netProduction = selectedColony.getNetProduction();
+
+        for (ResourceType type : ResourceType.values()) {
+            float amount = stockpile.getResource(type);
+            float net = netProduction.getOrDefault(type, 0f);
+            
+            // 只显示有资源或有产量的资源类型
+            if (amount > 0 || net != 0) {
+                HBox resourceRow = new HBox(10);
+                resourceRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                Label nameLabel = new Label(type.getDisplayName());
+                nameLabel.setTextFill(Color.web(type.getColor()));
+                nameLabel.setPrefWidth(100);
+
+                ProgressBar stockpileBar = new ProgressBar();
+                stockpileBar.setProgress(amount / stockpile.getCapacity(type)); 
+                stockpileBar.setPrefWidth(200);
+
+                // 显示资源数量和每回合变化
+                Label amountLabel = new Label(String.format("%.0f (%+.0f/回合)", amount, net));
+                amountLabel.setTextFill(Color.WHITE);
+
+                resourceRow.getChildren().addAll(nameLabel, stockpileBar, amountLabel);
+                resourcesContent.getChildren().add(resourceRow);
+            }
+        }
+    }
+
     private void updateBuildingList() {
         if (buildingListView != null) {
             buildingListView.setItems(FXCollections.observableArrayList(selectedColony.getBuildings()));
@@ -614,7 +652,7 @@ public class ColonyManagerView extends VBox {
             Label consumptionLabel = new Label(String.format("消耗: %.1f", cons));
             consumptionLabel.setTextFill(Color.RED);
 
-            Label netLabel = new Label(String.format("净产量: %.1f", netValue));
+            Label netLabel = new Label(String.format("净产量: %+.1f", netValue)); // 修改为显示正负号
             netLabel.setTextFill(netValue >= 0 ? Color.LIGHTGREEN : Color.SALMON);
 
             statRow.getChildren().addAll(nameLabel, productionLabel, consumptionLabel, netLabel);

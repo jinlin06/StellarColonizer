@@ -1,5 +1,7 @@
 package com.stellarcolonizer.model.galaxy.enums;
 
+import com.stellarcolonizer.model.galaxy.enums.ResourceType;
+
 public enum PlanetTrait {
     STANDARD("标准", 1.0f, 1.0f, 0.2f),
     MINERAL_RICH("富矿", 0.9f, 1.5f, 0.1f),
@@ -30,9 +32,48 @@ public enum PlanetTrait {
     public String getDisplayName() { return displayName; }
     public float getHabitabilityMultiplier() { return habitabilityMultiplier; }
     public float getResourceMultiplier(ResourceType resource) {
+        // 特定资源的特殊加成
         if (this == MINERAL_RICH && resource == ResourceType.METAL) return 2.0f;
         if (this == ENERGY_RICH && resource == ResourceType.ENERGY) return 2.0f;
         if (this == FERTILE && resource == ResourceType.FOOD) return 1.5f;
+        
+        // 稀有资源的加成
+        if (this == MINERAL_RICH) {
+            switch (resource) {
+                case NEUTRONIUM: return 1.5f;
+                case LIVING_METAL: return 1.5f;
+                default: break;
+            }
+        }
+        
+        if (this == ENERGY_RICH) {
+            switch (resource) {
+                case EXOTIC_MATTER: return 1.5f;
+                case ANTI_MATTER: return 1.5f;
+                case DARK_MATTER: return 1.5f;
+                default: break;
+            }
+        }
+        
+        if (this == FERTILE && resource == ResourceType.FOOD) return 1.5f;
+        
+        if (this == VOLCANIC) {
+            switch (resource) {
+                case CRYSTAL: return 2.0f;
+                case NEUTRONIUM: return 1.5f;
+                default: break;
+            }
+        }
+        
+        if (this == ASTEROID_BELT) {
+            switch (resource) {
+                case METAL: return 2.0f;
+                case NEUTRONIUM: return 1.5f;
+                case CRYSTAL: return 1.5f;
+                default: break;
+            }
+        }
+        
         return resourceMultiplier;
     }
     public float getGenerationChance() { return generationChance; }

@@ -48,16 +48,21 @@ public class GameEngine {
         
         // 创建玩家阵营
         playerFaction = new PlayerFaction("玩家");
+        // 注意：这里应该把玩家派系添加到factions列表中
+        factions.add(playerFaction);
         galaxy.addFaction(playerFaction);
         
         // 设置玩家起始位置
         setupPlayerStartLocation();
         
+        // 创建AI派系
+        createAIFactions();
+        
         // 初始化游戏状态
         gameState = new GameState();
         gameState.setCurrentTurn(1);
         
-        System.out.println("游戏引擎初始化完成");
+        System.out.println("游戏引擎初始化完成，派系数量: " + factions.size());
     }
     
     private void setupPlayerStartLocation() {
@@ -166,7 +171,9 @@ public class GameEngine {
 
         eventBus.publish(new GameEvent("TURN_START", "回合 " + gameState.getCurrentTurn()));
 
+        System.out.println("处理派系数量: " + factions.size());
         for (Faction faction : factions) {
+            System.out.println("处理派系: " + faction.getName());
             faction.processTurn();
         }
 
@@ -175,6 +182,7 @@ public class GameEngine {
         if (gameState.getCurrentTurn() % 10 == 0) {
             SaveManager.getInstance().autoSave(this);
         }
+        System.out.println("回合处理完成");
     }
 
     private void checkVictoryConditions() {

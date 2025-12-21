@@ -85,6 +85,17 @@ public class Fleet {
         return true;
     }
 
+    /**
+     * 根据舰船设计生成唯一的舰船名称
+     * @param design 舰船设计
+     * @return 唯一的舰船名称
+     */
+    public String generateUniqueShipName(ShipDesign design) {
+        String baseName = design.getName();
+        int count = shipCountByDesign.getOrDefault(design, 0) + 1;
+        return baseName + " #" + count;
+    }
+
     public boolean removeShip(Ship ship) {
         boolean removed = ships.remove(ship);
 

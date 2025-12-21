@@ -61,8 +61,10 @@ public class Faction {
     }
 
     public void processTurn() {
+        System.out.println("[" + name + "] 派系处理回合开始，殖民地数量: " + colonies.size());
         // 处理所有殖民地
         for (Colony colony : colonies) {
+            System.out.println("[" + name + "] 处理殖民地: " + colony.getName());
             colony.processTurn();
 
             // 收集资源
@@ -76,6 +78,7 @@ public class Faction {
         if (isAI && aiController != null) {
             aiController.makeDecision();
         }
+        System.out.println("[" + name + "] 派系处理回合结束");
     }
 
     private void collectResourcesFromColony(Colony colony) {
@@ -83,9 +86,13 @@ public class Faction {
         Map<ResourceType, Float> netProduction = colony.getNetProduction();
 
         for (Map.Entry<ResourceType, Float> entry : netProduction.entrySet()) {
+            // 不再从殖民地收集资源到派系资源池，因为资源现在直接存储在殖民地中
+            // 这样可以避免重复计算和显示问题
+            /*
             if (entry.getValue() > 0) {
                 resourceStockpile.addResource(entry.getKey(), entry.getValue());
             }
+            */
         }
     }
 
