@@ -8,6 +8,8 @@ import com.stellarcolonizer.model.faction.PlayerFaction;
 import com.stellarcolonizer.model.service.event.EventBus;
 import com.stellarcolonizer.model.service.event.GameEvent;
 import com.stellarcolonizer.model.service.event.GameEventListener;
+import com.stellarcolonizer.model.technology.TechTree;
+import com.stellarcolonizer.model.victory.VictoryConditionManager;
 import com.stellarcolonizer.util.io.SaveManager;
 import javafx.animation.AnimationTimer;
 
@@ -32,6 +34,7 @@ public class GameEngine {
 
     private EventBus eventBus;
     private List<GameEventListener> listeners;
+    private VictoryConditionManager victoryConditionManager;
 
     public GameEngine() {
         this.eventBus = new EventBus();
@@ -67,6 +70,9 @@ public class GameEngine {
         // 初始化游戏状态
         gameState = new GameState();
         gameState.setCurrentTurn(1);
+        
+        // 初始化胜利条件管理器
+        victoryConditionManager = new VictoryConditionManager(galaxy);
         
         System.out.println("游戏引擎初始化完成，派系数量: " + factions.size());
     }
@@ -415,7 +421,23 @@ public class GameEngine {
     }
 
     private void checkVictoryConditions() {
-        // 胜利条件检查
+        // 检查每个派系是否满足完全胜利条件
+        for (Faction faction : factions) {
+            if (faction.isAI()) {
+                // AI派系不能获胜
+                continue;
+            }
+            
+            // 获取派系的科技树
+            TechTree techTree = faction.getTechTree();
+            
+            // 检查是否满足完全胜利条件
+            if (victoryConditionManager.checkCompleteVictory(faction, techTree)) {
+                // 宣布胜利并结束游戏
+                gameState.endGame(faction, "完全胜利");
+                return;
+            }
+        }
     }
 
     // Getter方法

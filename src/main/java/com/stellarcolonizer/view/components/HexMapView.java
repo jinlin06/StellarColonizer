@@ -13,6 +13,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.geometry.Point2D;
 
 import java.util.*;
@@ -615,6 +616,28 @@ public class HexMapView extends Pane {
             gc.setFont(Font.font(10));
             String coordText = String.format("(%d,%d,%d)", coord.q, coord.r, coord.s);
             gc.fillText(coordText, screenX - 15, screenY + 5);
+        }
+        
+        // 绘制控制派系名称
+        if (hex.hasStarSystem()) {
+            StarSystem system = hex.getStarSystem();
+            if (system.getControllingFaction() != null) {
+                String factionName = system.getControllingFaction().getName();
+                if (factionName != null && !factionName.isEmpty()) {
+                    // 根据六边形大小调整字体大小
+                    double fontSize = Math.max(8, screenSize * 0.15);
+                    gc.setFont(Font.font(fontSize));
+                    
+                    // 计算文本宽度以居中显示
+                    Text text = new Text(factionName);
+                    text.setFont(gc.getFont());
+                    double textWidth = text.getBoundsInLocal().getWidth();
+                    
+                    // 将派系名称显示在六边形的下方
+                    gc.setFill(Color.WHITE);
+                    gc.fillText(factionName, screenX - textWidth / 2, screenY + screenSize * 0.7);
+                }
+            }
         }
     }
 
