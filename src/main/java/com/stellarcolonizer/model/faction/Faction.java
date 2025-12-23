@@ -6,6 +6,7 @@ import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.service.ai.AIController;
 import com.stellarcolonizer.model.technology.Technology;
+import com.stellarcolonizer.model.technology.TechTree;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -22,6 +23,7 @@ public class Faction {
     private final Set<String> researchedTechnologies;
 
     private AIController aiController;
+    private TechTree techTree;
 
     // 派系特性
     private FactionTrait primaryTrait;
@@ -39,6 +41,7 @@ public class Faction {
         this.resourceStockpile = new ResourceStockpile();
         this.colonies = FXCollections.observableArrayList();
         this.researchedTechnologies = new HashSet<>();
+        this.techTree = new TechTree(name + "科技树");
 
         initializeTechnologies();
     }
@@ -70,6 +73,14 @@ public class Faction {
             // 收集资源
             collectResourcesFromColony(colony);
         }
+
+        // 计算科研点数
+        float totalResearchPoints = colonies.stream()
+                .map(c -> c.getProductionStats().get(ResourceType.SCIENCE))
+                .reduce(0f, Float::sum);
+        
+        // 处理科技研发
+        techTree.processResearch((int) totalResearchPoints);
 
         // 更新统计
         updateStatistics();
@@ -114,7 +125,7 @@ public class Faction {
     }
 
     public boolean hasTechnology(String techId) {
-        return researchedTechnologies.contains(techId);
+        return researchedTechnologies.contains(techId) || techTree.isTechnologyResearched(techId);
     }
 
     public void researchTechnology(String techId) {
@@ -143,4 +154,7 @@ public class Faction {
 
     public FactionTrait getSecondaryTrait() { return secondaryTrait; }
     public void setSecondaryTrait(FactionTrait trait) { this.secondaryTrait = trait; }
+
+    public TechTree getTechTree() { return techTree; }
+    public void setTechTree(TechTree techTree) { this.techTree = techTree; }
 }

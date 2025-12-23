@@ -342,11 +342,14 @@ public class Colony {
             float consumption = consumptionRates.get(type).get();
             float net = production - consumption;
 
-            // 添加资源，即使是负数（表示消耗）
-            resourceStockpile.addResource(type, net); // 直接使用净产量，不应用任何系数
+            // 不再直接添加科研资源，因为科研现在用于研发科技
+            if (type != ResourceType.SCIENCE) {
+                // 添加资源，即使是负数（表示消耗）
+                resourceStockpile.addResource(type, net); // 直接使用净产量，不应用任何系数
+            }
             
             // 调试信息
-            if (net != 0) {
+            if (net != 0 && type != ResourceType.SCIENCE) {
                 System.out.println("[" + name.get() + "] " + type.getDisplayName() + 
                     " 产量: " + String.format("%.2f", production) + 
                     ", 消耗: " + String.format("%.2f", consumption) + 
@@ -477,9 +480,10 @@ public class Colony {
                 break;
 
             case 3:
+                // 科研突破事件，但不直接添加到资源库存，而是用于研发科技
                 float scienceBonus = 50 + random.nextFloat() * 150;
-                resourceStockpile.addResource(ResourceType.SCIENCE, scienceBonus);
-                addColonyLog("科学家取得突破！获得" + (int)scienceBonus + "科研点数");
+                faction.getTechTree().processResearch((int)scienceBonus);
+                addColonyLog("科学家取得突破！获得" + (int)scienceBonus + "研发点数");
                 break;
 
             case 4:
@@ -628,6 +632,9 @@ public class Colony {
             float consumption = consumptionRates.get(type).get();
             net.put(type, production - consumption);
         }
+        
+        // 不包含科研资源，因为科研资源现在用于研发科技，而不是作为库存
+        net.put(ResourceType.SCIENCE, 0f);
         
         System.out.println("获取净产量，总计: " + net.size() + " 种");
         for (Map.Entry<ResourceType, Float> entry : net.entrySet()) {

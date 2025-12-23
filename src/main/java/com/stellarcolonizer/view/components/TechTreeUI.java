@@ -80,7 +80,7 @@ public class TechTreeUI extends BorderPane {
 
         // 研究点数
         VBox researchBox = new VBox(2);
-        Label researchTitle = new Label("研究点数/回合");
+        Label researchTitle = new Label("研发点数/回合");
         researchTitle.setTextFill(Color.LIGHTGRAY);
         researchTitle.setFont(Font.font(12));
 
@@ -449,9 +449,9 @@ public class TechTreeUI extends BorderPane {
         // 添加终极武器科技到中心位置
         Technology ultimateWeapon = techTree.getTechnology("ULTIMATE_WEAPON");
         if (ultimateWeapon != null) {
-            // 计算中心位置
-            double centerX = (x - columnWidth - 30) / 2; // 在三个学科的中心
-            double centerY = maxCategoryHeight + 50; // 在所有科技下方
+            // 计算中心位置，使其更居中并往下移动，再向右一些
+            double centerX = (x - columnWidth) / 2 + 50; // 在三个学科的中心偏右下位置
+            double centerY = maxCategoryHeight + 100; // 在所有科技下方更远的位置
             
             TechCard ultimateCard = new TechCard(ultimateWeapon);
             ultimateCard.setLayoutX(centerX);
@@ -619,7 +619,7 @@ public class TechTreeUI extends BorderPane {
         Label categoryLabel = new Label("类别: " + selectedTechnology.getCategory().getDisplayName());
         categoryLabel.setTextFill(selectedTechnology.getColor());
 
-        Label costLabel = new Label("研究成本: " + selectedTechnology.getBaseCost());
+        Label costLabel = new Label("基础研发时间: " + selectedTechnology.getResearchTime() + " 回合");
         costLabel.setTextFill(Color.YELLOW);
 
         infoRow.getChildren().addAll(categoryLabel, costLabel);
@@ -758,7 +758,7 @@ public class TechTreeUI extends BorderPane {
                 Label nameLabel = new Label(tech.getName());
                 nameLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
 
-                Label costLabel = new Label("成本: " + tech.getBaseCost());
+                Label costLabel = new Label("时间: " + tech.getResearchTime() + " 回合");
                 costLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 11;");
 
                 infoBox.getChildren().addAll(nameLabel, costLabel);

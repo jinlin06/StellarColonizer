@@ -138,7 +138,7 @@ public class MainController {
                 "类型: " + hex.getType().getDisplayName() + "\n" +
                 "可见度: " + String.format("%.1f%%", hex.getVisibility() * 100);
 
-        showInfoDialog("六边形信息", info);
+        showInfoDialog(String.format("%.1f%%", hex.getVisibility() * 100), info);
     }
 
     private void showInfoDialog(String title, String content) {
@@ -190,7 +190,7 @@ public class MainController {
     private void updateResourceDisplay() {
         if (gameEngine == null || gameEngine.getPlayerFaction() == null) return;
 
-        // 获取玩家阵营的真实资源数据（从第一个殖民地获取）
+        // 获取玩家阵营的真实资源数据（从所有殖民地获取）
         Map<ResourceType, Float> totalResources = new EnumMap<>(ResourceType.class);
         Map<ResourceType, Float> totalNetProduction = new EnumMap<>(ResourceType.class);
         
@@ -356,8 +356,8 @@ public class MainController {
                 return;
             }
             
-            // 创建一个新的TechTree实例
-            TechTree techTree = new TechTree("玩家科技树");
+            // 使用玩家派系的实际科技树，而不是创建新的
+            TechTree techTree = gameEngine.getPlayerFaction().getTechTree();
             TechTreeUI techTreeUI = new TechTreeUI(techTree);
             showComponentInWindow(techTreeUI, "科技树");
         } catch (Exception e) {
