@@ -47,6 +47,9 @@ public class HexMapView extends Pane {
     // 动画定时器
     private AnimationTimer animationTimer;
     
+    // 背景图片
+    private javafx.scene.image.Image backgroundImage;
+    
     // 标记是否需要在下次绘制时居中显示玩家起始位置
     private boolean needsCentering = false;
 
@@ -57,6 +60,15 @@ public class HexMapView extends Pane {
         // 设置画布大小随父容器变化
         canvas.widthProperty().bind(this.widthProperty());
         canvas.heightProperty().bind(this.heightProperty());
+
+        // 加载背景图片
+        try {
+            this.backgroundImage = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/img.png")
+            );
+        } catch (Exception e) {
+            System.err.println("无法加载背景图片: " + e.getMessage());
+        }
 
         this.getChildren().add(canvas);
 
@@ -380,40 +392,8 @@ public class HexMapView extends Pane {
                     double toX = toCenter.getX() * scale + offsetX;
                     double toY = toCenter.getY() * scale + offsetY;
                     
-                    // 绘制直线连接（不再使用曲线）
+                    // 绘制直线连接
                     gc.strokeLine(fromX, fromY, toX, toY);
-                }
-            }
-            
-            // 绘制六边形之间的连接（包括空的）
-            Map<Hex, Set<Hex>> hexConnections = galaxy.getHexConnections();
-            if (hexConnections != null) {
-                for (Map.Entry<Hex, Set<Hex>> entry : hexConnections.entrySet()) {
-                    Hex fromHex = entry.getKey();
-                    Point2D fromCenter = hexGrid.cubeToPixel(fromHex.getCoord());
-                    double fromX = fromCenter.getX() * scale + offsetX;
-                    double fromY = fromCenter.getY() * scale + offsetY;
-                    
-                    for (Hex toHex : entry.getValue()) {
-                        // 创建连接标识符确保每对单元格之间最多只有一条连线
-                        String fromCoord = fromHex.getCoord().toString();
-                        String toCoord = toHex.getCoord().toString();
-                        String connectionId = fromCoord.compareTo(toCoord) < 0 ? 
-                            fromCoord + "|" + toCoord : toCoord + "|" + fromCoord;
-                        
-                        if (allDrawnConnections.contains(connectionId)) {
-                            continue;
-                        }
-                        
-                        allDrawnConnections.add(connectionId);
-                        
-                        Point2D toCenter = hexGrid.cubeToPixel(toHex.getCoord());
-                        double toX = toCenter.getX() * scale + offsetX;
-                        double toY = toCenter.getY() * scale + offsetY;
-                        
-                        // 绘制直线连接
-                        gc.strokeLine(fromX, fromY, toX, toY);
-                    }
                 }
             }
         } else if (hexGrid != null) {
@@ -504,7 +484,7 @@ public class HexMapView extends Pane {
     }
     
     /**
-     * 在路径末端绘制箭头
+     * 绘制在路径末端的箭头
      */
     private void drawArrowHead(double fromX, double fromY, double toX, double toY) {
         // 计算箭头角度
@@ -553,6 +533,13 @@ public class HexMapView extends Pane {
      */
     private void paint() {
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        
+        // 绘制背景图片
+        if (backgroundImage != null) {
+            gc.setGlobalAlpha(0.2); // 设置透明度为0.2
+            gc.drawImage(backgroundImage, 0, 0, canvas.getWidth(), canvas.getHeight());
+            gc.setGlobalAlpha(1.0); // 恢复默认透明度
+        }
 
         // 绘制所有连接（包括空六边形之间的连接）
         drawAllConnections();
@@ -629,22 +616,43 @@ public class HexMapView extends Pane {
     }
 
     private Color getHexColor(Hex hex) {
+        // 如果六边形有星系且该星系有控制派系，返回派系颜色
+        if (hex.hasStarSystem()) {
+            StarSystem system = hex.getStarSystem();
+            if (system.getControllingFaction() != null) {
+                Color factionColor = system.getControllingFaction().getColor();
+                if (factionColor != null) {
+                    // 将JavaFX颜色转换为Canvas颜色，大幅增加亮度
+                    int r = (int)(factionColor.getRed() * 255);
+                    int g = (int)(factionColor.getGreen() * 255);
+                    int b = (int)(factionColor.getBlue() * 255);
+                    
+                    // 大幅提高亮度
+                    r = Math.min(255, (int)(r * 2.0)); // 增加100%亮度
+                    g = Math.min(255, (int)(g * 2.0)); // 增加100%亮度
+                    b = Math.min(255, (int)(b * 2.0)); // 增加100%亮度
+                    
+                    return Color.rgb(r, g, b, 0.5); // 进一步提高透明度以使颜色更亮
+                }
+            }
+        }
+        
         // 根据六边形类型返回颜色
         switch (hex.getType()) {
             case EMPTY:
-                return Color.rgb(10, 10, 30); // 深空
+                return Color.rgb(240, 240, 240); // 浅灰色，更协调
             case NEBULA:
-                return Color.rgb(100, 50, 150); // 紫色星云
+                return Color.rgb(200, 150, 220); // 浅紫色
             case ASTEROID_FIELD:
-                return Color.rgb(80, 80, 80); // 灰色小行星带
+                return Color.rgb(200, 200, 200); // 浅灰色
             case STAR_SYSTEM:
-                return Color.rgb(20, 20, 50); // 深蓝色背景
+                return Color.rgb(230, 230, 250); // 浅蓝色
             case WORMHOLE:
-                return Color.rgb(0, 200, 200); // 青色虫洞
+                return Color.rgb(200, 220, 250); // 浅青色
             case DARK_NEBULA:
-                return Color.rgb(30, 20, 40); // 暗紫色
+                return Color.rgb(220, 200, 230); // 浅紫色
             default:
-                return Color.BLACK;
+                return Color.LIGHTGRAY;
         }
     }
 

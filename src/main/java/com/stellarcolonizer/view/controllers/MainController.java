@@ -11,6 +11,7 @@ import com.stellarcolonizer.model.service.event.GameEventListener;
 import com.stellarcolonizer.model.technology.TechTree;
 import com.stellarcolonizer.view.components.*;
 import com.stellarcolonizer.view.components.StarSystemInfoView; // 添加导入
+import com.stellarcolonizer.view.components.DiplomacyView; // 添加外交界面导入
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -368,8 +369,20 @@ public class MainController {
     @FXML
     private void showDiplomacy() {
         System.out.println("显示外交界面");
-        // TODO: 实现外交界面
-        showInfoDialog("外交界面", "外交界面正在开发中...\n\n在这里您可以:\n- 查看与其他派系的关系\n- 发送外交提案\n- 管理条约和协议\n- 进行贸易谈判");
+        
+        // 创建并显示外交界面
+        try {
+            // 检查gameEngine和playerFaction是否存在
+            if (gameEngine == null || gameEngine.getPlayerFaction() == null) {
+                showInfoDialog("错误", "游戏尚未初始化完成");
+                return;
+            }
+            
+            DiplomacyView.showDiplomacyView(gameEngine.getGalaxy(), gameEngine.getPlayerFaction());
+        } catch (Exception e) {
+            e.printStackTrace();
+            showInfoDialog("错误", "无法打开外交界面: " + e.getMessage());
+        }
     }
     
     @FXML
@@ -418,9 +431,9 @@ public class MainController {
      * @param title 窗口标题
      */
     private void showComponentInWindow(javafx.scene.Parent component, String title) {
-        javafx.stage.Stage dialog = new javafx.stage.Stage();
+        Stage dialog = new Stage();
         dialog.setTitle(title);
-        dialog.initModality(javafx.stage.Modality.NONE); // 非模态窗口，允许同时打开多个界面
+        dialog.initModality(Modality.NONE); // 非模态窗口，允许同时打开多个界面
         
         // 设置窗口图标
         try {
@@ -431,7 +444,7 @@ public class MainController {
             System.err.println("无法加载窗口图标: " + e.getMessage());
         }
         
-        javafx.scene.Scene scene = new javafx.scene.Scene(component);
+        Scene scene = new Scene(component);
         scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
         
         dialog.setScene(scene);

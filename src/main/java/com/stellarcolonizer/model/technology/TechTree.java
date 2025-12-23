@@ -35,72 +35,182 @@ public class TechTree {
     }
 
     private void initializeTechnologies() {
-        // 物理学分支
-        Technology physics = new Technology("BASIC_PHYSICS", "基础物理学",
-                "掌握基本物理原理", TechCategory.PHYSICS, 100, 30);
+        // 物理学分支 - 从基础到高级
+        Technology basicPhysics = new Technology("BASIC_PHYSICS", "基础物理学",
+                "掌握基本物理原理", TechCategory.PHYSICS, 100, 1);
+
+        Technology mechanics = new Technology("MECHANICS", "力学",
+                "理解和应用力的作用", TechCategory.PHYSICS, 150, 1);
+        mechanics.addPrerequisite("BASIC_PHYSICS");
+
+        Technology thermodynamics = new Technology("THERMODYNAMICS", "热力学",
+                "掌握热量与能量转换定律", TechCategory.PHYSICS, 200, 2);
+        thermodynamics.addPrerequisite("MECHANICS");
+
+        Technology electromagnetism = new Technology("ELECTROMAGNETISM", "电磁学",
+                "电与磁的统一理论", TechCategory.PHYSICS, 250, 2);
+        electromagnetism.addPrerequisite("THERMODYNAMICS");
 
         Technology quantumMechanics = new Technology("QUANTUM_MECHANICS", "量子力学",
-                "理解微观世界的规律", TechCategory.PHYSICS, 250, 30);
-        quantumMechanics.addPrerequisite("BASIC_PHYSICS");
+                "理解微观世界的规律", TechCategory.PHYSICS, 300, 2);
+        quantumMechanics.addPrerequisite("ELECTROMAGNETISM");
 
-        Technology ftlTheory = new Technology("FTL_THEORY", "超光速理论",
-                "超越光速的旅行成为可能", TechCategory.PHYSICS, 500, 30);
-        ftlTheory.addPrerequisite("QUANTUM_MECHANICS");
+        Technology nuclearPhysics = new Technology("NUCLEAR_PHYSICS", "核物理学",
+                "掌握原子核反应原理", TechCategory.PHYSICS, 350, 3);
+        nuclearPhysics.addPrerequisite("QUANTUM_MECHANICS");
 
-        // 工程学分支
-        Technology basicEngineering = new Technology("BASIC_ENGINEERING", "基础工程学",
-                "掌握基本工程原理", TechCategory.MATERIALS_ENGINEERING, 100, 30);
+        Technology particlePhysics = new Technology("PARTICLE_PHYSICS", "粒子物理学",
+                "探索物质的基本构成", TechCategory.PHYSICS, 400, 3);
+        particlePhysics.addPrerequisite("NUCLEAR_PHYSICS");
 
-        Technology nanotechnology = new Technology("NANOTECHNOLOGY", "纳米技术",
-                "在分子尺度上操纵物质", TechCategory.NANOTECHNOLOGY, 300, 30);
-        nanotechnology.addPrerequisite("BASIC_ENGINEERING");
+        Technology relativisticPhysics = new Technology("RELATIVISTIC_PHYSICS", "相对论物理学",
+                "高速与强引力场中的物理规律", TechCategory.PHYSICS, 450, 4);
+        relativisticPhysics.addPrerequisite("PARTICLE_PHYSICS");
 
-        Technology molecularAssembly = new Technology("MOLECULAR_ASSEMBLY", "分子组装",
-                "原子级的精确制造", TechCategory.MATERIALS_ENGINEERING, 600, 30);
-        molecularAssembly.addPrerequisite("NANOTECHNOLOGY");
+        Technology quantumFieldTheory = new Technology("QUANTUM_FIELD_THEORY", "量子场论",
+                "量子场与基本力的统一理论", TechCategory.PHYSICS, 500, 4);
+        quantumFieldTheory.addPrerequisite("PARTICLE_PHYSICS");
 
-        // 军事学分支
-        Technology basicWeapons = new Technology("BASIC_WEAPONS", "基础武器学",
-                "掌握基本武器原理", TechCategory.MILITARY_TECH, 100, 30);
+        Technology unifiedFieldTheory = new Technology("UNIFIED_FIELD_THEORY", "统一场论",
+                "统一四种基本相互作用力", TechCategory.PHYSICS, 600, 5);
+        unifiedFieldTheory.addPrerequisite("RELATIVISTIC_PHYSICS");
+        unifiedFieldTheory.addPrerequisite("QUANTUM_FIELD_THEORY");
 
-        Technology laserWeapons = new Technology("LASER_WEAPONS", "激光武器",
-                "高能定向能量武器", TechCategory.MILITARY_TECH, 200, 30);
-        laserWeapons.addPrerequisite("BASIC_WEAPONS");
+        // 化学分支 - 从基础到高级
+        Technology basicChemistry = new Technology("BASIC_CHEMISTRY", "基础化学",
+                "掌握化学基本原理", TechCategory.CHEMISTRY, 100, 1);
 
-        Technology plasmaWeapons = new Technology("PLASMA_WEAPONS", "等离子武器",
-                "高温等离子体武器", TechCategory.MILITARY_TECH, 350, 30);
-        plasmaWeapons.addPrerequisite("LASER_WEAPONS");
+        Technology inorganicChemistry = new Technology("INORGANIC_CHEMISTRY", "无机化学",
+                "无机化合物的性质与反应", TechCategory.CHEMISTRY, 150, 1);
+        inorganicChemistry.addPrerequisite("BASIC_CHEMISTRY");
 
-        // 社会学分支
-        Technology basicSociology = new Technology("BASIC_SOCIOLOGY", "基础社会学",
-                "理解社会运作原理", TechCategory.SOCIOLOGY, 100, 30);
+        Technology organicChemistry = new Technology("ORGANIC_CHEMISTRY", "有机化学",
+                "碳基化合物的结构与反应", TechCategory.CHEMISTRY, 200, 2);
+        organicChemistry.addPrerequisite("INORGANIC_CHEMISTRY");
 
-        Technology collectiveConsciousness = new Technology("COLLECTIVE_CONSCIOUSNESS", "集体意识",
-                "社会思维的协调统一", TechCategory.SOCIOLOGY, 300, 30);
-        collectiveConsciousness.addPrerequisite("BASIC_SOCIOLOGY");
+        Technology biochemistry = new Technology("BIOCHEMISTRY", "生物化学",
+                "生命过程中的化学反应", TechCategory.CHEMISTRY, 250, 2);
+        biochemistry.addPrerequisite("ORGANIC_CHEMISTRY");
 
-        // 生物学分支
+        Technology analyticalChemistry = new Technology("ANALYTICAL_CHEMISTRY", "分析化学",
+                "物质成分与结构的分析方法", TechCategory.CHEMISTRY, 200, 2);
+        analyticalChemistry.addPrerequisite("INORGANIC_CHEMISTRY");
+
+        Technology physicalChemistry = new Technology("PHYSICAL_CHEMISTRY", "物理化学",
+                "化学系统的物理性质与过程", TechCategory.CHEMISTRY, 250, 2);
+        physicalChemistry.addPrerequisite("ANALYTICAL_CHEMISTRY");
+
+        Technology materialsChemistry = new Technology("MATERIALS_CHEMISTRY", "材料化学",
+                "先进材料的化学合成与应用", TechCategory.CHEMISTRY, 300, 3);
+        materialsChemistry.addPrerequisite("PHYSICAL_CHEMISTRY");
+
+        Technology nanotechnology = new Technology("NANOCHEMISTRY", "纳米化学",
+                "纳米尺度的化学操控", TechCategory.CHEMISTRY, 350, 3);
+        nanotechnology.addPrerequisite("MATERIALS_CHEMISTRY");
+
+        Technology quantumChemistry = new Technology("QUANTUM_CHEMISTRY", "量子化学",
+                "量子力学在化学中的应用", TechCategory.CHEMISTRY, 400, 4);
+        quantumChemistry.addPrerequisite("QUANTUM_MECHANICS");
+
+        Technology supramolecularChemistry = new Technology("SUPRAMOLECULAR_CHEMISTRY", "超分子化学",
+                "分子间相互作用与自组装", TechCategory.CHEMISTRY, 450, 4);
+        supramolecularChemistry.addPrerequisite("NANOCHEMISTRY");
+
+        Technology syntheticChemistry = new Technology("SYNTHETIC_CHEMISTRY", "合成化学",
+                "复杂分子的人工合成技术", TechCategory.CHEMISTRY, 500, 5);
+        syntheticChemistry.addPrerequisite("SUPRAMOLECULAR_CHEMISTRY");
+
+        // 生物学分支 - 从基础到高级
         Technology basicBiology = new Technology("BASIC_BIOLOGY", "基础生物学",
-                "掌握生命科学基础", TechCategory.BIOLOGY, 100, 30);
+                "掌握生命科学基础", TechCategory.BIOLOGY, 100, 1);
+
+        Technology cellularBiology = new Technology("CELLULAR_BIOLOGY", "细胞生物学",
+                "细胞结构与功能研究", TechCategory.BIOLOGY, 150, 1);
+        cellularBiology.addPrerequisite("BASIC_BIOLOGY");
+
+        Technology genetics = new Technology("GENETICS", "遗传学",
+                "生物遗传规律的研究", TechCategory.BIOLOGY, 200, 2);
+        genetics.addPrerequisite("CELLULAR_BIOLOGY");
+
+        Technology molecularBiology = new Technology("MOLECULAR_BIOLOGY", "分子生物学",
+                "生物大分子的结构与功能", TechCategory.BIOLOGY, 250, 2);
+        molecularBiology.addPrerequisite("GENETICS");
+
+        Technology evolutionaryBiology = new Technology("EVOLUTIONARY_BIOLOGY", "进化生物学",
+                "生物进化与适应机制", TechCategory.BIOLOGY, 250, 2);
+        evolutionaryBiology.addPrerequisite("CELLULAR_BIOLOGY");
+
+        Technology microbiology = new Technology("MICROBIOLOGY", "微生物学",
+                "微生物的特性与应用", TechCategory.BIOLOGY, 300, 3);
+        microbiology.addPrerequisite("CELLULAR_BIOLOGY");
+
+        Technology bioengineering = new Technology("BIOENGINEERING", "生物工程学",
+                "生物系统的设计与改造", TechCategory.BIOLOGY, 350, 3);
+        bioengineering.addPrerequisite("MOLECULAR_BIOLOGY");
 
         Technology geneticEngineering = new Technology("GENETIC_ENGINEERING", "基因工程",
-                "改造和优化生命形式", TechCategory.BIOENGINEERING, 400, 30);
-        geneticEngineering.addPrerequisite("BASIC_BIOLOGY");
+                "改造和优化生命形式", TechCategory.BIOLOGY, 400, 3);
+        geneticEngineering.addPrerequisite("GENETICS");
+
+        Technology syntheticBiology = new Technology("SYNTHETIC_BIOLOGY", "合成生物学",
+                "人工生命的设计与创造", TechCategory.BIOLOGY, 450, 4);
+        syntheticBiology.addPrerequisite("GENETIC_ENGINEERING");
+
+        Technology xenobiology = new Technology("XENOBIOLOGY", "异种生物学",
+                "外星生命的科学研究", TechCategory.BIOLOGY, 500, 4);
+        xenobiology.addPrerequisite("SYNTHETIC_BIOLOGY");
+
+        Technology neuralBiology = new Technology("NEURAL_BIOLOGY", "神经生物学",
+                "神经系统与大脑功能", TechCategory.BIOLOGY, 400, 4);
+        neuralBiology.addPrerequisite("MOLECULAR_BIOLOGY");
+
+        Technology consciousnessStudies = new Technology("CONSCIOUSNESS_STUDIES", "意识研究",
+                "探索意识的本质与机制", TechCategory.BIOLOGY, 550, 5);
+        consciousnessStudies.addPrerequisite("NEURAL_BIOLOGY");
+
+        // 终极科技 - 终极武器
+        Technology ultimateWeapon = new Technology("ULTIMATE_WEAPON", "终极武器",
+                "一种能够摧毁整个星系的超级武器", TechCategory.PHYSICS, 1000, 5);
+        // 添加所有顶级科技作为前置条件
+        ultimateWeapon.addPrerequisite("UNIFIED_FIELD_THEORY"); // 物理学最高级
+        ultimateWeapon.addPrerequisite("SYNTHETIC_CHEMISTRY"); // 化学最高级
+        ultimateWeapon.addPrerequisite("CONSCIOUSNESS_STUDIES"); // 生物学最高级
 
         // 添加所有科技
-        addTechnology(physics);
+        addTechnology(basicPhysics);
+        addTechnology(mechanics);
+        addTechnology(thermodynamics);
+        addTechnology(electromagnetism);
         addTechnology(quantumMechanics);
-        addTechnology(ftlTheory);
-        addTechnology(basicEngineering);
+        addTechnology(nuclearPhysics);
+        addTechnology(particlePhysics);
+        addTechnology(relativisticPhysics);
+        addTechnology(quantumFieldTheory);
+        addTechnology(unifiedFieldTheory);
+        addTechnology(basicChemistry);
+        addTechnology(inorganicChemistry);
+        addTechnology(organicChemistry);
+        addTechnology(biochemistry);
+        addTechnology(analyticalChemistry);
+        addTechnology(physicalChemistry);
+        addTechnology(materialsChemistry);
         addTechnology(nanotechnology);
-        addTechnology(molecularAssembly);
-        addTechnology(basicWeapons);
-        addTechnology(laserWeapons);
-        addTechnology(plasmaWeapons);
-        addTechnology(basicSociology);
-        addTechnology(collectiveConsciousness);
+        addTechnology(quantumChemistry);
+        addTechnology(supramolecularChemistry);
+        addTechnology(syntheticChemistry);
         addTechnology(basicBiology);
+        addTechnology(cellularBiology);
+        addTechnology(genetics);
+        addTechnology(molecularBiology);
+        addTechnology(evolutionaryBiology);
+        addTechnology(microbiology);
+        addTechnology(bioengineering);
         addTechnology(geneticEngineering);
+        addTechnology(syntheticBiology);
+        addTechnology(xenobiology);
+        addTechnology(neuralBiology);
+        addTechnology(consciousnessStudies);
+        addTechnology(ultimateWeapon);
     }
 
     public void addTechnology(Technology technology) {

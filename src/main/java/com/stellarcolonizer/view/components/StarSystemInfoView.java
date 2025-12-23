@@ -53,7 +53,31 @@ public class StarSystemInfoView extends VBox {
         Label planetCountLabel = new Label("行星数量: " + starSystem.getPlanets().size());
         planetCountLabel.setStyle("-fx-text-fill: white;");
         
-        systemInfoBox.getChildren().addAll(starTypeLabel, planetCountLabel);
+        // 显示控制该星系的派系
+        Label controllingFactionLabel;
+        if (starSystem.getControllingFaction() != null) {
+            String controllingFactionText = "控制派系: " + starSystem.getControllingFaction().getName();
+            
+            // 根据派系颜色设置标签颜色
+            javafx.scene.paint.Color factionColor = starSystem.getControllingFaction().getColor();
+            if (factionColor != null) {
+                // 将JavaFX颜色转换为CSS颜色字符串
+                String hexColor = String.format("#%02X%02X%02X",
+                    (int)(factionColor.getRed() * 255),
+                    (int)(factionColor.getGreen() * 255),
+                    (int)(factionColor.getBlue() * 255));
+                controllingFactionLabel = new Label(controllingFactionText);
+                controllingFactionLabel.setStyle("-fx-text-fill: " + hexColor + ";");
+            } else {
+                controllingFactionLabel = new Label(controllingFactionText);
+                controllingFactionLabel.setStyle("-fx-text-fill: white;");
+            }
+        } else {
+            controllingFactionLabel = new Label("控制派系: 无");
+            controllingFactionLabel.setStyle("-fx-text-fill: white;");
+        }
+        
+        systemInfoBox.getChildren().addAll(starTypeLabel, planetCountLabel, controllingFactionLabel);
         
         // 行星列表和详情区域
         HBox mainContent = new HBox(10);

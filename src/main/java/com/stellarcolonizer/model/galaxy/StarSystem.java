@@ -1,6 +1,7 @@
 // StarSystem.java - 恒星系
 package com.stellarcolonizer.model.galaxy;
 
+import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.galaxy.enums.StarType;
 import javafx.geometry.Point2D;
 
@@ -14,12 +15,14 @@ public class StarSystem {
     private List<Planet> planets;
     private Point2D position; // 在六边形内的相对位置
     private float habitability; // 总体宜居度 0-1
+    private Faction controllingFaction; // 控制该星系的派系
 
-    public StarSystem(String name, com.stellarcolonizer.model.galaxy.enums.StarType starType) {
+    public StarSystem(String name, StarType starType) {
         this.name = name;
         this.starType = starType;
         this.planets = new ArrayList<>();
         this.habitability = calculateHabitability();
+        this.controllingFaction = null; // 初始时没有派系控制
     }
 
     public void addPlanet(Planet planet) {
@@ -51,7 +54,7 @@ public class StarSystem {
                 .toList();
     }
 
-    public boolean hasColony(com.stellarcolonizer.model.faction.Faction faction) {
+    public boolean hasColony(Faction faction) {
         return planets.stream()
                 .anyMatch(p -> {
                     com.stellarcolonizer.model.colony.Colony colony = p.getColony();
@@ -64,7 +67,7 @@ public class StarSystem {
     public void setName(String name) { this.name = name; }
 
     public StarType getStarType() { return starType; }
-    public void setStarType(com.stellarcolonizer.model.galaxy.enums.StarType starType) { this.starType = starType; }
+    public void setStarType(StarType starType) { this.starType = starType; }
 
     public List<Planet> getPlanets() { return new ArrayList<>(planets); }
 
@@ -72,6 +75,14 @@ public class StarSystem {
     public void setPosition(Point2D position) { this.position = position; }
 
     public float getHabitability() { return habitability; }
+
+    // 控制派系的getter和setter
+    public Faction getControllingFaction() { return controllingFaction; }
+    public void setControllingFaction(Faction faction) { this.controllingFaction = faction; }
+
+    // 检查是否有派系控制此星系
+    public boolean isControlledByFaction() { return controllingFaction != null; }
+    public boolean isUncontrolled() { return controllingFaction == null; }
 }
 
 

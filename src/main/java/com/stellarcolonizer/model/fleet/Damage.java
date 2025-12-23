@@ -17,9 +17,10 @@ class Damage {
     public DamageType getType() { return type; }
     public float getArmorPenetration() { return armorPenetration; }
 
+    // 简化伤害计算：伤害 = 攻击力 - 防御力
     public float getEffectiveDamage(float targetArmor) {
-        float penetration = armorPenetration / 100.0f;
-        float armorReduction = Math.max(0, targetArmor * (1 - penetration));
-        return Math.max(amount * 0.1f, amount - armorReduction);
+        // 在新机制中，这个方法不再使用穿甲计算，而是直接返回攻击力
+        // 防御力将在Ship.takeDamage方法中处理
+        return amount;
     }
 }

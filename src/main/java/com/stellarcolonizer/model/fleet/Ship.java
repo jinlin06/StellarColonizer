@@ -323,77 +323,27 @@ public class Ship {
     }
 
     private void repairModules() {
-        for (ModuleStatus status : moduleStatus.values()) {
-            if (status.getIntegrity() < 100.0f && !inCombat.get()) {
-                float repairAmount = 0.1f; // 每天修复0.1%
-                status.repair(repairAmount);
-            }
-        }
+        // 简化机制：模块不再需要修复
+        return;
     }
 
     private void checkShipStatus() {
-        // 检查是否被摧毁
-        if (hitPoints.get() <= 0 || integrity.get() <= 0 || currentCrew.get() <= 0) {
+        // 检查是否被摧毁 (仅检查生命值和船员)
+        if (hitPoints.get() <= 0 || currentCrew.get() <= 0) {
             destroy();
         }
     }
 
     // 战斗方法
     public void takeDamage(Damage damage) {
-        float remainingDamage = damage.getAmount();
-
-        // 1. 首先击中护盾
-        if (currentShield.get() > 0) {
-            float shieldDamage = Math.min(currentShield.get(), remainingDamage);
-            currentShield.set(currentShield.get() - shieldDamage);
-            remainingDamage -= shieldDamage;
-        }
-
-        // 2. 然后击中装甲
-        if (remainingDamage > 0 && currentArmor.get() > 0) {
-            float armorDamage = Math.min(currentArmor.get(), remainingDamage);
-            currentArmor.set(currentArmor.get() - armorDamage);
-            remainingDamage -= armorDamage;
-
-            // 装甲被击穿时有几率损坏模块
-            if (armorDamage > currentArmor.get() * 0.1f) {
-                damageRandomModule(armorDamage * 0.01f);
-            }
-        }
-
-        // 3. 最后击中船体
-        if (remainingDamage > 0) {
-            hitPoints.set(hitPoints.get() - remainingDamage);
-
-            // 船体损伤降低完整性
-            float integrityLoss = remainingDamage / design.get().getHitPoints() * 50.0f;
-            integrity.set(integrity.get() - integrityLoss);
-
-            // 船体损伤有较高几率损坏模块
-            damageRandomModule(remainingDamage * 0.02f);
-
-            // 船体损伤可能造成船员伤亡
-            int crewCasualties = (int) (remainingDamage / 100.0f * currentCrew.get() * 0.1f);
-            currentCrew.set(Math.max(0, currentCrew.get() - crewCasualties));
-        }
-
+        // 简化伤害计算：伤害 = 攻击力 - 防御力
+        float damageAmount = Math.max(1.0f, damage.getAmount() - getCurrentArmor());
+        
+        // 直接减少生命值
+        hitPoints.set(hitPoints.get() - damageAmount);
+        
         // 进入战斗状态
         inCombat.set(true);
-    }
-
-    private void damageRandomModule(float damageAmount) {
-        if (moduleStatus.isEmpty()) return;
-
-        List<Map.Entry<ShipModule, ModuleStatus>> entries =
-                new ArrayList<>(moduleStatus.entrySet());
-        Collections.shuffle(entries);
-
-        // 损坏1-3个模块
-        int modulesToDamage = 1 + (int) (Math.random() * 3);
-        for (int i = 0; i < Math.min(modulesToDamage, entries.size()); i++) {
-            ModuleStatus status = entries.get(i).getValue();
-            status.damage((float) (damageAmount * (0.5f + Math.random() * 1.5f)));
-        }
     }
 
     public float calculateDamageOutput() {
@@ -412,10 +362,12 @@ public class Ship {
                     if (ammo <= 0) continue;
                 }
 
-                // 计算有效伤害
+                // 计算有效伤害 - 仅基于武器本身属性，不受其他状态影响
                 float moduleDamage = weapon.calculateDamagePerSecond();
-                moduleDamage *= status.getEffectiveness();
-                moduleDamage *= combatReadiness.get() / 100.0f;
+                
+                // 不再应用状态修正
+                // moduleDamage *= status.getEffectiveness();
+                // moduleDamage *= combatReadiness.get() / 100.0f;
 
                 totalDamage += moduleDamage;
             }
@@ -442,54 +394,29 @@ public class Ship {
                     ammunition.put(ammoType, currentAmmo - weapon.getAmmoConsumption());
                 }
 
-                // 计算命中
-                float hitChance = calculateHitChance(weapon, target);
-                if (Math.random() < hitChance) {
-                    // 计算伤害
-                    float damage = weapon.getDamage();
+                // 简化攻击：必定命中，直接造成伤害
+                // 攻击力仅受武器种类影响，不受其他属性影响
+                float damage = weapon.getDamage();
 
-                    // 应用准确性修正
-                    damage *= weapon.getAccuracy() / 100.0f;
+                // 应用准确性修正（武器自身属性）
+                damage *= weapon.getAccuracy() / 100.0f;
 
-                    // 应用模块有效性修正
-                    damage *= status.getEffectiveness();
+                // 不再应用状态修正
+                // damage *= status.getEffectiveness();
+                // damage *= combatReadiness.get() / 100.0f;
 
-                    // 应用战斗准备度修正
-                    damage *= combatReadiness.get() / 100.0f;
+                // 创建伤害对象（装甲值现在作为防御力）
+                Damage weaponDamage = new Damage(damage, DamageType.KINETIC, 0);
 
-                    // 创建伤害对象
-                    DamageType damageType = mapWeaponTypeToDamageType(weapon.getWeaponType());
-                    Damage weaponDamage = new Damage(damage, damageType, weapon.getArmorPenetration());
-
-                    // 对目标造成伤害
-                    target.takeDamage(weaponDamage);
-                }
+                // 对目标造成伤害
+                target.takeDamage(weaponDamage);
             }
         }
     }
 
     private float calculateHitChance(WeaponModule weapon, Ship target) {
-        float baseChance = weapon.getAccuracy() / 100.0f;
-
-        // 距离影响
-        float distance = calculateDistanceTo(target);
-        float maxRange = weapon.calculateEffectiveRange();
-
-        if (distance > maxRange) {
-            return 0;
-        }
-
-        float rangeModifier = 1.0f - (distance / maxRange) * 0.5f;
-        baseChance *= rangeModifier;
-
-        // 目标回避率影响
-        float targetEvasion = target.getEffectiveEvasion();
-        baseChance *= (1.0f - targetEvasion / 100.0f);
-
-        // 自身跟踪速度影响
-        baseChance *= (weapon.getTrackingSpeed() / 100.0f);
-
-        return Math.max(0.1f, Math.min(0.95f, baseChance));
+        // 简化：100%命中
+        return 1.0f;
     }
 
     private float calculateDistanceTo(Ship target) {
@@ -517,25 +444,8 @@ public class Ship {
     }
 
     public float getEffectiveEvasion() {
-        float baseEvasion = design.get().getEvasion();
-
-        // 模块加成
-        for (Map.Entry<ShipModule, ModuleStatus> entry : moduleStatus.entrySet()) {
-            ShipModule module = entry.getKey();
-            ModuleStatus status = entry.getValue();
-
-            if (status.isActive()) {
-                baseEvasion += module.getEvasionBonus();
-            }
-        }
-
-        // 完整性影响
-        baseEvasion *= integrity.get() / 100.0f;
-
-        // 战斗准备度影响
-        baseEvasion *= combatReadiness.get() / 100.0f;
-
-        return Math.max(0, Math.min(95, baseEvasion));
+        // 简化：无回避
+        return 0.0f;
     }
 
     public void moveTo(Hex destination) {
@@ -581,6 +491,11 @@ public class Ship {
 
         // 触发被摧毁事件
         // 这里可以发送事件到游戏引擎
+    }
+
+    private void damageRandomModule(float damageAmount) {
+        // 简化机制：不再损伤模块
+        return;
     }
 
     // Getter 方法

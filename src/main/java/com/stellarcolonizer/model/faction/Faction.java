@@ -144,4 +144,3 @@ public class Faction {
     public FactionTrait getSecondaryTrait() { return secondaryTrait; }
     public void setSecondaryTrait(FactionTrait trait) { this.secondaryTrait = trait; }
 }
-

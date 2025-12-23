@@ -58,6 +58,9 @@ public class GameEngine {
         // 创建AI派系
         createAIFactions();
         
+        // 为所有派系分配初始殖民地（仅对还没有殖民地的派系）
+        setupInitialColonies();
+        
         // 初始化游戏状态
         gameState = new GameState();
         gameState.setCurrentTurn(1);
@@ -76,6 +79,10 @@ public class GameEngine {
                         Colony colony = new Colony(planet, playerFaction);
                         playerFaction.addColony(colony);
                         planet.setColony(colony);
+                        
+                        // 设置该星系的控制派系
+                        system.setControllingFaction(playerFaction);
+                        
                         return;
                     }
                 }
@@ -86,16 +93,31 @@ public class GameEngine {
         if (playerStartHex == null && !galaxy.getStarSystems().isEmpty()) {
             StarSystem firstSystem = galaxy.getStarSystems().get(0);
             playerStartHex = galaxy.getHexForStarSystem(firstSystem);
+            
+            // 即使没有TERRA行星，也设置该星系的控制派系为玩家
+            firstSystem.setControllingFaction(playerFaction);
         }
     }
 
     private void createAIFactions() {
-        String[] aiNames = {"机械帝国", "虫族巢群", "灵能议会", "贸易联盟"};
+        String[] aiNames = {
+            "机械帝国", "虫族巢群", "灵能议会", "贸易联盟",
+            "滚木联邦", "东大联邦", "M78星云", "凋灵矿业",
+            "海天苑联盟", "星天苑联盟", "三体星系", "云天苑联盟"
+        };
         javafx.scene.paint.Color[] colors = {
                 javafx.scene.paint.Color.RED,
                 javafx.scene.paint.Color.GREEN,
                 javafx.scene.paint.Color.PURPLE,
-                javafx.scene.paint.Color.ORANGE
+                javafx.scene.paint.Color.ORANGE,
+                javafx.scene.paint.Color.BLUE,
+                javafx.scene.paint.Color.YELLOW,
+                javafx.scene.paint.Color.CYAN,
+                javafx.scene.paint.Color.MAGENTA,
+                javafx.scene.paint.Color.LIME,
+                javafx.scene.paint.Color.PINK,
+                javafx.scene.paint.Color.CORAL,
+                javafx.scene.paint.Color.GOLD
         };
 
         for (int i = 0; i < aiNames.length; i++) {
@@ -103,24 +125,73 @@ public class GameEngine {
             aiFaction.setColor(colors[i]);
             aiFaction.setAIController(new com.stellarcolonizer.model.service.ai.AIController(aiFaction));
             factions.add(aiFaction);
+            
+            // 为AI派系分配一个星系
+            assignSystemToFaction(aiFaction);
+        }
+    }
+    
+    private void assignSystemToFaction(Faction faction) {
+        // 寻找一个未被控制且有可殖民行星的星系
+        for (StarSystem system : galaxy.getStarSystems()) {
+            if (system.getControllingFaction() == null) {
+                // 检查该星系是否有可殖民的行星
+                for (Planet planet : system.getPlanets()) {
+                    if (planet.canColonize(faction) && planet.getColony() == null) {
+                        // 在该行星上建立殖民地
+                        Colony colony = new Colony(planet, faction);
+                        faction.addColony(colony);
+                        planet.setColony(colony);
+                        
+                        // 设置该星系的控制派系
+                        system.setControllingFaction(faction);
+                        
+                        // 给予初始资源
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                        
+                        System.out.println(faction.getName() + " 在星系 " + system.getName() + " 建立了殖民地");
+                        return; // 只为每个派系分配一个星系
+                    }
+                }
+            }
+        }
+        
+        // 如果没有找到可殖民的行星，至少分配一个星系（如果星系中没有行星或行星不可殖民）
+        for (StarSystem system : galaxy.getStarSystems()) {
+            if (system.getControllingFaction() == null) {
+                system.setControllingFaction(faction);
+                System.out.println(faction.getName() + " 控制了星系 " + system.getName());
+                return; // 只为每个派系分配一个星系
+            }
         }
     }
 
     private void setupInitialColonies() {
-        // 为每个派系分配初始殖民地
+        // 为每个还没有殖民地的派系分配初始殖民地
         for (Faction faction : factions) {
-            Planet homeworld = findSuitableHomeworld(faction);
-            if (homeworld != null) {
-                Colony colony = new Colony(homeworld, faction);
-                faction.addColony(colony);
-                homeworld.setColony(colony);
+            // 检查派系是否已经有殖民地
+            if (faction.getColonies().isEmpty()) {
+                Planet homeworld = findSuitableHomeworld(faction);
+                if (homeworld != null) {
+                    Colony colony = new Colony(homeworld, faction);
+                    faction.addColony(colony);
+                    homeworld.setColony(colony);
+                    
+                    // 设置该行星所属星系的控制派系
+                    StarSystem system = homeworld.getStarSystem();
+                    if (system != null) {
+                        system.setControllingFaction(faction);
+                    }
 
-                // 给予初始资源
-                faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
-                faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
-                faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                    // 给予初始资源
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
 
-                eventBus.publish(new GameEvent("COLONY_ESTABLISHED", faction.getName() + " 在 " + homeworld.getName() + " 建立了殖民地"));
+                    eventBus.publish(new GameEvent("COLONY_ESTABLISHED", faction.getName() + " 在 " + homeworld.getName() + " 建立了殖民地"));
+                }
             }
         }
     }

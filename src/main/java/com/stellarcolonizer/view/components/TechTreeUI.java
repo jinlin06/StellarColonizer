@@ -1,4 +1,3 @@
-
 package com.stellarcolonizer.view.components;
 
 import com.stellarcolonizer.model.technology.*;
@@ -16,6 +15,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TechTreeUI extends BorderPane {
 
@@ -194,38 +194,117 @@ public class TechTreeUI extends BorderPane {
     private VBox createCenterPanel() {
         VBox panel = new VBox(10);
         panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #1a1a1a;");
 
         Label title = new Label("科技树");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 20));
         title.setTextFill(Color.WHITE);
+        title.setEffect(new javafx.scene.effect.DropShadow(5, Color.BLACK));
 
         // 科技树画布
         techTreeCanvas = new Pane();
-        techTreeCanvas.setStyle("-fx-background-color: #1a1a1a;");
+        techTreeCanvas.setStyle("-fx-background-color: #121212;");
 
         techTreePane = new ScrollPane(techTreeCanvas);
-        techTreePane.setFitToWidth(true);
-        techTreePane.setFitToHeight(true);
+        techTreePane.setFitToWidth(false);
+        techTreePane.setFitToHeight(false);
+        techTreePane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        techTreePane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         techTreePane.setStyle("-fx-background-color: #1a1a1a;");
-        techTreePane.setPrefHeight(600);
+        techTreePane.setPrefHeight(400); // 调小高度
+        techTreePane.setPrefWidth(800);  // 调小宽度
+        
+        // 美化滚动条
+        techTreePane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        techTreePane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        techTreePane.getStyleClass().add("tech-tree-scroll-pane");
 
-        // 类别筛选
-        HBox filterPanel = createFilterPanel();
+        // 创建科技树布局
+        HBox treeLayout = new HBox(30); // 减小间距
+        treeLayout.setPadding(new Insets(10)); // 减小内边距
+        treeLayout.setStyle("-fx-background-color: #1e1e1e;");
 
-        panel.getChildren().addAll(title, filterPanel, techTreePane);
+        // 物理学分支
+        VBox physicsBranch = createBranch("物理学", TechCategory.PHYSICS);
+        // 化学分支
+        VBox chemistryBranch = createBranch("化学", TechCategory.CHEMISTRY);
+        // 生物学分支
+        VBox biologyBranch = createBranch("生物学", TechCategory.BIOLOGY);
+
+        treeLayout.getChildren().addAll(physicsBranch, chemistryBranch, biologyBranch);
+
+        // 添加到面板
+        panel.getChildren().addAll(title, techTreePane);
         VBox.setVgrow(techTreePane, Priority.ALWAYS);
 
         return panel;
     }
 
+    private VBox createBranch(String branchName, TechCategory category) {
+        VBox branch = new VBox(15); // 减小间距
+        branch.setStyle("-fx-background-color: rgba(30, 30, 30, 0.7); -fx-background-radius: 8; -fx-padding: 10;"); // 减小内边距和圆角
+
+        // 分支标题
+        Label titleLabel = new Label(branchName);
+        titleLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16)); // 减小标题字体
+        titleLabel.setTextFill(category.getColor());
+        titleLabel.setEffect(new javafx.scene.effect.DropShadow(5, Color.BLACK));
+        titleLabel.setAlignment(javafx.geometry.Pos.CENTER);
+
+        // 科技列表
+        VBox techList = new VBox(10); // 减小间距
+        techList.setStyle("-fx-background-color: transparent;");
+
+        // 按层级分组科技
+        Map<Integer, List<Technology>> techsByTier = groupByTier(getTechnologiesByCategory(category));
+
+        for (int tier = 1; tier <= 8; tier++) {
+            List<Technology> tierTechs = techsByTier.getOrDefault(tier, new ArrayList<>());
+            if (!tierTechs.isEmpty()) {
+                // 创建层级标签
+                Label tierLabel = new Label("等级 " + tier);
+                tierLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10)); // 减小字体
+                tierLabel.setTextFill(Color.LIGHTGRAY);
+                tierLabel.setPadding(new Insets(0, 0, 3, 0)); // 减小内边距
+
+                // 创建层级容器
+                FlowPane tierContainer = new FlowPane(javafx.geometry.Orientation.HORIZONTAL, 10, 10); // 减小间距
+                tierContainer.setPrefWidth(250); // 减小宽度
+                tierContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                for (Technology tech : tierTechs) {
+                    TechCard techCard = new TechCard(tech);
+                    techCardMap.put(tech, techCard);
+                    tierContainer.getChildren().add(techCard);
+                }
+
+                VBox tierBox = new VBox(3); // 减小间距
+                tierBox.getChildren().addAll(tierLabel, tierContainer);
+                techList.getChildren().add(tierBox);
+            }
+        }
+
+        branch.getChildren().addAll(titleLabel, techList);
+        return branch;
+    }
+
+    private List<Technology> getTechnologiesByCategory(TechCategory category) {
+        return techTree.getTechnologies().stream()
+                .filter(tech -> tech.getCategory() == category)
+                .collect(Collectors.toList());
+    }
+
     private HBox createFilterPanel() {
         HBox panel = new HBox(10);
-        panel.setPadding(new Insets(5));
-        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+        panel.setPadding(new Insets(8));
+        panel.setStyle("-fx-background-color: #2d2d2d; -fx-background-radius: 8;");
 
         // 全选按钮
         Button selectAllButton = new Button("全选");
-        selectAllButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+        selectAllButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; "
+                               + "-fx-background-radius: 6; "
+                               + "-fx-padding: 5 15 5 15; "
+                               + "-fx-font-weight: bold;");
         selectAllButton.setOnAction(e -> showAllCategories());
 
         // 类别筛选按钮
@@ -233,8 +312,16 @@ public class TechTreeUI extends BorderPane {
             ToggleButton categoryButton = new ToggleButton(category.getDisplayName());
             categoryButton.setUserData(category);
             categoryButton.setSelected(true);
-            categoryButton.setStyle("-fx-background-color: " + toHex(category.getColor()) +
-                    "; -fx-text-fill: white;");
+            categoryButton.setStyle(
+                "-fx-background-color: " + toHex(category.getColor()) + "; " +
+                "-fx-text-fill: black; " +
+                "-fx-background-radius: 6; " +
+                "-fx-padding: 5 10 5 10; " +
+                "-fx-font-weight: bold;" +
+                "-fx-max-width: 80;" +
+                "-fx-text-overrun: ellipsis;"
+            );
+             
             categoryButton.setOnAction(e -> toggleCategory(category));
 
             panel.getChildren().add(categoryButton);
@@ -287,59 +374,113 @@ public class TechTreeUI extends BorderPane {
             techsByCategory.get(tech.getCategory()).add(tech);
         }
 
-        // 创建类别列
-        double x = 50;
-        double columnWidth = 300;
+        // 创建背景网格
+        createGridBackground();
 
-        for (TechCategory category : TechCategory.values()) {
+        // 创建类别列 - 按照物理学、化学、生物学的顺序
+        double x = 50;
+        double columnWidth = 260; // 减小列宽
+        double maxCategoryHeight = 0;
+
+        // 按顺序处理三个学科
+        for (TechCategory category : new TechCategory[]{TechCategory.PHYSICS, TechCategory.CHEMISTRY, TechCategory.BIOLOGY}) {
             List<Technology> categoryTechs = techsByCategory.get(category);
             if (categoryTechs.isEmpty()) continue;
 
             // 创建类别标题
             Label categoryTitle = new Label(category.getDisplayName() + " " + category.getIcon());
-            categoryTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+            categoryTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16)); // 减小字体
             categoryTitle.setTextFill(category.getColor());
             categoryTitle.setLayoutX(x + 20);
             categoryTitle.setLayoutY(20);
+            categoryTitle.setEffect(new javafx.scene.effect.DropShadow(5, Color.BLACK));
 
             // 创建类别列容器
-            VBox column = new VBox(30);
+            VBox column = new VBox(20); // 减小间距
             column.setLayoutX(x);
             column.setLayoutY(60);
             column.setPrefWidth(columnWidth);
+            column.setStyle("-fx-background-color: rgba(30, 30, 30, 0.7); "
+                          + "-fx-background-radius: 8; " // 减小圆角
+                          + "-fx-padding: 10;"); // 减小内边距
 
             // 按层级排序科技
             Map<Integer, List<Technology>> techsByTier = groupByTier(categoryTechs);
 
             double y = 0;
-            for (int tier = 1; tier <= 5; tier++) {
+            for (int tier = 1; tier <= 8; tier++) {
                 List<Technology> tierTechs = techsByTier.getOrDefault(tier, new ArrayList<>());
 
-                // 创建层级容器
-                HBox tierContainer = new HBox(20);
-                tierContainer.setPrefWidth(columnWidth);
+                if (!tierTechs.isEmpty()) {
+                    // 创建层级标签
+                    Label tierLabel = new Label("等级 " + tier);
+                    tierLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10)); // 减小字体
+                    tierLabel.setTextFill(Color.LIGHTGRAY);
+                    tierLabel.setPadding(new Insets(0, 0, 3, 0)); // 减小内边距
 
-                for (Technology tech : tierTechs) {
-                    TechCard techCard = createTechCard(tech, x, y);
-                    techCardMap.put(tech, techCard);
-                    tierContainer.getChildren().add(techCard);
+                    // 创建层级容器
+                    FlowPane tierContainer = new FlowPane(javafx.geometry.Orientation.HORIZONTAL, 10, 10); // 减小间距
+                    tierContainer.setPrefWidth(columnWidth - 20); // 调整宽度
+                    tierContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                    for (Technology tech : tierTechs) {
+                        // 不添加终极武器到分类列中
+                        if (!"ULTIMATE_WEAPON".equals(tech.getId())) {
+                            TechCard techCard = new TechCard(tech);
+                            techCardMap.put(tech, techCard);
+                            tierContainer.getChildren().add(techCard);
+                        }
+                    }
+
+                    VBox tierBox = new VBox(3); // 减小间距
+                    tierBox.getChildren().addAll(tierLabel, tierContainer);
+                    column.getChildren().add(tierBox);
+                    y += 100; // 减小每层高度
                 }
-
-                column.getChildren().add(tierContainer);
-                y += 120; // 每个层级的高度
             }
 
             techTreeCanvas.getChildren().addAll(categoryTitle, column);
             categoryColumns.put(category, column);
+            maxCategoryHeight = Math.max(maxCategoryHeight, y + 120); // 调整高度
 
-            x += columnWidth + 50;
+            x += columnWidth + 30; // 减小间距
         }
 
-        // 绘制连接线
-        drawConnections();
-
+        // 添加终极武器科技到中心位置
+        Technology ultimateWeapon = techTree.getTechnology("ULTIMATE_WEAPON");
+        if (ultimateWeapon != null) {
+            // 计算中心位置
+            double centerX = (x - columnWidth - 30) / 2; // 在三个学科的中心
+            double centerY = maxCategoryHeight + 50; // 在所有科技下方
+            
+            TechCard ultimateCard = new TechCard(ultimateWeapon);
+            ultimateCard.setLayoutX(centerX);
+            ultimateCard.setLayoutY(centerY);
+            techCardMap.put(ultimateWeapon, ultimateCard);
+            techTreeCanvas.getChildren().add(ultimateCard);
+        }
         // 更新科技树画布大小
-        updateCanvasSize(x);
+        updateCanvasSize(x, maxCategoryHeight + 200); // 为终极武器增加额外空间
+    }
+
+    private void createGridBackground() {
+        // 创建科技树背景网格
+        double canvasWidth = 1200; // 减小画布宽度
+        double canvasHeight = 800; // 减小画布高度
+        
+        for (double x = 0; x < canvasWidth; x += 30) {
+            Line line = new Line(x, 0, x, canvasHeight);
+            line.setStroke(Color.rgb(50, 50, 50, 0.3));
+            line.setStrokeWidth(0.5);
+            techTreeCanvas.getChildren().add(line);
+        }
+        
+        for (double y = 0; y < canvasHeight; y += 30) {
+            Line line = new Line(0, y, canvasWidth, y);
+            line.setStroke(Color.rgb(50, 50, 50, 0.3));
+            line.setStrokeWidth(0.5);
+            techTreeCanvas.getChildren().add(line);
+        }
     }
 
     private Map<Integer, List<Technology>> groupByTier(List<Technology> techs) {
@@ -373,51 +514,52 @@ public class TechTreeUI extends BorderPane {
         return new TechCard(tech);
     }
 
-    private void drawConnections() {
-        for (Technology tech : techTree.getTechnologies()) {
-            TechCard techCard = techCardMap.get(tech);
-            if (techCard == null) continue;
 
-            for (String prereqId : tech.getPrerequisites()) {
-                Technology prereq = techTree.getTechnology(prereqId);
-                if (prereq == null) continue;
 
-                TechCard prereqCard = techCardMap.get(prereq);
-                if (prereqCard == null) continue;
+    private void addConnectionLine(Technology prereq, Technology tech) {
+        TechCard prereqCard = techCardMap.get(prereq);
+        TechCard techCard = techCardMap.get(tech);
+        
+        if (prereqCard != null && techCard != null) {
+            // 绘制连接线
+            Line connection = new Line();
+            
+            // 计算起始点和终点（卡片中心）
+            javafx.geometry.Bounds prereqBounds = prereqCard.getBoundsInParent();
+            javafx.geometry.Bounds techBounds = techCard.getBoundsInParent();
+            
+            double startX = prereqBounds.getMinX() + prereqBounds.getWidth() / 2;
+            double startY = prereqBounds.getMinY() + prereqBounds.getHeight() / 2;
+            double endX = techBounds.getMinX() + techBounds.getWidth() / 2;
+            double endY = techBounds.getMinY() + techBounds.getHeight() / 2;
+            
+            connection.setStartX(startX);
+            connection.setStartY(startY);
+            connection.setEndX(endX);
+            connection.setEndY(endY);
 
-                // 绘制连接线
-                Line connection = new Line();
-                connection.setStartX(prereqCard.getLayoutX() + prereqCard.getWidth() / 2);
-                connection.setStartY(prereqCard.getLayoutY() + prereqCard.getHeight() / 2);
-                connection.setEndX(techCard.getLayoutX() + techCard.getWidth() / 2);
-                connection.setEndY(techCard.getLayoutY() + techCard.getHeight() / 2);
-
-                // 设置线条样式
-                if (tech.isResearched() && prereq.isResearched()) {
-                    connection.setStroke(Color.LIME);
-                    connection.setStrokeWidth(3);
-                } else if (techTree.canResearch(tech) && prereq.isResearched()) {
-                    connection.setStroke(Color.YELLOW);
-                    connection.setStrokeWidth(2);
-                } else {
-                    connection.setStroke(Color.GRAY);
-                    connection.setStrokeWidth(1);
-                }
-
-                // 添加到画布底部（在卡片下面）
-                techTreeCanvas.getChildren().add(0, connection);
+            // 设置线条样式
+            if (tech.isResearched() && prereq.isResearched()) {
+                connection.setStroke(Color.LIME);
+                connection.setStrokeWidth(3);
+            } else if (techTree.canResearch(tech) && prereq.isResearched()) {
+                connection.setStroke(Color.YELLOW);
+                connection.setStrokeWidth(2);
+            } else {
+                connection.setStroke(Color.GRAY);
+                connection.setStrokeWidth(1);
             }
+            
+            // 添加箭头效果
+            connection.setStrokeLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+            
+            // 添加到画布底部（在卡片下面）
+            techTreeCanvas.getChildren().add(0, connection);
         }
     }
 
-    private void updateCanvasSize(double width) {
-        double height = 0;
-
-        for (VBox column : categoryColumns.values()) {
-            height = Math.max(height, column.getLayoutY() + column.getHeight());
-        }
-
-        techTreeCanvas.setPrefSize(width, height + 100);
+    private void updateCanvasSize(double width, double height) {
+        techTreeCanvas.setPrefSize(Math.max(width, 800), Math.max(height + 80, 600)); // 调整最小尺寸
     }
 
     private void setupEventHandlers() {
@@ -672,27 +814,28 @@ public class TechTreeUI extends BorderPane {
         public TechCard(Technology technology) {
             this.technology = technology;
 
-            setPrefSize(120, 80);
+            setPrefSize(100, 70); // 调小卡片尺寸
             setStyle(createCardStyle());
 
             // 卡片内容
-            VBox content = new VBox(5);
-            content.setPadding(new Insets(10));
+            VBox content = new VBox(3); // 减小间距
+            content.setPadding(new Insets(5)); // 减小内边距
             content.setAlignment(javafx.geometry.Pos.CENTER);
 
             // 图标和名称
             Label iconLabel = new Label(technology.getIcon());
-            iconLabel.setStyle("-fx-font-size: 20;");
-
+            iconLabel.setStyle("-fx-font-size: 18px;"); // 减小图标大小
+            
             Label nameLabel = new Label(technology.getName());
-            nameLabel.setFont(Font.font(10));
+            nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 9)); // 减小字体
             nameLabel.setTextFill(Color.WHITE);
             nameLabel.setWrapText(true);
-            nameLabel.setMaxWidth(100);
+            nameLabel.setMaxWidth(85); // 限制宽度
+            nameLabel.setAlignment(javafx.geometry.Pos.CENTER);
 
             // 研究状态
             Label statusLabel = new Label();
-            statusLabel.setFont(Font.font(8));
+            statusLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
 
             if (technology.isResearched()) {
                 statusLabel.setText("✓");
@@ -712,12 +855,18 @@ public class TechTreeUI extends BorderPane {
             setOnMouseClicked(e -> {
                 selectedTechnology = technology;
                 updateTechnologyDetails();
+                
+                // 添加点击反馈效果
+                setStyle(createCardStyle() + "-fx-effect: dropshadow(gaussian, white, 15, 0.7, 0, 0);");
+                javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
+                pause.setOnFinished(event -> setStyle(createCardStyle()));
+                pause.play();
             });
 
             // 悬停效果
             setOnMouseEntered(e -> {
                 setStyle(createCardStyle() + "-fx-effect: dropshadow(gaussian, " +
-                        TechTreeUI.this.toHex(technology.getColor().brighter()) + ", 10, 0.5);");
+                        TechTreeUI.this.toHex(technology.getColor().brighter()) + ", 15, 0.7, 0, 0);");
             });
 
             setOnMouseExited(e -> {
@@ -727,17 +876,21 @@ public class TechTreeUI extends BorderPane {
 
         private String createCardStyle() {
             StringBuilder style = new StringBuilder();
-            style.append("-fx-background-color: ").append(TechTreeUI.this.toHex(technology.getColor().darker())).append("; ");
-            style.append("-fx-background-radius: 10; ");
-            style.append("-fx-border-color: ").append(TechTreeUI.this.toHex(technology.getColor())).append("; ");
-            style.append("-fx-border-width: 2; ");
-            style.append("-fx-border-radius: 10; ");
+            style.append("-fx-background-color: linear-gradient(to bottom, ")
+                 .append(TechTreeUI.this.toHex(technology.getColor().brighter().brighter()))
+                 .append(", ")
+                 .append(TechTreeUI.this.toHex(technology.getColor()))
+                 .append("); ");
+            style.append("-fx-background-radius: 8; "); // 减小圆角
+            style.append("-fx-border-color: ").append(TechTreeUI.this.toHex(technology.getColor().desaturate())).append("; ");
+            style.append("-fx-border-width: 1.5; "); // 减小边框
+            style.append("-fx-border-radius: 8; ");
 
             if (technology.isResearched()) {
-                style.append("-fx-effect: dropshadow(gaussian, ").append(TechTreeUI.this.toHex(technology.getColor()))
-                        .append(", 10, 0, 0, 0);");
+                style.append("-fx-effect: dropshadow(gaussian, ").append(TechTreeUI.this.toHex(technology.getColor().brighter()))
+                        .append(", 10, 0.7, 0, 0);"); // 减小发光效果
             } else if (techTree.canResearch(technology)) {
-                style.append("-fx-effect: dropshadow(gaussian, #FFD700, 5, 0, 0, 0);");
+                style.append("-fx-effect: dropshadow(gaussian, #FFD700, 6, 0.7, 0, 0);"); // 减小发光效果
             }
 
             return style.toString();
