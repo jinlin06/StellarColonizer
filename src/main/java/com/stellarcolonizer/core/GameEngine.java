@@ -61,6 +61,9 @@ public class GameEngine {
         // 为所有派系分配初始殖民地（仅对还没有殖民地的派系）
         setupInitialColonies();
         
+        // 生成星系之间的连接
+        galaxy.generateStarSystemConnections();
+        
         // 初始化游戏状态
         gameState = new GameState();
         gameState.setCurrentTurn(1);

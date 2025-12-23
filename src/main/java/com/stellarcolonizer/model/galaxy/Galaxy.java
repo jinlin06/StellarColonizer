@@ -212,15 +212,15 @@ public class Galaxy {
             hexConnections.put(hex, new HashSet<>(neighbors));
         }
         
-        // 随机移除约20%的连接
+        // 随机移除约10%的连接（保留90%的连接）
         List<Hex> allHexes = new ArrayList<>(hexGrid.getAllHexes());
         int totalPossibleConnections = 0;
         for (Hex hex : allHexes) {
             totalPossibleConnections += hexConnections.get(hex).size();
         }
         
-        // 计算需要移除的连接数（约20%）
-        int connectionsToRemove = (int) (totalPossibleConnections * 0.2);
+        // 计算需要移除的连接数（约10%）
+        int connectionsToRemove = (int) (totalPossibleConnections * 0.1);
         
         for (int i = 0; i < connectionsToRemove; i++) {
             // 随机选择一个六边形

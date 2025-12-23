@@ -360,73 +360,76 @@ public class HexMapView extends Pane {
         // 全局去重集合，确保每对单元格之间最多只有一条连线
         Set<String> allDrawnConnections = new HashSet<>();
         
-        // 如果有星系连接信息，优先绘制星系连接
-        if (galaxy != null) {
-            // 绘制星系之间的连接（仅绘制实际存在的连接）
-            for (StarSystem system : galaxy.getStarSystems()) {
-                Hex fromHex = galaxy.getHexForStarSystem(system);
-                if (fromHex == null) continue;
-                
-                Point2D fromCenter = hexGrid.cubeToPixel(fromHex.getCoord());
-                double fromX = fromCenter.getX() * scale + offsetX;
-                double fromY = fromCenter.getY() * scale + offsetY;
-                
-                List<StarSystem> connections = galaxy.getConnectedSystems(system);
-                for (StarSystem connectedSystem : connections) {
-                    Hex toHex = galaxy.getHexForStarSystem(connectedSystem);
-                    if (toHex == null) continue;
+        // 无论是否有星系信息，都绘制所有相邻六边形之间的连线
+        if (hexGrid != null) {
+            // 如果有银河系连接信息，使用连接信息来决定绘制哪些连线
+            if (galaxy != null && !galaxy.getHexConnections().isEmpty()) {
+                // 使用银河系中存储的六边形连接信息
+                for (Map.Entry<Hex, Set<Hex>> entry : galaxy.getHexConnections().entrySet()) {
+                    Hex hex = entry.getKey();
+                    Set<Hex> connectedHexes = entry.getValue();
                     
-                    // 创建连接标识符确保每对单元格之间最多只有一条连线
-                    String fromCoord = fromHex.getCoord().toString();
-                    String toCoord = toHex.getCoord().toString();
-                    String connectionId = fromCoord.compareTo(toCoord) < 0 ? 
-                        fromCoord + "|" + toCoord : toCoord + "|" + fromCoord;
-                    
-                    if (allDrawnConnections.contains(connectionId)) {
-                        continue;
-                    }
-                    
-                    allDrawnConnections.add(connectionId);
-                    
-                    Point2D toCenter = hexGrid.cubeToPixel(toHex.getCoord());
-                    double toX = toCenter.getX() * scale + offsetX;
-                    double toY = toCenter.getY() * scale + offsetY;
-                    
-                    // 绘制直线连接
-                    gc.strokeLine(fromX, fromY, toX, toY);
-                }
-            }
-        } else if (hexGrid != null) {
-            // 如果没有星系信息，绘制基本的六边形邻接关系
-            for (Hex hex : hexGrid.getAllHexes()) {
-                Point2D center = hexGrid.cubeToPixel(hex.getCoord());
-                
-                // 应用缩放和偏移
-                double screenX = center.getX() * scale + offsetX;
-                double screenY = center.getY() * scale + offsetY;
-                
-                // 获取邻居并绘制到邻居的连线（仅绘制实际的邻接关系）
-                for (Hex neighbor : hexGrid.getNeighbors(hex)) {
-                    // 创建连接标识符确保每对单元格之间最多只有一条连线
-                    String hexCoord = hex.getCoord().toString();
-                    String neighborCoord = neighbor.getCoord().toString();
-                    String lineId = hexCoord.compareTo(neighborCoord) < 0 ? 
-                        hexCoord + "|" + neighborCoord : neighborCoord + "|" + hexCoord;
-                    
-                    if (allDrawnConnections.contains(lineId)) {
-                        continue;
-                    }
-                    
-                    allDrawnConnections.add(lineId);
-                    
-                    Point2D neighborCenter = hexGrid.cubeToPixel(neighbor.getCoord());
+                    Point2D center = hexGrid.cubeToPixel(hex.getCoord());
                     
                     // 应用缩放和偏移
-                    double neighborScreenX = neighborCenter.getX() * scale + offsetX;
-                    double neighborScreenY = neighborCenter.getY() * scale + offsetY;
+                    double screenX = center.getX() * scale + offsetX;
+                    double screenY = center.getY() * scale + offsetY;
                     
-                    // 绘制连接线
-                    gc.strokeLine(screenX, screenY, neighborScreenX, neighborScreenY);
+                    for (Hex connectedHex : connectedHexes) {
+                        // 创建连接标识符确保每对单元格之间最多只有一条连线
+                        String hexCoord = hex.getCoord().toString();
+                        String connectedCoord = connectedHex.getCoord().toString();
+                        String lineId = hexCoord.compareTo(connectedCoord) < 0 ? 
+                            hexCoord + "|" + connectedCoord : connectedCoord + "|" + hexCoord;
+                        
+                        if (allDrawnConnections.contains(lineId)) {
+                            continue;
+                        }
+                        
+                        allDrawnConnections.add(lineId);
+                        
+                        Point2D connectedCenter = hexGrid.cubeToPixel(connectedHex.getCoord());
+                        
+                        // 应用缩放和偏移
+                        double connectedScreenX = connectedCenter.getX() * scale + offsetX;
+                        double connectedScreenY = connectedCenter.getY() * scale + offsetY;
+                        
+                        // 绘制连接线
+                        gc.strokeLine(screenX, screenY, connectedScreenX, connectedScreenY);
+                    }
+                }
+            } else {
+                // 如果没有连接信息，绘制所有相邻六边形的连接
+                for (Hex hex : hexGrid.getAllHexes()) {
+                    Point2D center = hexGrid.cubeToPixel(hex.getCoord());
+                    
+                    // 应用缩放和偏移
+                    double screenX = center.getX() * scale + offsetX;
+                    double screenY = center.getY() * scale + offsetY;
+                    
+                    // 获取邻居并绘制到邻居的连线
+                    for (Hex neighbor : hexGrid.getNeighbors(hex)) {
+                        // 创建连接标识符确保每对单元格之间最多只有一条连线
+                        String hexCoord = hex.getCoord().toString();
+                        String neighborCoord = neighbor.getCoord().toString();
+                        String lineId = hexCoord.compareTo(neighborCoord) < 0 ? 
+                            hexCoord + "|" + neighborCoord : neighborCoord + "|" + hexCoord;
+                        
+                        if (allDrawnConnections.contains(lineId)) {
+                            continue;
+                        }
+                        
+                        allDrawnConnections.add(lineId);
+                        
+                        Point2D neighborCenter = hexGrid.cubeToPixel(neighbor.getCoord());
+                        
+                        // 应用缩放和偏移
+                        double neighborScreenX = neighborCenter.getX() * scale + offsetX;
+                        double neighborScreenY = neighborCenter.getY() * scale + offsetY;
+                        
+                        // 绘制连接线
+                        gc.strokeLine(screenX, screenY, neighborScreenX, neighborScreenY);
+                    }
                 }
             }
         }
