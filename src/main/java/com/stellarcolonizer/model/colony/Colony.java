@@ -46,11 +46,11 @@ public class Colony {
         String defaultName = faction.getName() + "殖民地-" + planet.getName();
         this.name = new SimpleStringProperty(defaultName);
 
-        this.totalPopulation = new SimpleIntegerProperty(1000000);
+        this.totalPopulation = new SimpleIntegerProperty(1000);
         this.populationByType = new EnumMap<>(PopType.class);
         initializePopulation();
 
-        this.growthRate = new SimpleFloatProperty(0.02f);
+        this.growthRate = new SimpleFloatProperty(0.01f);
         this.happiness = new SimpleFloatProperty(0.7f);
 
         this.resourceStockpile = new ResourceStockpile();
@@ -181,13 +181,30 @@ public class Colony {
     }
 
     private void updatePopulation() {
-        float growth = totalPopulation.get() * growthRate.get();
+        // 基础增长率，根据当前人口数量进行衰减，避免指数增长
+        float baseGrowthRate = growthRate.get();
+        float populationFactor = 1.0f / (1.0f + (float)totalPopulation.get() / 50000.0f); // 人口越多，增长率越低
+        float growth = totalPopulation.get() * baseGrowthRate * populationFactor;
+        
+        // 幸福度和犯罪率影响
         growth *= happiness.get();
         growth *= (1 - crimeRate.get() / 100.0f);
 
+        // 食物充足度影响
         float foodSufficiency = getFoodSufficiency();
         if (foodSufficiency < 0.8f) {
             growth *= foodSufficiency;
+        }
+        
+        // 稳定度影响
+        if (stability.get() < 50) {
+            growth *= 0.7f; // 稳定度低时增长减缓
+        }
+        
+        // 最大增长率限制，防止过快增长
+        float maxGrowth = totalPopulation.get() * 0.05f; // 每回合最多增长5%
+        if (growth > maxGrowth) {
+            growth = maxGrowth;
         }
 
         int newPopulation = totalPopulation.get() + (int) growth;
