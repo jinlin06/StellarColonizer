@@ -72,7 +72,7 @@ public class GameEngine {
         // 查找一个有宜居行星的星系作为玩家起始位置
         for (StarSystem system : galaxy.getStarSystems()) {
             for (Planet planet : system.getPlanets()) {
-                if (planet.getType() == com.stellarcolonizer.model.galaxy.enums.PlanetType.TERRA) {
+                if (planet.getType() == com.stellarcolonizer.model.galaxy.enums.PlanetType.TERRA && planet.getColony() == null && planet.getHabitability() >= 0.8f) {
                     playerStartHex = galaxy.getHexForStarSystem(system);
                     if (playerStartHex != null) {
                         // 在起始位置创建一个殖民地
@@ -89,12 +89,78 @@ public class GameEngine {
             }
         }
         
-        // 如果没找到TERRA行星，则选择任意一个星系作为起始位置
+        // 如果没找到TERRA行星或宜居度不足80%，则寻找其他宜居度至少80%的行星
+        if (playerStartHex == null) {
+            for (StarSystem system : galaxy.getStarSystems()) {
+                for (Planet planet : system.getPlanets()) {
+                    if (planet.canColonize(playerFaction) && planet.getColony() == null && planet.getHabitability() >= 0.8f) {
+                        playerStartHex = galaxy.getHexForStarSystem(system);
+                        if (playerStartHex != null) {
+                            // 在起始位置创建一个殖民地
+                            Colony colony = new Colony(planet, playerFaction);
+                            playerFaction.addColony(colony);
+                            planet.setColony(colony);
+                            
+                            // 设置该星系的控制派系
+                            system.setControllingFaction(playerFaction);
+                            
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果没找到宜居度80%以上的行星，则寻找其他可殖民的行星
+        if (playerStartHex == null) {
+            for (StarSystem system : galaxy.getStarSystems()) {
+                for (Planet planet : system.getPlanets()) {
+                    if (planet.canColonize(playerFaction) && planet.getColony() == null) {
+                        playerStartHex = galaxy.getHexForStarSystem(system);
+                        if (playerStartHex != null) {
+                            // 在起始位置创建一个殖民地
+                            Colony colony = new Colony(planet, playerFaction);
+                            playerFaction.addColony(colony);
+                            planet.setColony(colony);
+                            
+                            // 设置该星系的控制派系
+                            system.setControllingFaction(playerFaction);
+                            
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果仍然没有找到可殖民的行星，尝试在任何行星上建立殖民地
+        if (playerStartHex == null) {
+            for (StarSystem system : galaxy.getStarSystems()) {
+                for (Planet planet : system.getPlanets()) {
+                    if (planet.getColony() == null) {
+                        playerStartHex = galaxy.getHexForStarSystem(system);
+                        if (playerStartHex != null) {
+                            // 在起始位置创建一个殖民地
+                            Colony colony = new Colony(planet, playerFaction);
+                            playerFaction.addColony(colony);
+                            planet.setColony(colony);
+                            
+                            // 设置该星系的控制派系
+                            system.setControllingFaction(playerFaction);
+                            
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果还是没找到可殖民的行星，使用第一个星系
         if (playerStartHex == null && !galaxy.getStarSystems().isEmpty()) {
             StarSystem firstSystem = galaxy.getStarSystems().get(0);
             playerStartHex = galaxy.getHexForStarSystem(firstSystem);
             
-            // 即使没有TERRA行星，也设置该星系的控制派系为玩家
+            // 即使没有可殖民的行星，也设置该星系的控制派系为玩家
             firstSystem.setControllingFaction(playerFaction);
         }
     }
@@ -135,9 +201,51 @@ public class GameEngine {
         // 寻找一个未被控制且有可殖民行星的星系
         for (StarSystem system : galaxy.getStarSystems()) {
             if (system.getControllingFaction() == null) {
-                // 检查该星系是否有可殖民的行星
+                // 优先寻找宜居度至少80%的可殖民行星
+                Planet suitablePlanet = null;
                 for (Planet planet : system.getPlanets()) {
-                    if (planet.canColonize(faction) && planet.getColony() == null) {
+                    if (planet.canColonize(faction) && planet.getColony() == null && planet.getHabitability() >= 0.8f) {
+                        suitablePlanet = planet;
+                        break; // 找到一个宜居度80%以上的行星就足够
+                    }
+                }
+                
+                // 如果没找到宜居度80%以上的行星，再寻找其他可殖民的行星
+                if (suitablePlanet == null) {
+                    for (Planet planet : system.getPlanets()) {
+                        if (planet.canColonize(faction) && planet.getColony() == null) {
+                            suitablePlanet = planet;
+                            break;
+                        }
+                    }
+                }
+                
+                if (suitablePlanet != null) {
+                    // 在该行星上建立殖民地
+                    Colony colony = new Colony(suitablePlanet, faction);
+                    faction.addColony(colony);
+                    suitablePlanet.setColony(colony);
+                    
+                    // 设置该星系的控制派系
+                    system.setControllingFaction(faction);
+                    
+                    // 给予初始资源
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                    
+                    System.out.println(faction.getName() + " 在星系 " + system.getName() + " 建立了殖民地");
+                    return; // 只为每个派系分配一个星系
+                }
+            }
+        }
+        
+        // 如果没有找到可殖民的行星，尝试在任何行星上建立殖民地（即使不可殖民）
+        for (StarSystem system : galaxy.getStarSystems()) {
+            if (system.getControllingFaction() == null) {
+                // 尝试在系统中的任何行星上建立殖民地
+                for (Planet planet : system.getPlanets()) {
+                    if (planet.getColony() == null) {
                         // 在该行星上建立殖民地
                         Colony colony = new Colony(planet, faction);
                         faction.addColony(colony);
@@ -151,7 +259,7 @@ public class GameEngine {
                         faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
                         faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
                         
-                        System.out.println(faction.getName() + " 在星系 " + system.getName() + " 建立了殖民地");
+                        System.out.println(faction.getName() + " 在星系 " + system.getName() + " 的行星 " + planet.getName() + " 上建立了殖民地（强制殖民）");
                         return; // 只为每个派系分配一个星系
                     }
                 }
@@ -194,16 +302,63 @@ public class GameEngine {
                 }
             }
         }
+        
+        // 为所有派系的殖民地行星确保最低宜居度
+        ensureColonizedPlanetsMinimumHabitability();
+    }
+    
+    private void ensureColonizedPlanetsMinimumHabitability() {
+        // 遍历所有星系和行星，确保所有有殖民地的行星宜居度至少为80%
+        for (StarSystem system : galaxy.getStarSystems()) {
+            for (Planet planet : system.getPlanets()) {
+                if (planet.getColony() != null) {
+                    // 如果殖民地行星的宜居度低于80%，则调整其宜居度
+                    if (planet.getHabitability() < 0.8f) {
+                        planet.ensureMinimumHabitability(0.8f);
+                    }
+                }
+            }
+        }
     }
 
     private Planet findSuitableHomeworld(Faction faction) {
+        // 优先寻找TERRA行星且宜居度至少80%
         for (StarSystem system : galaxy.getStarSystems()) {
             for (Planet planet : system.getPlanets()) {
-                if (planet.getType() == com.stellarcolonizer.model.galaxy.enums.PlanetType.TERRA && planet.getColony() == null) {
+                if (planet.getType() == com.stellarcolonizer.model.galaxy.enums.PlanetType.TERRA && 
+                    planet.canColonize(faction) && planet.getColony() == null && planet.getHabitability() >= 0.8f) {
                     return planet;
                 }
             }
         }
+        
+        // 如果没找到TERRA行星，则寻找其他宜居度至少80%的行星
+        for (StarSystem system : galaxy.getStarSystems()) {
+            for (Planet planet : system.getPlanets()) {
+                if (planet.canColonize(faction) && planet.getColony() == null && planet.getHabitability() >= 0.8f) {
+                    return planet;
+                }
+            }
+        }
+        
+        // 如果没找到宜居度80%以上的行星，则寻找其他可殖民的行星
+        for (StarSystem system : galaxy.getStarSystems()) {
+            for (Planet planet : system.getPlanets()) {
+                if (planet.canColonize(faction) && planet.getColony() == null) {
+                    return planet;
+                }
+            }
+        }
+        
+        // 如果没找到可殖民的行星，尝试任何没有殖民地的行星
+        for (StarSystem system : galaxy.getStarSystems()) {
+            for (Planet planet : system.getPlanets()) {
+                if (planet.getColony() == null) {
+                    return planet;
+                }
+            }
+        }
+        
         return null;
     }
 

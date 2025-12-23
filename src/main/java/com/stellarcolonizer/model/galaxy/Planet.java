@@ -25,6 +25,9 @@ public class Planet {
 
     // 轨道位置
     private int orbitIndex;
+    
+    // 为殖民地行星设置的宜居度修正值
+    private float habitabilityModifier = 0.0f;
 
     public Planet(String name, PlanetType type, int size, float orbitDistance) {
         this.name = name;
@@ -85,7 +88,20 @@ public class Planet {
         float distanceModifier = 1.0f - Math.abs(orbitDistance - 1.0f) * 0.5f;
         base *= Math.max(0, distanceModifier);
 
+        // 应用宜居度修正值
+        base += habitabilityModifier;
+
+        // 确保最终宜居度不低于0且不超过1
         return Math.min(1.0f, Math.max(0, base));
+    }
+
+    // 为殖民地行星设置最低宜居度的方法
+    public void ensureMinimumHabitability(float minimumHabitability) {
+        float currentHabitability = getHabitability();
+        if (currentHabitability < minimumHabitability) {
+            // 计算需要增加的宜居度修正值
+            this.habitabilityModifier = minimumHabitability - currentHabitability;
+        }
     }
 
     public float getResourceOutput(ResourceType resource) {
@@ -139,8 +155,3 @@ public class Planet {
     public int getOrbitIndex() { return orbitIndex; }
     public void setOrbitIndex(int orbitIndex) { this.orbitIndex = orbitIndex; }
 }
-
-
-
-
-

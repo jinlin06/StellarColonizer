@@ -499,12 +499,12 @@ public class StarSystemInfoView extends VBox {
     // 获取建筑类型名称
     private String getBuildingTypeName(BuildingType type) {
         switch (type) {
-            case FOOD_PRODUCTION: return "食物生产设施";
-            case ENERGY_PRODUCTION: return "能量生产设施";
-            case MINERAL_PRODUCTION: return "矿物生产设施";
-            case RESEARCH: return "科研设施";
+            case FOOD_PRODUCTION: return "农场";
+            case ENERGY_PRODUCTION: return "发电厂";
+            case MINERAL_PRODUCTION: return "矿场";
+            case RESEARCH: return "科研所";
             case HOUSING: return "住宅区";
-            case ADMINISTRATION: return "行政区";
+            case ADMINISTRATION: return "行政中心";
             default: return type.getDisplayName();
         }
     }
