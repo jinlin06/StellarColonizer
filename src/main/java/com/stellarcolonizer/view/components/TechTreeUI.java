@@ -657,7 +657,12 @@ public class TechTreeUI extends BorderPane {
         }
 
         // 解锁内容
+        boolean hasUnlocks = false;
+        VBox unlockPanel = new VBox(5);
+        
+        // 检查是否有解锁内容
         if (!selectedTechnology.getUnlocks().isEmpty()) {
+            hasUnlocks = true;
             Label unlockTitle = new Label("解锁内容:");
             unlockTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
             unlockTitle.setTextFill(Color.LIGHTGRAY);
@@ -666,8 +671,99 @@ public class TechTreeUI extends BorderPane {
             for (Unlockable unlock : selectedTechnology.getUnlocks()) {
                 Label unlockLabel = new Label("• " + unlock.getName());
                 unlockLabel.setTextFill(Color.CYAN);
-                detailsPanel.getChildren().add(unlockLabel);
+                unlockPanel.getChildren().add(unlockLabel);
             }
+        }
+        
+        // 解锁的建筑
+        if (!selectedTechnology.getUnlockedBuildings().isEmpty()) {
+            hasUnlocks = true;
+            Label buildingTitle = new Label("解锁建筑:");
+            buildingTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+            buildingTitle.setTextFill(Color.LIGHTGRAY);
+            detailsPanel.getChildren().add(buildingTitle);
+            
+            for (String buildingId : selectedTechnology.getUnlockedBuildings()) {
+                String buildingName = getBuildingDisplayName(buildingId); // 转换为中文名称
+                Label buildingLabel = new Label("• " + buildingName);
+                buildingLabel.setTextFill(Color.CYAN);
+                detailsPanel.getChildren().add(buildingLabel);
+            }
+        }
+        
+        // 解锁的舰船等级
+        Set<String> unlockedShipClasses = new HashSet<>();
+        // 解锁的模块
+        Set<String> unlockedModules = new HashSet<>();
+        
+        if (!selectedTechnology.getUnlockedUnits().isEmpty()) {
+            for (String unitId : selectedTechnology.getUnlockedUnits()) {
+                // 判断是否为舰船等级
+                if (isShipClass(unitId)) {
+                    unlockedShipClasses.add(getUnitDisplayName(unitId));
+                } else {
+                    // 否则为模块
+                    unlockedModules.add(getUnitDisplayName(unitId));
+                }
+            }
+        }
+        
+        // 显示解锁的舰船等级
+        if (!unlockedShipClasses.isEmpty()) {
+            hasUnlocks = true;
+            Label shipTitle = new Label("解锁舰船等级:");
+            shipTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+            shipTitle.setTextFill(Color.LIGHTGRAY);
+            detailsPanel.getChildren().add(shipTitle);
+            
+            for (String shipClass : unlockedShipClasses) {
+                Label shipLabel = new Label("• " + shipClass);
+                shipLabel.setTextFill(Color.CYAN);
+                detailsPanel.getChildren().add(shipLabel);
+            }
+        }
+        
+        // 显示解锁的模块
+        if (!unlockedModules.isEmpty()) {
+            hasUnlocks = true;
+            Label moduleTitle = new Label("解锁模块:");
+            moduleTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+            moduleTitle.setTextFill(Color.LIGHTGRAY);
+            detailsPanel.getChildren().add(moduleTitle);
+            
+            for (String moduleName : unlockedModules) {
+                Label moduleLabel = new Label("• " + moduleName);
+                moduleLabel.setTextFill(Color.CYAN);
+                detailsPanel.getChildren().add(moduleLabel);
+            }
+        }
+        
+        // 解锁的资源
+        if (!selectedTechnology.getUnlockedResources().isEmpty()) {
+            hasUnlocks = true;
+            Label resourceTitle = new Label("解锁资源:");
+            resourceTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+            resourceTitle.setTextFill(Color.LIGHTGRAY);
+            detailsPanel.getChildren().add(resourceTitle);
+            
+            for (String resourceId : selectedTechnology.getUnlockedResources()) {
+                String resourceName = getResourceDisplayName(resourceId); // 转换为中文名称
+                Label resourceLabel = new Label("• " + resourceName);
+                resourceLabel.setTextFill(Color.CYAN);
+                detailsPanel.getChildren().add(resourceLabel);
+            }
+        }
+        
+
+        
+
+        
+        if (hasUnlocks) {
+            detailsPanel.getChildren().addAll(unlockPanel);
+        } else {
+            Label noUnlocksLabel = new Label("此科技无特殊解锁内容");
+            noUnlocksLabel.setTextFill(Color.GRAY);
+            detailsPanel.getChildren().add(noUnlocksLabel);
         }
 
         // 研究按钮
@@ -902,5 +998,205 @@ public class TechTreeUI extends BorderPane {
                 (int) (color.getRed() * 255),
                 (int) (color.getGreen() * 255),
                 (int) (color.getBlue() * 255));
+    }
+    
+    /**
+     * 获取由特定科技解锁的模块
+     * @param technology 科技
+     * @return 解锁的模块名称集合
+     */
+    private Set<String> getModulesUnlockedByTechnology(Technology technology) {
+        Set<String> unlockedModules = new HashSet<>();
+        
+        // 根据科技ID匹配解锁的模块
+        switch (technology.getId()) {
+            case "advanced_weapons":
+                unlockedModules.add("先进激光炮");
+                unlockedModules.add("重型磁轨炮");
+                unlockedModules.add("先进导弹系统");
+                break;
+            case "advanced_defenses":
+                unlockedModules.add("先进护盾");
+                unlockedModules.add("高级装甲");
+                unlockedModules.add("先进点防御系统");
+                break;
+            case "advanced_utilities":
+                unlockedModules.add("先进传感器");
+                unlockedModules.add("高级货舱");
+                unlockedModules.add("高级机库");
+                break;
+            case "advanced_engines":
+                unlockedModules.add("先进引擎");
+                unlockedModules.add("超光速引擎");
+                break;
+            case "advanced_power":
+                unlockedModules.add("先进发电机");
+                unlockedModules.add("零点能源发电机");
+                break;
+            default:
+                // 检查科技名称中是否包含特定关键词
+                String techName = technology.getId().toLowerCase();
+                if (techName.contains("weapon")) {
+                    unlockedModules.add("高级武器系统");
+                } else if (techName.contains("defense")) {
+                    unlockedModules.add("高级防御系统");
+                } else if (techName.contains("engine")) {
+                    unlockedModules.add("高级引擎系统");
+                } else if (techName.contains("power")) {
+                    unlockedModules.add("高级能源系统");
+                }
+                break;
+        }
+        
+        return unlockedModules;
+    }
+    
+    /**
+     * 获取由特定科技解锁的舰船等级
+     * @param technology 科技
+     * @return 解锁的舰船等级名称集合
+     */
+    private Set<String> getShipClassesUnlockedByTechnology(Technology technology) {
+        Set<String> unlockedShipClasses = new HashSet<>();
+        
+        // 根据科技ID匹配解锁的舰船等级
+        switch (technology.getId()) {
+            case "advanced_ship_hulls":
+                unlockedShipClasses.add("巡洋舰");
+                unlockedShipClasses.add("战列舰");
+                break;
+            case "carrier_construction":
+                unlockedShipClasses.add("航母");
+                break;
+            case "frigate_technology":
+                unlockedShipClasses.add("护卫舰");
+                break;
+            case "destroyer_tech":
+                unlockedShipClasses.add("驱逐舰");
+                break;
+            default:
+                // 检查科技名称中是否包含特定关键词
+                String techName = technology.getId().toLowerCase();
+                if (techName.contains("cruiser") || techName.contains("battleship")) {
+                    unlockedShipClasses.add("巡洋舰");
+                    unlockedShipClasses.add("战列舰");
+                }
+                break;
+        }
+        
+        return unlockedShipClasses;
+    }
+    
+    /**
+     * 将单位ID转换为显示名称
+     * @param unitId 单位ID
+     * @return 显示名称
+     */
+    private String getUnitDisplayName(String unitId) {
+        switch (unitId) {
+            case "advanced_laser":
+                return "先进激光炮";
+            case "heavy_railgun":
+                return "重型磁轨炮";
+            case "advanced_shield":
+                return "先进护盾";
+            case "advanced_armor":
+                return "高级装甲";
+            case "advanced_engine":
+                return "先进引擎";
+            case "advanced_generator":
+                return "先进发电机";
+            case "advanced_sensor":
+                return "先进传感器";
+            case "advanced_hangar":
+                return "高级机库";
+            case "corvette":
+                return "护卫舰";
+            case "frigate":
+                return "护卫舰"; // 护卫舰始终可用，无需解锁
+            case "destroyer":
+                return "驱逐舰";
+            case "cruiser":
+                return "巡洋舰";
+            case "battleship":
+                return "战列舰";
+            case "carrier":
+                return "航母";
+            case "dreadnought":
+                return "无畏舰";
+            default:
+                // 如果没有找到对应的中文名称，返回原ID
+                return unitId;
+        }
+    }
+    
+    /**
+     * 将建筑ID转换为显示名称
+     * @param buildingId 建筑ID
+     * @return 显示名称
+     */
+    private String getBuildingDisplayName(String buildingId) {
+        switch (buildingId) {
+            case "basic_factory":
+                return "基础工厂";
+            case "advanced_factory":
+                return "高级工厂";
+            case "shipyard":
+                return "造船厂";
+            case "advanced_shipyard":
+                return "高级造船厂";
+            case "research_lab":
+                return "研究实验室";
+            case "advanced_research_lab":
+                return "高级研究实验室";
+            default:
+                // 如果没有找到对应的中文名称，返回原ID
+                return buildingId;
+        }
+    }
+    
+    /**
+     * 将资源ID转换为显示名称
+     * @param resourceId 资源ID
+     * @return 显示名称
+     */
+    private String getResourceDisplayName(String resourceId) {
+        switch (resourceId) {
+            case "metal":
+                return "金属";
+            case "crystal":
+                return "晶体";
+            case "gas":
+                return "气体";
+            case "energy":
+                return "能源";
+            case "advanced_materials":
+                return "高级材料";
+            case "exotic_matter":
+                return "奇异物质";
+            default:
+                // 如果没有找到对应的中文名称，返回原ID
+                return resourceId;
+        }
+    }
+    
+    /**
+     * 判断unitId是否为舰船等级
+     * @param unitId 单位ID
+     * @return 如果是舰船等级则返回true
+     */
+    private boolean isShipClass(String unitId) {
+        switch (unitId) {
+            case "corvette":
+            case "frigate":
+            case "destroyer":
+            case "cruiser":
+            case "battleship":
+            case "carrier":
+            case "dreadnought":
+                return true;
+            default:
+                return false;
+        }
     }
 }

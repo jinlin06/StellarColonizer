@@ -638,8 +638,18 @@ public class ShipDesignerUI extends BorderPane {
                     return;
                 }
                 
-                // 先检查能否添加模块
-                if (!currentDesign.canAddModule(selectedModule)) {
+                // 先检查能否添加模块（包括科技解锁检查）
+                if (!currentDesign.canAddModule(selectedModule, researchedTechnologies)) {
+                    // 检查是否是科技解锁问题
+                    if (!selectedModule.canBeUnlocked(researchedTechnologies)) {
+                        String moduleName = selectedModule.getName();
+                        String moduleType = getModuleTypeName(selectedModule);
+                        String requiredTech = selectedModule.getRequiredTechnology();
+                        
+                        showAlert("无法添加模块", moduleName + " " + moduleType + " 模块需要解锁" + requiredTech + "科技");
+                        return;
+                    }
+                    
                     // 获取详细的失败原因
                     String errorMessage = getDetailedFailureReason(selectedModule);
                     showAlert("无法添加模块", errorMessage);
@@ -777,9 +787,7 @@ public class ShipDesignerUI extends BorderPane {
             
             // 设置科技需求
             if (techLevel > 1) {
-                java.lang.reflect.Field reqTechField = ShipModule.class.getDeclaredField("requiredTechnology");
-                reqTechField.setAccessible(true);
-                ((java.lang.reflect.Field) reqTechField).set(module, "advanced_defenses");
+                module.setRequiredTechnology("advanced_defenses");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -802,9 +810,7 @@ public class ShipDesignerUI extends BorderPane {
             
             // 设置科技需求
             if (techLevel > 1) {
-                java.lang.reflect.Field reqTechField = ShipModule.class.getDeclaredField("requiredTechnology");
-                reqTechField.setAccessible(true);
-                ((java.lang.reflect.Field) reqTechField).set(module, "advanced_utilities");
+                module.setRequiredTechnology("advanced_utilities");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -827,9 +833,7 @@ public class ShipDesignerUI extends BorderPane {
             
             // 设置科技需求
             if (techLevel > 1) {
-                java.lang.reflect.Field reqTechField = ShipModule.class.getDeclaredField("requiredTechnology");
-                reqTechField.setAccessible(true);
-                ((java.lang.reflect.Field) reqTechField).set(module, "advanced_weapons");
+                module.setRequiredTechnology("advanced_weapons");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -856,9 +860,7 @@ public class ShipDesignerUI extends BorderPane {
             
             // 设置科技需求
             if (techLevel > 1) {
-                java.lang.reflect.Field reqTechField = ShipModule.class.getDeclaredField("requiredTechnology");
-                reqTechField.setAccessible(true);
-                ((java.lang.reflect.Field) reqTechField).set(module, "advanced_engines");
+                module.setRequiredTechnology("advanced_engines");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -885,9 +887,7 @@ public class ShipDesignerUI extends BorderPane {
             
             // 设置科技需求
             if (techLevel > 1) {
-                java.lang.reflect.Field reqTechField = ShipModule.class.getDeclaredField("requiredTechnology");
-                reqTechField.setAccessible(true);
-                ((java.lang.reflect.Field) reqTechField).set(module, "advanced_power");
+                module.setRequiredTechnology("advanced_power");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -980,6 +980,52 @@ public class ShipDesignerUI extends BorderPane {
     private void updateModuleUnlockStatus() {
         updateModuleUnlockStatus(
             new ArrayList<>(availableModules), researchedTechnologies);
+        
+        // 更新当前设计中模块的解锁状态显示
+        updateCurrentModules();
+    }
+    
+    /**
+     * 设置已研发的科技集合
+     * @param researchedTechs 已研发的科技集合
+     */
+    public void setResearchedTechnologies(Set<String> researchedTechs) {
+        this.researchedTechnologies = new HashSet<>(researchedTechs);
+        updateModuleUnlockStatus();
+        
+        // 如果当前设计存在，更新其状态
+        if (currentDesign != null) {
+            updateUIFromDesign();
+        }
+    }
+    
+    /**
+     * 获取当前已研发的科技集合
+n     * @return 已研发的科技集合
+     */
+    public Set<String> getResearchedTechnologies() {
+        return new HashSet<>(researchedTechnologies);
+    }
+    
+    /**
+     * 根据模块类型获取中文名称
+     * @param module 舰船模块
+     * @return 模块类型中文名称
+     */
+    private String getModuleTypeName(ShipModule module) {
+        if (module instanceof WeaponModule) {
+            return "武器";
+        } else if (module instanceof DefenseModule) {
+            return "防御";
+        } else if (module instanceof UtilityModule) {
+            return "功能";
+        } else if (module instanceof EngineModule) {
+            return "引擎";
+        } else if (module instanceof PowerModule) {
+            return "能源";
+        } else {
+            return "模块";
+        }
     }
 
     private void updateCurrentModules() {
@@ -1196,6 +1242,12 @@ public class ShipDesignerUI extends BorderPane {
             Label techReqLabel = new Label("需要科技: " + module.getRequiredTechnology());
             techReqLabel.setTextFill(Color.YELLOW);
             detailsPanel.getChildren().add(techReqLabel);
+            
+            // 显示科技是否已解锁
+            boolean techResearched = researchedTechnologies.contains(module.getRequiredTechnology());
+            Label techStatusLabel = new Label(techResearched ? "科技状态: 已解锁" : "科技状态: 未解锁");
+            techStatusLabel.setTextFill(techResearched ? Color.GREEN : Color.RED);
+            detailsPanel.getChildren().add(techStatusLabel);
         }
     }
 
@@ -1403,32 +1455,8 @@ public class ShipDesignerUI extends BorderPane {
     private static void updateModuleUnlockStatus(List<com.stellarcolonizer.model.fleet.ShipModule> modules, 
                                                java.util.Set<String> researchedTechs) {
         for (com.stellarcolonizer.model.fleet.ShipModule module : modules) {
-            // 基础模块始终解锁
-            if ("BASIC_MODULE".equals(module.getRequiredTechnology())) {
-                module.setUnlocked(true);
-                continue;
-            }
-            
-            // 根据科技解锁状态设置模块解锁状态
-            switch (module.getName()) {
-                case "先进激光炮":
-                case "重型磁轨炮":
-                    module.setUnlocked(researchedTechs.contains("advanced_weapons"));
-                    break;
-                case "先进护盾":
-                    module.setUnlocked(researchedTechs.contains("advanced_defenses"));
-                    break;
-                case "先进引擎":
-                    module.setUnlocked(researchedTechs.contains("advanced_engines"));
-                    break;
-                case "先进发电机":
-                    module.setUnlocked(researchedTechs.contains("advanced_power"));
-                    break;
-                default:
-                    // 其他模块默认解锁（基础模块）
-                    module.setUnlocked(true);
-                    break;
-            }
+            // 使用模块自身的解锁检查方法
+            module.setUnlocked(module.canBeUnlocked(researchedTechs));
         }
     }
     

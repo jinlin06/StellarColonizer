@@ -25,7 +25,7 @@ public abstract class ShipModule {
     protected final Map<ResourceType, Float> maintenanceCost;
 
     // 科技需求
-    protected final String requiredTechnology;
+    protected String requiredTechnology;
     protected final IntegerProperty techLevel;
 
     // 状态
@@ -189,12 +189,26 @@ public abstract class ShipModule {
     public Map<ResourceType, Float> getMaintenanceCost() { return new EnumMap<>(maintenanceCost); }
 
     public String getRequiredTechnology() { return requiredTechnology; }
+    
+    public void setRequiredTechnology(String requiredTechnology) { this.requiredTechnology = requiredTechnology; }
     public int getTechLevel() { return techLevel.get(); }
     public IntegerProperty techLevelProperty() { return techLevel; }
     
     public boolean isUnlocked() { return unlocked.get(); }
     public BooleanProperty unlockedProperty() { return unlocked; }
     public void setUnlocked(boolean unlocked) { this.unlocked.set(unlocked); }
+    
+    /**
+     * 检查模块是否可以被解锁（需要特定科技）
+     * @param researchedTechs 已研发的科技集合
+     * @return true-模块可以解锁，false-模块需要前置科技
+     */
+    public boolean canBeUnlocked(Set<String> researchedTechs) {
+        if ("BASIC_MODULE".equals(requiredTechnology)) {
+            return true; // 基础模块始终可用
+        }
+        return researchedTechs != null && researchedTechs.contains(requiredTechnology);
+    }
 
     public boolean isActive() { return isActive.get(); }
     public BooleanProperty activeProperty() { return isActive; }

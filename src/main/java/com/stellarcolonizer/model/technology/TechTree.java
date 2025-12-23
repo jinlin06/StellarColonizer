@@ -44,24 +44,29 @@ public class TechTree {
         mechanics.addPrerequisite("BASIC_PHYSICS");
 
         Technology thermodynamics = new Technology("THERMODYNAMICS", "热力学",
-                "掌握热量与能量转换定律", TechCategory.PHYSICS, 200, 5);
+                "掌握热量与能量转换定律，解锁驱逐舰建造", TechCategory.PHYSICS, 200, 5);
         thermodynamics.addPrerequisite("MECHANICS");
-
-        Technology electromagnetism = new Technology("ELECTROMAGNETISM", "电磁学",
-                "电与磁的统一理论", TechCategory.PHYSICS, 250, 6);
-        electromagnetism.addPrerequisite("THERMODYNAMICS");
+        thermodynamics.addUnlockedUnit("destroyer");
 
         Technology quantumMechanics = new Technology("QUANTUM_MECHANICS", "量子力学",
-                "理解微观世界的规律", TechCategory.PHYSICS, 300, 7);
-        quantumMechanics.addPrerequisite("ELECTROMAGNETISM");
+                "理解微观世界的规律，解锁巡洋舰建造", TechCategory.PHYSICS, 250, 6);
+        quantumMechanics.addPrerequisite("THERMODYNAMICS");
+        quantumMechanics.addUnlockedUnit("cruiser");
 
         Technology nuclearPhysics = new Technology("NUCLEAR_PHYSICS", "核物理学",
-                "掌握原子核反应原理", TechCategory.PHYSICS, 350, 8);
+                "掌握原子核反应原理，解锁战列舰建造", TechCategory.PHYSICS, 300, 7);
         nuclearPhysics.addPrerequisite("QUANTUM_MECHANICS");
+        nuclearPhysics.addUnlockedUnit("battleship");
+
+        Technology electromagnetism = new Technology("ELECTROMAGNETISM", "电磁学",
+                "电与磁的统一理论，解锁航母建造", TechCategory.PHYSICS, 350, 8);
+        electromagnetism.addPrerequisite("NUCLEAR_PHYSICS");
+        electromagnetism.addUnlockedUnit("carrier");
 
         Technology particlePhysics = new Technology("PARTICLE_PHYSICS", "粒子物理学",
-                "探索物质的基本构成", TechCategory.PHYSICS, 400, 9);
-        particlePhysics.addPrerequisite("NUCLEAR_PHYSICS");
+                "探索物质的基本构成，解锁无畏舰建造", TechCategory.PHYSICS, 400, 9);
+        particlePhysics.addPrerequisite("ELECTROMAGNETISM");
+        particlePhysics.addUnlockedUnit("dreadnought");
 
         Technology relativisticPhysics = new Technology("RELATIVISTIC_PHYSICS", "相对论物理学",
                 "高速与强引力场中的物理规律", TechCategory.PHYSICS, 450, 10);
@@ -119,6 +124,47 @@ public class TechTree {
         Technology syntheticChemistry = new Technology("SYNTHETIC_CHEMISTRY", "合成化学",
                 "复杂分子的人工合成技术", TechCategory.CHEMISTRY, 500, 11);
         syntheticChemistry.addPrerequisite("SUPRAMOLECULAR_CHEMISTRY");
+        
+        // 高级武器科技
+        Technology advancedWeapons = new Technology("advanced_weapons", "高级武器系统",
+                "解锁先进武器模块", TechCategory.PHYSICS, 300, 6);
+        advancedWeapons.addPrerequisite("QUANTUM_MECHANICS");
+        advancedWeapons.addUnlockedUnit("advanced_laser");
+        advancedWeapons.addUnlockedUnit("heavy_railgun");
+        
+
+        
+        // 高级防御科技
+        Technology advancedDefenses = new Technology("advanced_defenses", "高级防御系统",
+                "解锁先进防御模块", TechCategory.PHYSICS, 350, 7);
+        advancedDefenses.addPrerequisite("ELECTROMAGNETISM");
+        advancedDefenses.addUnlockedUnit("advanced_shield");
+        advancedDefenses.addUnlockedUnit("advanced_armor");
+        
+
+        
+        // 高级引擎科技
+        Technology advancedEngines = new Technology("advanced_engines", "高级引擎系统",
+                "解锁先进引擎模块", TechCategory.PHYSICS, 400, 8);
+        advancedEngines.addPrerequisite("THERMODYNAMICS");
+        advancedEngines.addUnlockedUnit("advanced_engine");
+        
+
+        
+        // 高级能源科技
+        Technology advancedPower = new Technology("advanced_power", "高级能源系统",
+                "解锁先进能源模块", TechCategory.PHYSICS, 450, 9);
+        advancedPower.addPrerequisite("ELECTROMAGNETISM");
+        advancedPower.addUnlockedUnit("advanced_generator");
+        
+
+        
+        // 高级功能模块科技
+        Technology advancedUtilities = new Technology("advanced_utilities", "高级功能系统",
+                "解锁先进功能模块", TechCategory.CHEMISTRY, 350, 7);
+        advancedUtilities.addPrerequisite("MATERIALS_CHEMISTRY");
+        advancedUtilities.addUnlockedUnit("advanced_sensor");
+        advancedUtilities.addUnlockedUnit("advanced_hangar");
 
         // 生物学分支 - 从基础到高级
         Technology basicBiology = new Technology("BASIC_BIOLOGY", "基础生物学",
@@ -167,6 +213,8 @@ public class TechTree {
         Technology consciousnessStudies = new Technology("CONSCIOUSNESS_STUDIES", "意识研究",
                 "探索意识的本质与机制", TechCategory.BIOLOGY, 550, 12);
         consciousnessStudies.addPrerequisite("NEURAL_BIOLOGY");
+        
+
 
         // 终极科技 - 终极武器
         Technology ultimateWeapon = new Technology("ULTIMATE_WEAPON", "终极武器",
@@ -198,6 +246,20 @@ public class TechTree {
         addTechnology(quantumChemistry);
         addTechnology(supramolecularChemistry);
         addTechnology(syntheticChemistry);
+        
+        // 添加高级模块解锁科技
+        addTechnology(advancedWeapons);
+        addTechnology(advancedDefenses);
+        addTechnology(advancedEngines);
+        addTechnology(advancedPower);
+        addTechnology(advancedUtilities);
+        
+
+        
+
+        
+
+        
         addTechnology(basicBiology);
         addTechnology(cellularBiology);
         addTechnology(genetics);

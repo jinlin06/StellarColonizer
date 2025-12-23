@@ -240,9 +240,24 @@ public class ShipDesign {
     }
 
     public boolean canAddModule(ShipModule module) {
+        return canAddModule(module, null);
+    }
+    
+    /**
+     * 检查是否可以添加模块（包含科技解锁检查）
+     * @param module 要添加的模块
+     * @param researchedTechs 已研发的科技集合
+     * @return true-可以添加，false-不能添加
+     */
+    public boolean canAddModule(ShipModule module, Set<String> researchedTechs) {
         // 移除武器和功能模块的数量限制检查
 
         // 移除总模块数量限制检查
+
+        // 检查科技是否已解锁
+        if (researchedTechs != null && !module.canBeUnlocked(researchedTechs)) {
+            return false;
+        }
 
         // 检查能源是否足够
         int totalPowerRequirement = modules.stream().mapToInt(ShipModule::getPowerRequirement).sum();
