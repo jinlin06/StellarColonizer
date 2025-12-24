@@ -16,6 +16,8 @@ public class TechTree {
 
     private final ObservableList<ResearchProject> researchQueue;
     private final IntegerProperty currentResearchPoints;
+    private int baseResearchPointsPerRound;  // 每回合基础科研产出
+    private final IntegerProperty baseResearchPointsPerRoundProperty;  // JavaFX属性，用于UI绑定
 
     private final FloatProperty researchSpeedBonus;
     private final FloatProperty researchCostReduction;
@@ -27,6 +29,8 @@ public class TechTree {
 
         this.researchQueue = FXCollections.observableArrayList();
         this.currentResearchPoints = new SimpleIntegerProperty(0);
+        this.baseResearchPointsPerRound = 0; // 默认值
+        this.baseResearchPointsPerRoundProperty = new SimpleIntegerProperty(0);
 
         this.researchSpeedBonus = new SimpleFloatProperty(1.0f);
         this.researchCostReduction = new SimpleFloatProperty(0.0f);
@@ -309,13 +313,20 @@ public class TechTree {
             return null;
         }
 
+        // 如果已经有正在研究的科技，则不允许开始新的研究
+        if (!researchQueue.isEmpty()) {
+            return null;
+        }
+
         ResearchProject project = new ResearchProject(technology, this);
         researchQueue.add(project);
         return project;
     }
 
-    public void processResearch(int researchPoints) {
-        currentResearchPoints.set(researchPoints);
+    public void processResearch(int baseResearchPoints) {
+        this.baseResearchPointsPerRound = baseResearchPoints; // 保存每回合的基础科研产出
+        this.baseResearchPointsPerRoundProperty.set(baseResearchPoints); // 更新JavaFX属性
+        currentResearchPoints.set(baseResearchPoints);
 
         if (researchQueue.isEmpty()) {
             return;
@@ -323,7 +334,7 @@ public class TechTree {
 
         ResearchProject currentProject = researchQueue.get(0);
         // 使用所有可用的研究点数推进当前项目
-        float effectivePoints = researchPoints * researchSpeedBonus.get();
+        float effectivePoints = baseResearchPoints * researchSpeedBonus.get();
         int intEffectivePoints = Math.round(effectivePoints);
 
         boolean completed = currentProject.progress(intEffectivePoints);
@@ -338,29 +349,31 @@ public class TechTree {
     }
 
     public void addToQueue(Technology technology) {
-        if (canResearch(technology) && !researchQueue.contains(new ResearchProject(technology, this))) {
-            researchQueue.add(new ResearchProject(technology, this));
+        if (canResearch(technology)) {
+            // 如果队列为空（没有正在研究的科技），则开始研究
+            if (researchQueue.isEmpty()) {
+                startResearch(technology);
+            }
+            // 如果队列中已经有相同的科技，则不添加
+            else if (!researchQueue.get(0).getTechnology().equals(technology)) {
+                // 替换当前研究项目
+                researchQueue.clear();
+                startResearch(technology);
+            }
         }
     }
 
     public void removeFromQueue(ResearchProject project) {
-        researchQueue.remove(project);
+        // 由于只允许一个研究项目，直接清空队列
+        researchQueue.clear();
     }
 
     public void moveUpInQueue(ResearchProject project) {
-        int index = researchQueue.indexOf(project);
-        if (index > 0) {
-            researchQueue.remove(index);
-            researchQueue.add(index - 1, project);
-        }
+        // 在单项目研究系统中，此方法无意义
     }
 
     public void moveDownInQueue(ResearchProject project) {
-        int index = researchQueue.indexOf(project);
-        if (index >= 0 && index < researchQueue.size() - 1) {
-            researchQueue.remove(index);
-            researchQueue.add(index + 1, project);
-        }
+        // 在单项目研究系统中，此方法无意义
     }
 
     public List<Technology> getAvailableTechnologies() {
@@ -408,6 +421,33 @@ public class TechTree {
                 current.getTechnology().getName(),
                 current.getProgressPercentage());
     }
+    
+    /**
+     * 计算完成当前研究项目还需要多少回合
+     * @return 完成当前研究项目还需要的回合数
+     */
+    public int getRemainingRoundsForCurrentResearch() {
+        if (researchQueue.isEmpty()) {
+            return 0;
+        }
+        
+        ResearchProject currentProject = researchQueue.get(0);
+        Technology tech = currentProject.getTechnology();
+        
+        // 计算有效每回合产出
+        float effectivePointsPerRound = baseResearchPointsPerRound * researchSpeedBonus.get();
+        float effectivePoints = effectivePointsPerRound;
+        
+        // 计算剩余需要的科技值
+        int remainingCost = currentProject.getTotalCost() - currentProject.getProgress();
+        
+        // 计算还需要多少回合
+        if (effectivePoints <= 0) {
+            return Integer.MAX_VALUE; // 如果没有科研产出，则无法完成
+        }
+        
+        return (int) Math.ceil(remainingCost / effectivePoints);
+    }
 
     // Getter方法
     public String getName() { return name.get(); }
@@ -429,4 +469,45 @@ public class TechTree {
     public float getResearchCostReduction() { return researchCostReduction.get(); }
     public void setResearchCostReduction(float reduction) { this.researchCostReduction.set(reduction); }
     public FloatProperty researchCostReductionProperty() { return researchCostReduction; }
+    
+    public int getBaseResearchPointsPerRound() { return baseResearchPointsPerRound; }
+    public void setBaseResearchPointsPerRound(int baseResearchPointsPerRound) { 
+        this.baseResearchPointsPerRound = baseResearchPointsPerRound;
+        this.baseResearchPointsPerRoundProperty.set(baseResearchPointsPerRound);
+    }
+    
+    public IntegerProperty baseResearchPointsPerRoundProperty() { return baseResearchPointsPerRoundProperty; }
+    
+    public void initializeBaseResearchPoints(int initialPoints) {
+        this.baseResearchPointsPerRound = initialPoints;
+        this.baseResearchPointsPerRoundProperty.set(initialPoints);
+    }
+    
+    public int getCurrentBaseResearchPoints() {
+        return this.baseResearchPointsPerRound;
+    }
+    
+    /**
+     * 计算完成指定科技研究需要的回合数
+     * @param technology 要研究的科技
+     * @return 完成该科技研究需要的回合数
+     */
+    public int getRemainingRoundsForTechnology(Technology technology) {
+        if (technology == null) {
+            return 0;
+        }
+        
+        // 计算有效每回合产出
+        float effectivePointsPerRound = baseResearchPointsPerRound * researchSpeedBonus.get();
+        
+        // 计算还需要多少回合
+        if (effectivePointsPerRound <= 0) {
+            return Integer.MAX_VALUE; // 如果没有科研产出，则无法完成
+        }
+        
+        // 使用科技的总成本
+        int remainingCost = technology.getResearchCost();
+        
+        return (int) Math.ceil(remainingCost / effectivePointsPerRound);
+    }
 }

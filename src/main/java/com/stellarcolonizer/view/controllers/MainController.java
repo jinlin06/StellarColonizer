@@ -231,8 +231,12 @@ public class MainController {
         // 清空资源容器
         resourcesContainer.getChildren().clear();
         
-        // 为每种资源创建标签并添加到容器中
+        // 为每种资源创建标签并添加到容器中（排除科研资源，因为科研只在科技树界面显示）
         for (ResourceType type : ResourceType.values()) {
+            if (type == ResourceType.SCIENCE) {
+                continue; // 跳过科研资源，不在主资源界面显示
+            }
+            
             float amount = totalResources.get(type);
             float net = totalNetProduction.get(type); // 使用实际的净产量
             

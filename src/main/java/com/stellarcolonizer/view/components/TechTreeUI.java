@@ -80,7 +80,7 @@ public class TechTreeUI extends BorderPane {
 
         // 研究点数
         VBox researchBox = new VBox(2);
-        Label researchTitle = new Label("研发点数/回合");
+        Label researchTitle = new Label("科研产出/回合");
         researchTitle.setTextFill(Color.LIGHTGRAY);
         researchTitle.setFont(Font.font(12));
 
@@ -573,9 +573,9 @@ public class TechTreeUI extends BorderPane {
                 }
         );
 
-        // 绑定研究点数
+        // 绑定研究点数（显示每回合科研产出）
         researchPointsLabel.textProperty().bind(
-                techTree.currentResearchPointsProperty().asString()
+                techTree.baseResearchPointsPerRoundProperty().asString()
         );
 
         // 绑定当前研究
@@ -619,10 +619,15 @@ public class TechTreeUI extends BorderPane {
         Label categoryLabel = new Label("类别: " + selectedTechnology.getCategory().getDisplayName());
         categoryLabel.setTextFill(selectedTechnology.getColor());
 
-        Label costLabel = new Label("基础研发时间: " + selectedTechnology.getResearchTime() + " 回合");
+        Label costLabel = new Label("科技值: " + selectedTechnology.getResearchCost() + " 科学点");
         costLabel.setTextFill(Color.YELLOW);
+        
+        // 计算预计完成回合数（基于当前科研产出）
+        int remainingRounds = techTree.getRemainingRoundsForTechnology(selectedTechnology);
+        Label roundsLabel = new Label("预计: " + remainingRounds + " 回合");
+        roundsLabel.setTextFill(Color.CYAN);
 
-        infoRow.getChildren().addAll(categoryLabel, costLabel);
+        infoRow.getChildren().addAll(categoryLabel, costLabel, roundsLabel);
         detailsPanel.getChildren().add(infoRow);
 
         // 研究状态
@@ -890,7 +895,7 @@ public class TechTreeUI extends BorderPane {
                 progressBar.setStyle("-fx-accent: #4CAF50;");
 
                 Label progressLabel = new Label(
-                        String.format("%.0f/%.0f", project.getProgress(), project.getTotalCost())
+                        String.format("%d/%d", project.getProgress(), project.getTotalCost())
                 );
                 progressLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 11;");
 

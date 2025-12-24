@@ -44,23 +44,48 @@ public class Faction {
         this.techTree = new TechTree(name + "科技树");
 
         initializeTechnologies();
+        
+        // 初始化时立即计算基础科研产出
+        updateBaseResearchPoints();
     }
 
     private void initializeTechnologies() {
-        // 初始科技
+        // 初始化科技
         researchedTechnologies.add("BASIC_CONSTRUCTION");
         researchedTechnologies.add("BASIC_FARMING");
         researchedTechnologies.add("BASIC_POWER");
     }
 
+    /**
+     * 更新基础科研产出，基于当前所有殖民地的科研产出
+     */
+    public void updateBaseResearchPoints() {
+        // 计算科研点数
+        float totalResearchPoints = colonies.stream()
+                .map(c -> c.getProductionStats().get(ResourceType.SCIENCE))
+                .reduce(0f, Float::sum);
+        
+        // 添加各殖民地的临时科研奖励
+        float temporaryScienceBonus = (float) colonies.stream()
+                .mapToDouble(c -> c.getAndResetTemporaryScienceBonus())
+                .sum();
+        
+        totalResearchPoints += temporaryScienceBonus;
+        
+        // 更新科技树的基础科研产出
+        techTree.processResearch((int) totalResearchPoints);
+    }
+
     public void addColony(Colony colony) {
         colonies.add(colony);
         updateStatistics();
+        updateBaseResearchPoints(); // 添加殖民地后更新科研产出
     }
 
     public void removeColony(Colony colony) {
         colonies.remove(colony);
         updateStatistics();
+        updateBaseResearchPoints(); // 移除殖民地后更新科研产出
     }
 
     public void processTurn() {
@@ -78,6 +103,13 @@ public class Faction {
         float totalResearchPoints = colonies.stream()
                 .map(c -> c.getProductionStats().get(ResourceType.SCIENCE))
                 .reduce(0f, Float::sum);
+        
+        // 添加各殖民地的临时科研奖励
+        float temporaryScienceBonus = (float) colonies.stream()
+                .mapToDouble(c -> c.getAndResetTemporaryScienceBonus())
+                .sum();
+        
+        totalResearchPoints += temporaryScienceBonus;
         
         // 处理科技研发
         techTree.processResearch((int) totalResearchPoints);
@@ -119,9 +151,9 @@ public class Faction {
                 .reduce(0f, Float::sum);
 
         // 更新总科研
-        totalResearch = colonies.stream()
-                .map(c -> c.getProductionStats().get(ResourceType.SCIENCE))
-                .reduce(0f, Float::sum);
+        totalResearch = (float) colonies.stream()
+                .mapToDouble(c -> c.getProductionStats().get(ResourceType.SCIENCE))
+                .sum();
     }
 
     public boolean hasTechnology(String techId) {
