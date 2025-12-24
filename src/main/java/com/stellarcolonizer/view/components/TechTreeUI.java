@@ -167,27 +167,7 @@ public class TechTreeUI extends BorderPane {
         queueButtons.getChildren().addAll(addToQueueButton, removeFromQueueButton,
                 moveUpButton, moveDownButton);
 
-        // 可用科技列表
-        Label availableTitle = new Label("可研究科技");
-        availableTitle.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        availableTitle.setTextFill(Color.WHITE);
-
-        ListView<Technology> availableList = new ListView<>(
-                FXCollections.observableArrayList(techTree.getAvailableTechnologies())
-        );
-        availableList.setPrefHeight(200);
-        availableList.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
-        availableList.setCellFactory(lv -> new TechnologyCell());
-
-        availableList.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldTech, newTech) -> {
-                    selectedTechnology = newTech;
-                    updateTechnologyDetails();
-                }
-        );
-
-        panel.getChildren().addAll(title, researchQueueList, queueButtons,
-                availableTitle, availableList);
+        panel.getChildren().addAll(title, researchQueueList, queueButtons);
         return panel;
     }
 

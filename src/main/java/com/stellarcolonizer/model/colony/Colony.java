@@ -85,13 +85,14 @@ public class Colony {
     }
 
     private void initializePopulation() {
-        // 减少初始人口数量，使游戏初期生产更平衡
-        populationByType.put(PopType.WORKERS, 6000);
-        populationByType.put(PopType.FARMERS, 2000);
-        populationByType.put(PopType.SCIENTISTS, 1000);
-        populationByType.put(PopType.SOLDIERS, 500);
-        populationByType.put(PopType.ARTISANS, 500);
-        
+        // 根据要求设置初始人口分布：
+        // 农民 40%，工人 30%，矿工 15%，工匠 15%
+        int totalPop = totalPopulation.get();
+        populationByType.put(PopType.FARMERS, (int)(totalPop * 0.4));    // 40% 农民
+        populationByType.put(PopType.WORKERS, (int)(totalPop * 0.3));    // 30% 工人
+        populationByType.put(PopType.MINERS, (int)(totalPop * 0.15));     // 15% 矿工
+        populationByType.put(PopType.ARTISANS, (int)(totalPop * 0.15));  // 15% 工匠
+
         // 输出调试信息
         System.out.println("[" + name.get() + "] 初始化人口:");
         for (Map.Entry<PopType, Integer> entry : populationByType.entrySet()) {
@@ -113,7 +114,9 @@ public class Colony {
             consumptionRates.put(type, new SimpleFloatProperty(0));
         }
 
-
+        // 注意：这里的问题在于initializeProductionRates在initializePopulation之前被调用了
+        // 所以我们需要在processTurn中重新计算初始生产率
+        
         // 输出调试信息
         System.out.println("[" + name.get() + "] 初始化生产率完成");
     }
@@ -121,13 +124,13 @@ public class Colony {
     private float calculateBaseFoodProduction() {
         int farmers = populationByType.getOrDefault(PopType.FARMERS, 0);
         float habitability = planet.getHabitability();
-        float result = farmers * 0.1f * habitability;  // 大幅提高基础食物生产率
+        float result = farmers * 0.2f * habitability;  // 提高基础食物生产率
         System.out.println("[" + name.get() + "] 计算基础食物生产: 农民数=" + farmers + ", 适居度=" + habitability + ", 结果=" + result);
         return result;
     }
 
     private float calculateFoodConsumption() {
-        float result = totalPopulation.get() * 0.001f;  // 大幅下调食物消耗
+        float result = totalPopulation.get() * 0.0005f;  // 进一步下调食物消耗
         System.out.println("[" + name.get() + "] 计算食物消耗: 人口=" + totalPopulation.get() + ", 结果=" + result);
         return result;
     }
@@ -161,9 +164,11 @@ public class Colony {
         for (Map.Entry<PopType, Integer> entry : populationByType.entrySet()) {
             System.out.println("[" + name.get() + "] " + entry.getKey().getDisplayName() + ": " + entry.getValue());
         }
-        float baseEnergy = planet.getType().getBaseEnergy() * 10;
-        float baseMetal = planet.getType().getBaseMetal() * 5;
-        float baseFood = calculateBaseFoodProduction() + 10.0f;  // 添加基础食物产量确保不会为负
+        
+        // 重新计算初始生产率（因为initializeProductionRates在initializePopulation之前被调用）
+        float baseEnergy = planet.getType().getBaseEnergy() * 20;  // 提高基础能量产量
+        float baseMetal = planet.getType().getBaseMetal() * 10;   // 提高基础金属产量
+        float baseFood = calculateBaseFoodProduction() + 20.0f;  // 添加基础食物产量确保不会为负
 
         productionRates.get(ResourceType.ENERGY).set(baseEnergy);
         productionRates.get(ResourceType.METAL).set(baseMetal);
@@ -183,29 +188,13 @@ public class Colony {
     }
 
     private void updatePopulation() {
-        float baseGrowthRate = growthRate.get();
-        float populationFactor = 1.0f / (1.0f + (float)totalPopulation.get() / 50000.0f); // 人口越多，增长率越低
-        float growth = totalPopulation.get() * baseGrowthRate * populationFactor;
-        
-        // 幸福度和犯罪率影响
+        float growth = totalPopulation.get() * growthRate.get();
         growth *= happiness.get();
         growth *= (1 - crimeRate.get() / 100.0f);
 
-        // 食物充足度影响
         float foodSufficiency = getFoodSufficiency();
         if (foodSufficiency < 0.8f) {
             growth *= foodSufficiency;
-        }
-        
-        // 稳定度影响
-        if (stability.get() < 50) {
-            growth *= 0.7f; // 稳定度低时增长减缓
-        }
-        
-        // 最大增长率限制，防止过快增长
-        float maxGrowth = totalPopulation.get() * 0.05f; // 每回合最多增长5%
-        if (growth > maxGrowth) {
-            growth = maxGrowth;
         }
 
         int newPopulation = totalPopulation.get() + (int) growth;
@@ -215,11 +204,24 @@ public class Colony {
     }
 
     private void updatePopulationDistribution() {
+        // 按照固定比例重新分配人口：
+        // 农民 40%，工人 30%，矿工 15%，工匠 15%
         int total = totalPopulation.get();
-        for (Map.Entry<PopType, Integer> entry : populationByType.entrySet()) {
-            float proportion = (float) entry.getValue() / total;
-            int newCount = (int) (total * proportion);
-            populationByType.put(entry.getKey(), newCount);
+        
+        populationByType.put(PopType.FARMERS, (int) (total * 0.4));   // 40% 农民
+        populationByType.put(PopType.WORKERS, (int) (total * 0.3));   // 30% 工人
+        populationByType.put(PopType.MINERS, (int) (total * 0.15));   // 15% 矿工
+        populationByType.put(PopType.ARTISANS, (int) (total * 0.15)); // 15% 工匠
+        
+        // 确保总数正确（处理舍入误差）
+        int currentTotal = populationByType.get(PopType.FARMERS) + 
+                          populationByType.get(PopType.WORKERS) + 
+                          populationByType.get(PopType.MINERS) + 
+                          populationByType.get(PopType.ARTISANS);
+        
+        if (currentTotal != total) {
+            int diff = total - currentTotal;
+            populationByType.put(PopType.FARMERS, populationByType.get(PopType.FARMERS) + diff);
         }
     }
 
@@ -229,16 +231,14 @@ public class Colony {
             rate.set(0);
         }
 
-        float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.05f;  // 每个工人生产0.05能量
-        float metalProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.025f;   // 每个工人生产0.025金属
-        float foodProduction = calculateBaseFoodProduction() * 2.0f;  // 大幅提高食物生产率，确保覆盖消耗
-        float scienceProduction = populationByType.getOrDefault(PopType.SCIENTISTS, 0) * 0.05f;  // 每个科学家生产0.05科研
+        // 基于人口计算基础生产率 (参考群星机制)
+        float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.2f;  // 每个工人生产0.2能量
+        float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.15f;   // 每个矿工生产0.15金属
+        float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.12f;   // 每个农民生产0.12食物
+        float scienceProduction = 20.0f; // 固定初始科技值为20，不受人口影响
         
-        // 添加额外的食物生产，确保始终为正
-        foodProduction += 5.0f;  // 基础食物生产兜底
-        
-        // 燃料的基础生产（基于工人数量）
-        float fuelProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.01f;  // 每个工人生产0.01燃料
+        // 燃料生产（基于工匠数量）
+        float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.04f;  // 每个工匠生产0.04燃料
 
         productionRates.get(ResourceType.ENERGY).set(energyProduction);
         productionRates.get(ResourceType.METAL).set(metalProduction);
@@ -254,8 +254,8 @@ public class Colony {
             
             // 只处理稀有资源
             if (isRareResource(resourceType) && resourceAmount > 0) {
-                // 基于星球上的资源储量和工人数量计算生产率
-                float productionRate = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.001f * (resourceAmount / 100f);
+                // 基于星球上的资源储量和矿工数量计算生产率
+                float productionRate = populationByType.getOrDefault(PopType.MINERS, 0) * 0.002f * (resourceAmount / 100f);
                 productionRates.get(resourceType).set(productionRate);
             }
         }
@@ -281,9 +281,14 @@ public class Colony {
             }
         }
 
-        // 行星特征加成
+        // 行星特征加成 - 不对科研应用特征加成，保持科技值仅由科学家产出
         for (PlanetTrait trait : planet.getTraits()) {
             for (ResourceType type : ResourceType.values()) {
+                // 如果是科研资源，不应用特征加成
+                if (type == ResourceType.SCIENCE) {
+                    continue; // 跳过科研资源的特征加成
+                }
+                
                 float multiplier = trait.getResourceMultiplier(type);
                 if (multiplier != 1.0f) {
                     float current = productionRates.get(type).get();
@@ -326,20 +331,20 @@ public class Colony {
     }
 
     private void calculateConsumption() {
-        // 参考群星机制设置消耗率，大幅下调食物消耗确保不会出现负增长
-        float foodConsumption = totalPopulation.get() * 0.0001f;  // 每人消耗0.0001食物（大幅下调）
+        // 参考群星机制设置消耗率，下调食物消耗确保不会出现负增长
+        float foodConsumption = totalPopulation.get() * 0.00005f;  // 每人消耗0.00005食物（下调）
         consumptionRates.get(ResourceType.FOOD).set(foodConsumption);
 
-        float energyConsumption = 1.0f;  // 基础能量消耗
+        float energyConsumption = 0.5f;  // 基础能量消耗
         for (Building building : buildings) {
-            energyConsumption += building.getMaintenanceCost(ResourceType.ENERGY);  // 建筑维护消耗
+            energyConsumption += building.getMaintenanceCost(ResourceType.ENERGY) * 0.7f;  // 建筑维护消耗（下调）
         }
-        energyConsumption += totalPopulation.get() * 0.0001f;  // 人口相关能量消耗
+        energyConsumption += totalPopulation.get() * 0.00005f;  // 人口相关能量消耗（下调）
 
         consumptionRates.get(ResourceType.ENERGY).set(energyConsumption);
         
         // 稀有资源消耗（用于建筑维护或其他用途）
-        float fuelConsumption = totalPopulation.get() * 0.00001f;  // 人口燃料消耗
+        float fuelConsumption = totalPopulation.get() * 0.000005f;  // 人口燃料消耗（下调）
         consumptionRates.get(ResourceType.FUEL).set(fuelConsumption);
         
         // 输出调试信息
@@ -497,10 +502,11 @@ public class Colony {
                 break;
 
             case 3:
+                // 科研突破事件，但不直接添加到资源库存，而是用于研发科技
                 float scienceBonus = 50 + random.nextFloat() * 150;
-                // 将科研奖励存储在临时变量中，而不是修改产出率
+                // 保留我们之前的修改，将随机事件的科研奖励存储在临时变量中
                 temporaryScienceBonus += scienceBonus;
-                addColonyLog("科学家取得突破！获得" + (int)scienceBonus + "研发点数");
+                addColonyLog("科研突破！获得" + (int)scienceBonus + "研发点数");
                 break;
 
             case 4:
@@ -513,6 +519,12 @@ public class Colony {
 
     private void addColonyLog(String message) {
         System.out.println("[" + name.get() + "] " + message);
+    }
+
+    public float getAndResetTemporaryScienceBonus() {
+        float bonus = temporaryScienceBonus;
+        temporaryScienceBonus = 0.0f; // 重置临时科研奖励
+        return bonus;
     }
 
     public boolean canBuild(Building building) {
@@ -612,11 +624,31 @@ public class Colony {
 
     public void setGrowthFocus(GrowthFocus focus) {
         switch (focus) {
-            case RAPID_GROWTH:
+            case RAPID_GROWTH:  // 重点发展农业
+                // 重新分配人口：农民60%，工人20%，矿工10%，工匠10%
+                int totalPop = totalPopulation.get();
+                populationByType.put(PopType.FARMERS, (int)(totalPop * 0.6));  // 60% 农民
+                populationByType.put(PopType.WORKERS, (int)(totalPop * 0.2)); // 20% 工人
+                populationByType.put(PopType.MINERS, (int)(totalPop * 0.1));  // 10% 矿工
+                populationByType.put(PopType.ARTISANS, (int)(totalPop * 0.1)); // 10% 工匠
+                
+                // 重新计算生产率
+                calculateProduction();
+                
                 growthRate.set(growthRate.get() * 1.3f);
                 happiness.set(happiness.get() * 0.9f);
                 break;
-            case STABLE_GROWTH:
+            case STABLE_GROWTH:  // 重点发展工业
+                // 重新分配人口：工人50%，矿工30%，农民10%，工匠10%
+                int totalPop2 = totalPopulation.get();
+                populationByType.put(PopType.WORKERS, (int)(totalPop2 * 0.5));  // 50% 工人
+                populationByType.put(PopType.MINERS, (int)(totalPop2 * 0.3)); // 30% 矿工
+                populationByType.put(PopType.FARMERS, (int)(totalPop2 * 0.1)); // 10% 农民
+                populationByType.put(PopType.ARTISANS, (int)(totalPop2 * 0.1)); // 10% 工匠
+                
+                // 重新计算生产率
+                calculateProduction();
+                
                 growthRate.set(growthRate.get() * 1.0f);
                 break;
             case QUALITY_OF_LIFE:
@@ -638,13 +670,6 @@ public class Colony {
         
         return stats;
     }
-    
-    // 获取临时科研奖励（使用后重置）
-    public float getAndResetTemporaryScienceBonus() {
-        float bonus = temporaryScienceBonus;
-        temporaryScienceBonus = 0.0f; // 重置临时奖励
-        return bonus;
-    }
 
     public Map<ResourceType, Float> getConsumptionStats() {
         Map<ResourceType, Float> stats = new EnumMap<>(ResourceType.class);
@@ -662,8 +687,10 @@ public class Colony {
             net.put(type, production - consumption);
         }
         
-        // 不包含科研资源，因为科研资源现在用于研发科技，而不是作为库存
-        net.put(ResourceType.SCIENCE, 0f);
+        // 科研资源现在用于研发科技，而不是作为库存
+        // 但我们需要考虑临时科研奖励
+        float currentScienceNet = net.get(ResourceType.SCIENCE);
+        net.put(ResourceType.SCIENCE, currentScienceNet + temporaryScienceBonus);
         
         System.out.println("获取净产量，总计: " + net.size() + " 种");
         for (Map.Entry<ResourceType, Float> entry : net.entrySet()) {

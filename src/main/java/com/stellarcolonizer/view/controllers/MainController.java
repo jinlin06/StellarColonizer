@@ -410,25 +410,22 @@ public class MainController {
     @FXML
     private void showColonyManager() {
         System.out.println("显示殖民地管理器");
-        // TODO: 实现殖民地管理器界面
-        // showInfoDialog("殖民地管理器", "殖民地管理器界面正在开发中...\n\n在这里您可以:\n- 管理殖民地人口\n- 分配劳动力\n- 建设设施\n- 查看殖民地生产");
-        
-        // 创建并显示殖民地管理器界面
         try {
-            // 先检查gameEngine和playerFaction是否存在
+            // 检查gameEngine和playerFaction是否存在
             if (gameEngine == null || gameEngine.getPlayerFaction() == null) {
                 showInfoDialog("错误", "游戏尚未初始化完成");
                 return;
             }
             
+            // 使用玩家派系的殖民地管理器
             ColonyManagerView colonyManagerView = new ColonyManagerView(gameEngine.getPlayerFaction());
             showComponentInWindow(colonyManagerView, "殖民地管理器");
         } catch (Exception e) {
             e.printStackTrace();
-            showInfoDialog("错误", "无法打开殖民地管理器: " + e.getMessage());
+            showInfoDialog("错误", "无法打开殖民地管理器 " + e.getMessage());
         }
     }
-    
+
     /**
      * 在新窗口中显示组件
      * @param component 要显示的组件

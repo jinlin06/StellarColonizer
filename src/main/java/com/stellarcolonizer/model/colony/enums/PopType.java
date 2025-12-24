@@ -6,11 +6,7 @@ public enum PopType {
     WORKERS("工人", "生产基本资源", Color.GRAY),
     FARMERS("农民", "生产食物", Color.GREEN),
     MINERS("矿工", "生产金属", Color.BROWN),
-    TECHNICIANS("技工", "生产能源", Color.YELLOW),
-    SCIENTISTS("科学家", "生产科研", Color.CYAN),
-    SOLDIERS("士兵", "提供防御", Color.RED),
-    ARTISANS("工匠", "生产消费品", Color.PURPLE),
-    BUREAUCRATS("官僚", "提高管理效率", Color.WHITE);
+    ARTISANS("工匠", "生产燃料", Color.PURPLE);
 
     private final String displayName;
     private final String description;

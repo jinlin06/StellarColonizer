@@ -21,6 +21,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.scene.chart.XYChart;
 
 import java.util.Map;
 
@@ -52,6 +53,11 @@ public class ColonyManagerView extends VBox {
 
     // 人口分布图表
     private PieChart populationChart;
+    
+    // 资源趋势图相关
+    private LineChart<String, Number> resourceChart;
+    private int turnCounter = 0;  // 记录回合数
+    private Map<String, XYChart.Series<String, Number>> resourceSeriesMap = new java.util.HashMap<>();
 
     public ColonyManagerView(Faction playerFaction) {
         this.playerFaction = playerFaction;
@@ -60,6 +66,12 @@ public class ColonyManagerView extends VBox {
 
         initializeUI();
         setupEventHandlers();
+        
+        // 初始化后立即更新殖民地详细信息，如果存在殖民地
+        if (!colonies.isEmpty()) {
+            selectedColony = colonies.get(0);
+            updateColonyDetails();
+        }
     }
 
     private void initializeUI() {
@@ -372,7 +384,7 @@ public class ColonyManagerView extends VBox {
         TableView<ResourceStat> resourceTable = createResourceTable();
 
         // 资源趋势图表
-        LineChart<String, Number> resourceChart = createResourceChart();
+        this.resourceChart = createResourceChart();
 
         tabContent.getChildren().addAll(resourceTable, resourceChart);
         return tabContent;
@@ -380,6 +392,7 @@ public class ColonyManagerView extends VBox {
 
     private TableView<ResourceStat> createResourceTable() {
         TableView<ResourceStat> table = new TableView<>();
+        table.setId("resource-table");
 
         TableColumn<ResourceStat, String> nameColumn = new TableColumn<>("资源");
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
@@ -528,6 +541,9 @@ public class ColonyManagerView extends VBox {
         // 更新资源显示
         updateResourceDisplay();
 
+        // 更新资源趋势图
+        updateResourceChart();
+
         // 更新建筑列表
         updateBuildingList();
 
@@ -539,31 +555,37 @@ public class ColonyManagerView extends VBox {
     }
 
     private void updateResourceDisplay() {
-        VBox resourcesContent = (VBox) resourcePanel.lookup("#resources-content");
-        if (resourcesContent == null) return;
-
-        resourcesContent.getChildren().clear();
-
-        // 显示每种资源
+        // 更新资源表格
+        TableView<ResourceStat> resourceTable = (TableView<ResourceStat>) lookup("#resource-table");
+        if (resourceTable == null) return;
+        
+        // 获取当前殖民地的资源数据
+        ResourceStockpile stockpile = selectedColony.getResourceStockpile();
+        Map<ResourceType, Float> production = selectedColony.getProductionStats();
+        Map<ResourceType, Float> consumption = selectedColony.getConsumptionStats();
+        Map<ResourceType, Float> net = selectedColony.getNetProduction();
+        
+        // 创建资源统计列表
+        ObservableList<ResourceStat> resourceStats = FXCollections.observableArrayList();
         for (ResourceType type : ResourceType.values()) {
-            float amount = selectedColony.getResourceStockpile().getResource(type);
-
-            HBox resourceRow = new HBox(10);
-
-            Label nameLabel = new Label(type.getDisplayName());
-            nameLabel.setTextFill(Color.web(type.getColor()));
-            nameLabel.setPrefWidth(100);
-
-            ProgressBar stockpileBar = new ProgressBar();
-            stockpileBar.setProgress(amount / 1000.0); // 假设最大1000
-            stockpileBar.setPrefWidth(200);
-
-            Label amountLabel = new Label(String.format("%.1f", amount));
-            amountLabel.setTextFill(Color.WHITE);
-
-            resourceRow.getChildren().addAll(nameLabel, stockpileBar, amountLabel);
-            resourcesContent.getChildren().add(resourceRow);
+            float stockpileAmount = stockpile.getResource(type);
+            float prod = production.getOrDefault(type, 0f);
+            float cons = consumption.getOrDefault(type, 0f);
+            float netValue = net.getOrDefault(type, 0f);
+            
+            // 只添加有数据的资源
+            if (stockpileAmount != 0 || prod != 0 || cons != 0 || netValue != 0) {
+                resourceStats.add(new ResourceStat(
+                    type.getDisplayName(),
+                    prod,
+                    cons,
+                    netValue,
+                    stockpileAmount
+                ));
+            }
         }
+        
+        resourceTable.setItems(resourceStats);
     }
 
     private void updateResourcePanel() {
@@ -616,8 +638,10 @@ public class ColonyManagerView extends VBox {
         Map<PopType, Integer> population = selectedColony.getPopulationByType();
         for (Map.Entry<PopType, Integer> entry : population.entrySet()) {
             if (entry.getValue() > 0) {
+                String displayName = entry.getKey().getDisplayName();
+                
                 PieChart.Data slice = new PieChart.Data(
-                        entry.getKey().getDisplayName(),
+                        displayName,
                         entry.getValue()
                 );
                 populationChart.getData().add(slice);
@@ -660,6 +684,91 @@ public class ColonyManagerView extends VBox {
         }
     }
 
+    private void updateResourceChart() {
+        if (resourceChart == null || selectedColony == null) return;
+        
+        // 获取当前回合的资源数据
+        ResourceStockpile stockpile = selectedColony.getResourceStockpile();
+        Map<ResourceType, Float> production = selectedColony.getProductionStats();
+        Map<ResourceType, Float> consumption = selectedColony.getConsumptionStats();
+        Map<ResourceType, Float> net = selectedColony.getNetProduction();
+        
+        // 为每种资源类型创建或更新系列
+        for (ResourceType type : ResourceType.values()) {
+            float stockpileAmount = stockpile.getResource(type);
+            float prod = production.getOrDefault(type, 0f);
+            float cons = consumption.getOrDefault(type, 0f);
+            float netValue = net.getOrDefault(type, 0f);
+            
+            // 为库存创建系列
+            String stockpileKey = type.getDisplayName() + " (库存)";
+            XYChart.Series<String, Number> stockpileSeries = resourceSeriesMap.computeIfAbsent(stockpileKey, k -> {
+                XYChart.Series<String, Number> newSeries = new XYChart.Series<>();
+                newSeries.setName(k);
+                resourceChart.getData().add(newSeries);
+                return newSeries;
+            });
+            
+            // 为生产创建系列
+            String productionKey = type.getDisplayName() + " (生产)";
+            XYChart.Series<String, Number> productionSeries = resourceSeriesMap.computeIfAbsent(productionKey, k -> {
+                XYChart.Series<String, Number> newSeries = new XYChart.Series<>();
+                newSeries.setName(k);
+                resourceChart.getData().add(newSeries);
+                return newSeries;
+            });
+            
+            // 为消耗创建系列
+            String consumptionKey = type.getDisplayName() + " (消耗)";
+            XYChart.Series<String, Number> consumptionSeries = resourceSeriesMap.computeIfAbsent(consumptionKey, k -> {
+                XYChart.Series<String, Number> newSeries = new XYChart.Series<>();
+                newSeries.setName(k);
+                resourceChart.getData().add(newSeries);
+                return newSeries;
+            });
+            
+            // 为净产量创建系列
+            String netKey = type.getDisplayName() + " (净产量)";
+            XYChart.Series<String, Number> netSeries = resourceSeriesMap.computeIfAbsent(netKey, k -> {
+                XYChart.Series<String, Number> newSeries = new XYChart.Series<>();
+                newSeries.setName(k);
+                resourceChart.getData().add(newSeries);
+                return newSeries;
+            });
+            
+            // 添加新的数据点（仅当有数据时）
+            if (stockpileAmount != 0) {
+                stockpileSeries.getData().add(new XYChart.Data<>(String.valueOf(turnCounter), stockpileAmount));
+                if (stockpileSeries.getData().size() > 10) {
+                    stockpileSeries.getData().remove(0);
+                }
+            }
+            
+            if (prod != 0) {
+                productionSeries.getData().add(new XYChart.Data<>(String.valueOf(turnCounter), prod));
+                if (productionSeries.getData().size() > 10) {
+                    productionSeries.getData().remove(0);
+                }
+            }
+            
+            if (cons != 0) {
+                consumptionSeries.getData().add(new XYChart.Data<>(String.valueOf(turnCounter), cons));
+                if (consumptionSeries.getData().size() > 10) {
+                    consumptionSeries.getData().remove(0);
+                }
+            }
+            
+            if (netValue != 0) {
+                netSeries.getData().add(new XYChart.Data<>(String.valueOf(turnCounter), netValue));
+                if (netSeries.getData().size() > 10) {
+                    netSeries.getData().remove(0);
+                }
+            }
+        }
+        
+        // 增加回合计数
+        turnCounter++;
+    }
     // 操作方法
     private void showColonizeDialog() {
         // 显示殖民对话框
@@ -762,6 +871,7 @@ public class ColonyManagerView extends VBox {
     private void transferPopulation(PopType fromType, PopType toType, int amount) {
         if (selectedColony == null || fromType == null || toType == null) return;
 
+        // 使用选择的人口类型进行转移
         selectedColony.reallocatePopulation(fromType, toType, amount);
         updatePopulationChart();
         updateColonyDetails();
