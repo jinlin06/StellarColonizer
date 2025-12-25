@@ -20,7 +20,19 @@ public class DefenseModule extends ShipModule {
     private final FloatProperty coverage;     // 覆盖范围（0-100%）
 
     public DefenseModule(String name, DefenseType defenseType, float defenseValue) {
-        super(name, ModuleType.DEFENSE, 180, 15); // 减少空间占用到180
+        super(name, ModuleType.DEFENSE, 150, 15); // 默认大小150
+
+        this.defenseType = new SimpleObjectProperty<>(defenseType);
+        this.defenseValue = new SimpleFloatProperty(defenseValue);
+        this.rechargeRate = new SimpleFloatProperty(calculateRechargeRate(defenseType));
+        this.coverage = new SimpleFloatProperty(100.0f);
+
+        initializeDefenseCosts(defenseType);
+    }
+
+    // 用于复制模块的构造函数
+    public DefenseModule(String name, ModuleType type, int size, int powerRequirement, DefenseType defenseType, float defenseValue) {
+        super(name, type, size, powerRequirement);
 
         this.defenseType = new SimpleObjectProperty<>(defenseType);
         this.defenseValue = new SimpleFloatProperty(defenseValue);

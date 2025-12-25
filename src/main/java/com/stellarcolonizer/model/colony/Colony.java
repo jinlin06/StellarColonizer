@@ -105,7 +105,7 @@ public class Colony {
         resourceStockpile.addResource(ResourceType.ENERGY, 200);
         resourceStockpile.addResource(ResourceType.METAL, 200);
         resourceStockpile.addResource(ResourceType.FOOD, 200);
-        resourceStockpile.addResource(ResourceType.SCIENCE, 100);
+        resourceStockpile.addResource(ResourceType.FUEL, 100);  // 初始燃料设置为100
     }
 
     private void initializeProductionRates() {
@@ -113,12 +113,6 @@ public class Colony {
             productionRates.put(type, new SimpleFloatProperty(0));
             consumptionRates.put(type, new SimpleFloatProperty(0));
         }
-
-        // 注意：这里的问题在于initializeProductionRates在initializePopulation之前被调用了
-        // 所以我们需要在processTurn中重新计算初始生产率
-        
-        // 输出调试信息
-        System.out.println("[" + name.get() + "] 初始化生产率完成");
     }
 
     private float calculateBaseFoodProduction() {
@@ -235,7 +229,7 @@ public class Colony {
         float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.2f;  // 每个工人生产0.2能量
         float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.15f;   // 每个矿工生产0.15金属
         float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.12f;   // 每个农民生产0.12食物
-        float scienceProduction = 20.0f; // 固定初始科技值为20，不受人口影响
+        float scienceProduction = 500.0f; // 固定初始科技值为20，不受人口影响
         
         // 燃料生产（基于工匠数量）
         float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.04f;  // 每个工匠生产0.04燃料
@@ -529,63 +523,92 @@ public class Colony {
 
     public boolean canBuild(Building building) {
         if (usedBuildingSlots.get() >= maxBuildingSlots.get()) {
+            System.out.println("[" + name.get() + "] 建筑槽位已满: " + usedBuildingSlots.get() + "/" + maxBuildingSlots.get());
             return false;
         }
 
+        System.out.println("[" + name.get() + "] 检查建筑资源需求: " + building.getName());
         for (ResourceRequirement requirement : building.getConstructionRequirements()) {
             float available = resourceStockpile.getResource(requirement.getResourceType());
+            System.out.println("[" + name.get() + "] 需求: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
             if (available < requirement.getAmount()) {
+                System.out.println("[" + name.get() + "] 资源不足: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
                 return false;
             }
         }
 
         if (building.getRequiredTechnology() != null &&
                 !faction.hasTechnology(building.getRequiredTechnology())) {
+            System.out.println("[" + name.get() + "] 科技不足: " + building.getRequiredTechnology());
             return false;
         }
 
+        System.out.println("[" + name.get() + "] 可以建造建筑: " + building.getName());
         return true;
     }
 
     public boolean build(Building building) {
+        System.out.println("[" + name.get() + "] 开始建造建筑: " + building.getName());
         if (!canBuild(building)) {
+            System.out.println("[" + name.get() + "] 无法建造建筑: " + building.getName() + ", 条件不满足");
             return false;
         }
 
+        System.out.println("[" + name.get() + "] 开始消耗资源建造建筑: " + building.getName());
         for (ResourceRequirement requirement : building.getConstructionRequirements()) {
-            resourceStockpile.consumeResource(requirement.getResourceType(), requirement.getAmount());
+            float before = resourceStockpile.getResource(requirement.getResourceType());
+            boolean success = resourceStockpile.consumeResource(requirement.getResourceType(), requirement.getAmount());
+            float after = resourceStockpile.getResource(requirement.getResourceType());
+            System.out.println("[" + name.get() + "] 消耗资源: " + requirement.getResourceType().getDisplayName() + ", 消耗前: " + before + ", 消耗后: " + after + ", 消耗量: " + requirement.getAmount() + ", 成功: " + success);
+            if (!success) {
+                System.out.println("[" + name.get() + "] 消耗资源失败: " + requirement.getResourceType().getDisplayName());
+            }
         }
 
         buildings.add(building);
         usedBuildingSlots.set(usedBuildingSlots.get() + 1);
         addColonyLog("完成了建筑: " + building.getName());
+        System.out.println("[" + name.get() + "] 建筑建造完成: " + building.getName());
 
         return true;
     }
 
     public boolean upgradeBuilding(Building building) {
         if (building.getLevel() >= building.getMaxLevel()) {
+            System.out.println("[" + name.get() + "] 建筑已达到最高等级: " + building.getName() + ", 当前等级: " + building.getLevel());
             return false;
         }
 
         BuildingUpgrade upgrade = building.getUpgradeRequirements();
         if (upgrade == null) {
+            System.out.println("[" + name.get() + "] 无法获取升级需求: " + building.getName());
             return false;
         }
 
+        System.out.println("[" + name.get() + "] 检查升级资源需求: " + building.getName() + " 到等级 " + (building.getLevel() + 1));
         for (ResourceRequirement requirement : upgrade.getResourceRequirements()) {
             float available = resourceStockpile.getResource(requirement.getResourceType());
+            System.out.println("[" + name.get() + "] 升级需求: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
             if (available < requirement.getAmount()) {
+                System.out.println("[" + name.get() + "] 升级资源不足: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
                 return false;
             }
         }
 
+        System.out.println("[" + name.get() + "] 开始消耗资源升级建筑: " + building.getName());
         for (ResourceRequirement requirement : upgrade.getResourceRequirements()) {
-            resourceStockpile.consumeResource(requirement.getResourceType(), requirement.getAmount());
+            float before = resourceStockpile.getResource(requirement.getResourceType());
+            boolean success = resourceStockpile.consumeResource(requirement.getResourceType(), requirement.getAmount());
+            float after = resourceStockpile.getResource(requirement.getResourceType());
+            System.out.println("[" + name.get() + "] 消耗升级资源: " + requirement.getResourceType().getDisplayName() + ", 消耗前: " + before + ", 消耗后: " + after + ", 消耗量: " + requirement.getAmount() + ", 成功: " + success);
+            if (!success) {
+                System.out.println("[" + name.get() + "] 升级消耗资源失败: " + requirement.getResourceType().getDisplayName());
+            }
         }
 
         building.upgrade();
         addColonyLog("升级了建筑: " + building.getName() + " 到等级 " + building.getLevel());
+        System.out.println("[" + name.get() + "] 建筑升级完成: " + building.getName() + ", 等级: " + building.getLevel());
 
         return true;
     }

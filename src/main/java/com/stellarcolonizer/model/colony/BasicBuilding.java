@@ -29,25 +29,31 @@ public class BasicBuilding extends Building {
         if (buildingType == FOOD_PRODUCTION) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 100));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 50));
+            constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 25));
             requiredTechnology = "BASIC_FARMING";
         } else if (buildingType == ENERGY_PRODUCTION) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 150));
-            constructionRequirements.add(new ResourceRequirement(ResourceType.SCIENCE, 50));
+            // 移除科技值需求
+            constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 30));
             requiredTechnology = "BASIC_POWER";
         } else if (buildingType == MINERAL_PRODUCTION) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 200));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 100));
+            constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 40));
             requiredTechnology = "BASIC_MINING";
         } else if (buildingType == RESEARCH) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 100));
-            constructionRequirements.add(new ResourceRequirement(ResourceType.SCIENCE, 100));
-            requiredTechnology = "BASIC_RESEARCH";
+            // 移除科技值需求
+            constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 35));
+            requiredTechnology = null; // 移除科技前置要求
         } else if (buildingType == HOUSING) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 50));
+            constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 15));
             requiredTechnology = "BASIC_CONSTRUCTION";
         } else if (buildingType == ADMINISTRATION) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 200));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 100));
+            constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 50));
             requiredTechnology = "BASIC_ADMIN";
         }
     }
@@ -78,7 +84,9 @@ public class BasicBuilding extends Building {
                 break;
 
             case RESEARCH:
-                productionBonuses.put(ResourceType.SCIENCE, 25.0f * level.get());
+                // 根据等级提供科技值产出：1级=3点，2级=5点，3级=7点
+                float scienceBonus = 1.0f + (2.0f * level.get()); // 计算公式：1+2*等级
+                productionBonuses.put(ResourceType.SCIENCE, scienceBonus);
                 efficiencyBonuses.put(ResourceType.SCIENCE, 1.2f);
                 break;
 
@@ -124,11 +132,28 @@ public class BasicBuilding extends Building {
         if (buildingType == FOOD_PRODUCTION) {
             requirements.add(new ResourceRequirement(ResourceType.METAL, 100 * targetLevel));
             requirements.add(new ResourceRequirement(ResourceType.ENERGY, 50 * targetLevel));
-            requirements.add(new ResourceRequirement(ResourceType.SCIENCE, 25 * targetLevel));
+            // 移除科技值需求
+            requirements.add(new ResourceRequirement(ResourceType.FUEL, 30 * targetLevel));
         } else if (buildingType == ENERGY_PRODUCTION) {
             requirements.add(new ResourceRequirement(ResourceType.METAL, 150 * targetLevel));
             requirements.add(new ResourceRequirement(ResourceType.ENERGY, 75 * targetLevel));
-            requirements.add(new ResourceRequirement(ResourceType.SCIENCE, 50 * targetLevel));
+            // 移除科技值需求
+            requirements.add(new ResourceRequirement(ResourceType.FUEL, 40 * targetLevel));
+        } else if (buildingType == RESEARCH) {
+            requirements.add(new ResourceRequirement(ResourceType.METAL, 120 * targetLevel));
+            requirements.add(new ResourceRequirement(ResourceType.ENERGY, 60 * targetLevel));
+            requirements.add(new ResourceRequirement(ResourceType.FUEL, 40 * targetLevel));
+        } else if (buildingType == MINERAL_PRODUCTION) {
+            requirements.add(new ResourceRequirement(ResourceType.METAL, 180 * targetLevel));
+            requirements.add(new ResourceRequirement(ResourceType.ENERGY, 90 * targetLevel));
+            requirements.add(new ResourceRequirement(ResourceType.FUEL, 45 * targetLevel));
+        } else if (buildingType == HOUSING) {
+            requirements.add(new ResourceRequirement(ResourceType.METAL, 80 * targetLevel));
+            requirements.add(new ResourceRequirement(ResourceType.FUEL, 25 * targetLevel));
+        } else if (buildingType == ADMINISTRATION) {
+            requirements.add(new ResourceRequirement(ResourceType.METAL, 250 * targetLevel));
+            requirements.add(new ResourceRequirement(ResourceType.ENERGY, 120 * targetLevel));
+            requirements.add(new ResourceRequirement(ResourceType.FUEL, 60 * targetLevel));
         }
 
         String techRequirement = null;

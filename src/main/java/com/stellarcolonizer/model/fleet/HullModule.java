@@ -8,7 +8,13 @@ import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 public class HullModule extends ShipModule {
 
     public HullModule(int hullSize) {
-        super("基础船体", ModuleType.HULL, 0, 0); // 船体模块不占用自身空间
+        super("基础船体", ModuleType.HULL, 0, 0); // 默认船体模块不占用自身空间
+        this.size.set(hullSize); // 但实际船体大小由参数设置
+    }
+
+    // 用于复制模块的构造函数
+    public HullModule(String name, ModuleType type, int size, int powerRequirement) {
+        super(name, type, size, powerRequirement);
     }
 
     @Override

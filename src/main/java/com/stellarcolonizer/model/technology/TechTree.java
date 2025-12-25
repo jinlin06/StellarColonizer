@@ -128,47 +128,6 @@ public class TechTree {
         Technology syntheticChemistry = new Technology("SYNTHETIC_CHEMISTRY", "合成化学",
                 "复杂分子的人工合成技术", TechCategory.CHEMISTRY, 500, 11);
         syntheticChemistry.addPrerequisite("SUPRAMOLECULAR_CHEMISTRY");
-        
-        // 高级武器科技
-        Technology advancedWeapons = new Technology("advanced_weapons", "高级武器系统",
-                "解锁先进武器模块", TechCategory.PHYSICS, 300, 6);
-        advancedWeapons.addPrerequisite("QUANTUM_MECHANICS");
-        advancedWeapons.addUnlockedUnit("advanced_laser");
-        advancedWeapons.addUnlockedUnit("heavy_railgun");
-        
-
-        
-        // 高级防御科技
-        Technology advancedDefenses = new Technology("advanced_defenses", "高级防御系统",
-                "解锁先进防御模块", TechCategory.PHYSICS, 350, 7);
-        advancedDefenses.addPrerequisite("ELECTROMAGNETISM");
-        advancedDefenses.addUnlockedUnit("advanced_shield");
-        advancedDefenses.addUnlockedUnit("advanced_armor");
-        
-
-        
-        // 高级引擎科技
-        Technology advancedEngines = new Technology("advanced_engines", "高级引擎系统",
-                "解锁先进引擎模块", TechCategory.PHYSICS, 400, 8);
-        advancedEngines.addPrerequisite("THERMODYNAMICS");
-        advancedEngines.addUnlockedUnit("advanced_engine");
-        
-
-        
-        // 高级能源科技
-        Technology advancedPower = new Technology("advanced_power", "高级能源系统",
-                "解锁先进能源模块", TechCategory.PHYSICS, 450, 9);
-        advancedPower.addPrerequisite("ELECTROMAGNETISM");
-        advancedPower.addUnlockedUnit("advanced_generator");
-        
-
-        
-        // 高级功能模块科技
-        Technology advancedUtilities = new Technology("advanced_utilities", "高级功能系统",
-                "解锁先进功能模块", TechCategory.CHEMISTRY, 350, 7);
-        advancedUtilities.addPrerequisite("MATERIALS_CHEMISTRY");
-        advancedUtilities.addUnlockedUnit("advanced_sensor");
-        advancedUtilities.addUnlockedUnit("advanced_hangar");
 
         // 生物学分支 - 从基础到高级
         Technology basicBiology = new Technology("BASIC_BIOLOGY", "基础生物学",
@@ -217,8 +176,97 @@ public class TechTree {
         Technology consciousnessStudies = new Technology("CONSCIOUSNESS_STUDIES", "意识研究",
                 "探索意识的本质与机制", TechCategory.BIOLOGY, 550, 12);
         consciousnessStudies.addPrerequisite("NEURAL_BIOLOGY");
-        
 
+        // 兵器科学分支 - 专门用于解锁武器、防御和功能模块
+        Technology weaponsScience = new Technology("WEAPONS_SCIENCE", "兵器科学",
+                "基础武器理论研究，用于解锁后续武器、防御和功能模块", TechCategory.WEAPONS_SCIENCE, 150, 4);
+        weaponsScience.addPrerequisite("MECHANICS");
+
+        // 武器科技 - 按照指定顺序解锁
+        // 轻型等离子炮 - 150科研值
+        Technology plasmaWeapons = new Technology("PLASMA_WEAPONS", "等离子武器",
+                "解锁轻型等离子炮", TechCategory.WEAPONS_SCIENCE, 150, 4);
+        plasmaWeapons.addPrerequisite("WEAPONS_SCIENCE");
+
+        // 标准磁轨炮 - 200科研값
+        Technology railgunWeapons = new Technology("RAILGUN_WEAPONS", "磁轨炮技术",
+                "解锁标准磁轨炮", TechCategory.WEAPONS_SCIENCE, 200, 5);
+        railgunWeapons.addPrerequisite("PLASMA_WEAPONS"); // 依赖等离子武器科技
+
+        // 先进激光炮 - 250科研값
+        Technology advancedLaser = new Technology("ADVANCED_LASER", "高级激光技术",
+                "解锁先进激光炮", TechCategory.WEAPONS_SCIENCE, 250, 6);
+        advancedLaser.addPrerequisite("RAILGUN_WEAPONS"); // 依赖磁轨炮科技
+
+        // 重型轨道炮 - 300科研값
+        Technology heavyCannons = new Technology("HEAVY_CANNONS", "重型火炮技术",
+                "解锁重型轨道炮", TechCategory.WEAPONS_SCIENCE, 300, 7);
+        heavyCannons.addPrerequisite("ADVANCED_LASER"); // 依赖先进激光科技
+
+        // 防御科技
+        // 复合装甲 - 150科研값
+        Technology compositeArmor = new Technology("COMPOSITE_ARMOR", "复合装甲",
+                "解锁复合装甲", TechCategory.WEAPONS_SCIENCE, 150, 4);
+        compositeArmor.addPrerequisite("MATERIALS_CHEMISTRY");
+
+        // 点防御系统 - 200科研값
+        Technology pointDefense = new Technology("POINT_DEFENSE", "点防御系统",
+                "解锁点防御系统", TechCategory.WEAPONS_SCIENCE, 200, 5);
+        pointDefense.addPrerequisite("COMPOSITE_ARMOR"); // 依赖复合装甲科技
+
+        // 高级护盾 - 250科研값
+        Technology advancedShields = new Technology("ADVANCED_SHIELDS", "高级护盾技术",
+                "解锁先进护盾", TechCategory.WEAPONS_SCIENCE, 250, 6);
+        advancedShields.addPrerequisite("POINT_DEFENSE"); // 依赖点防御系统
+
+        // 功能模块科技
+        // 高级功能模块科技
+        Technology advancedUtilities = new Technology("ADVANCED_UTILITIES", "高级功能系统",
+                "解锁先进传感器", TechCategory.WEAPONS_SCIENCE, 350, 7);
+        advancedUtilities.addPrerequisite("WEAPONS_SCIENCE");
+        advancedUtilities.addUnlockedUnit("advanced_sensor");
+
+        // 引擎科技
+        // 标准引擎 - 150科研값
+        Technology standardEngines = new Technology("STANDARD_ENGINES", "标准引擎技术",
+                "解锁标准引擎", TechCategory.PHYSICS, 150, 4);
+        standardEngines.addPrerequisite("MECHANICS");
+
+        // 高性能引擎 - 250科研값
+        Technology highPerformanceEngines = new Technology("HIGH_PERFORMANCE_ENGINES", "高性能引擎技术",
+                "解锁高性能引擎", TechCategory.PHYSICS, 250, 6);
+        highPerformanceEngines.addPrerequisite("STANDARD_ENGINES"); // 依赖标准引擎
+
+        // 先进引擎 - 400科研값
+        Technology advancedEngines = new Technology("ADVANCED_ENGINES", "先进引擎系统",
+                "解锁先进引擎", TechCategory.PHYSICS, 400, 8);
+        advancedEngines.addPrerequisite("HIGH_PERFORMANCE_ENGINES"); // 依赖高性能引擎
+
+        // 电力科技
+        // 标准发电机 - 150科研값
+        Technology standardPower = new Technology("STANDARD_POWER", "标准发电机技术",
+                "解锁标准发电机", TechCategory.PHYSICS, 150, 4);
+        standardPower.addPrerequisite("MECHANICS");
+
+        // 性能发电机 - 250科研값
+        Technology highEfficiencyPower = new Technology("HIGH_EFFICIENCY_POWER", "高性能发电机技术",
+                "解锁性能发电机", TechCategory.PHYSICS, 250, 6);
+        highEfficiencyPower.addPrerequisite("STANDARD_POWER"); // 依赖标准发电机
+
+        // 先进发电机 - 450科研값
+        Technology advancedPower = new Technology("ADVANCED_POWER", "先进发电机系统",
+                "解锁先进发电机", TechCategory.PHYSICS, 450, 9);
+        advancedPower.addPrerequisite("HIGH_EFFICIENCY_POWER"); // 依赖性能发电机
+
+        // 高级武器科技 - 300科研값（仅保留，但不用于解锁模块）
+        Technology advancedWeapons = new Technology("ADVANCED_WEAPONS", "先进武器系统",
+                "高级武器理论研究，用于解锁后续科技", TechCategory.WEAPONS_SCIENCE, 300, 6);
+        advancedWeapons.addPrerequisite("HEAVY_CANNONS"); // 依赖重型火炮科技
+
+        // 高级防御科技 - 350科研값（仅保留，但不用于解锁模块）
+        Technology advancedDefenses = new Technology("ADVANCED_DEFENSES", "高级防御系统",
+                "高级防御理论研究，用于解锁后续科技", TechCategory.WEAPONS_SCIENCE, 350, 7);
+        advancedDefenses.addPrerequisite("ADVANCED_SHIELDS"); // 依赖高级护盾科技
 
         // 终极科技 - 终极武器
         Technology ultimateWeapon = new Technology("ULTIMATE_WEAPON", "终极武器",
@@ -227,6 +275,7 @@ public class TechTree {
         ultimateWeapon.addPrerequisite("UNIFIED_FIELD_THEORY"); // 物理学最高级
         ultimateWeapon.addPrerequisite("SYNTHETIC_CHEMISTRY"); // 化学最高级
         ultimateWeapon.addPrerequisite("CONSCIOUSNESS_STUDIES"); // 生物学最高级
+        ultimateWeapon.addPrerequisite("ADVANCED_UTILITIES"); // 兵器科学最高级
 
         // 添加所有科技
         addTechnology(basicPhysics);
@@ -250,20 +299,8 @@ public class TechTree {
         addTechnology(quantumChemistry);
         addTechnology(supramolecularChemistry);
         addTechnology(syntheticChemistry);
-        
-        // 添加高级模块解锁科技
-        addTechnology(advancedWeapons);
-        addTechnology(advancedDefenses);
-        addTechnology(advancedEngines);
-        addTechnology(advancedPower);
-        addTechnology(advancedUtilities);
-        
 
-        
-
-        
-
-        
+        // 添加生物学分支
         addTechnology(basicBiology);
         addTechnology(cellularBiology);
         addTechnology(genetics);
@@ -276,6 +313,36 @@ public class TechTree {
         addTechnology(xenobiology);
         addTechnology(neuralBiology);
         addTechnology(consciousnessStudies);
+
+        // 添加兵器科学分支
+        addTechnology(weaponsScience);
+
+        // 添加武器科技
+        addTechnology(plasmaWeapons);
+        addTechnology(railgunWeapons);
+        addTechnology(advancedLaser);
+        addTechnology(heavyCannons);
+        addTechnology(advancedWeapons);
+
+        // 添加防御科技
+        addTechnology(compositeArmor);
+        addTechnology(pointDefense);
+        addTechnology(advancedShields);
+        addTechnology(advancedDefenses);
+
+        // 添加功能模块科技
+        addTechnology(advancedUtilities);
+
+        // 添加引擎科技
+        addTechnology(standardEngines);
+        addTechnology(highPerformanceEngines);
+        addTechnology(advancedEngines);
+
+        // 添加能源科技
+        addTechnology(standardPower);
+        addTechnology(highEfficiencyPower);
+        addTechnology(advancedPower);
+
         addTechnology(ultimateWeapon);
     }
 
@@ -421,7 +488,7 @@ public class TechTree {
                 current.getTechnology().getName(),
                 current.getProgressPercentage());
     }
-    
+
     /**
      * 计算完成当前研究项目还需要多少回合
      * @return 完成当前研究项目还需要的回合数
@@ -430,22 +497,22 @@ public class TechTree {
         if (researchQueue.isEmpty()) {
             return 0;
         }
-        
+
         ResearchProject currentProject = researchQueue.get(0);
         Technology tech = currentProject.getTechnology();
-        
+
         // 计算有效每回合产出
         float effectivePointsPerRound = baseResearchPointsPerRound * researchSpeedBonus.get();
         float effectivePoints = effectivePointsPerRound;
-        
+
         // 计算剩余需要的科技值
         int remainingCost = currentProject.getTotalCost() - currentProject.getProgress();
-        
+
         // 计算还需要多少回合
         if (effectivePoints <= 0) {
             return Integer.MAX_VALUE; // 如果没有科研产出，则无法完成
         }
-        
+
         return (int) Math.ceil(remainingCost / effectivePoints);
     }
 
@@ -469,24 +536,24 @@ public class TechTree {
     public float getResearchCostReduction() { return researchCostReduction.get(); }
     public void setResearchCostReduction(float reduction) { this.researchCostReduction.set(reduction); }
     public FloatProperty researchCostReductionProperty() { return researchCostReduction; }
-    
+
     public int getBaseResearchPointsPerRound() { return baseResearchPointsPerRound; }
     public void setBaseResearchPointsPerRound(int baseResearchPointsPerRound) { 
         this.baseResearchPointsPerRound = baseResearchPointsPerRound;
         this.baseResearchPointsPerRoundProperty.set(baseResearchPointsPerRound);
     }
-    
+
     public IntegerProperty baseResearchPointsPerRoundProperty() { return baseResearchPointsPerRoundProperty; }
-    
+
     public void initializeBaseResearchPoints(int initialPoints) {
         this.baseResearchPointsPerRound = initialPoints;
         this.baseResearchPointsPerRoundProperty.set(initialPoints);
     }
-    
+
     public int getCurrentBaseResearchPoints() {
         return this.baseResearchPointsPerRound;
     }
-    
+
     /**
      * 计算完成指定科技研究需要的回合数
      * @param technology 要研究的科技
@@ -496,18 +563,18 @@ public class TechTree {
         if (technology == null) {
             return 0;
         }
-        
+
         // 计算有效每回合产出
         float effectivePointsPerRound = baseResearchPointsPerRound * researchSpeedBonus.get();
-        
+
         // 计算还需要多少回合
         if (effectivePointsPerRound <= 0) {
             return Integer.MAX_VALUE; // 如果没有科研产出，则无法完成
         }
-        
+
         // 使用科技的总成本
         int remainingCost = technology.getResearchCost();
-        
+
         return (int) Math.ceil(remainingCost / effectivePointsPerRound);
     }
 }

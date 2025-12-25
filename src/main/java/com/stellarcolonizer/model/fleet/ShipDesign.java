@@ -254,8 +254,9 @@ public class ShipDesign {
 
         // 移除总模块数量限制检查
 
-        // 检查科技是否已解锁
-        if (researchedTechs != null && !module.canBeUnlocked(researchedTechs)) {
+        // 重构逻辑：不再进行科技检查，而是检查模块的解锁状态
+        // 检查模块是否已解锁
+        if (!module.isUnlocked()) {
             return false;
         }
 
@@ -486,6 +487,44 @@ public class ShipDesign {
 
         copy.updateDesign();
         return copy;
+    }
+    
+    /**
+     * 验证整个设计是否符合解锁状态要求
+     * @param researchedTechs 已研发的科技集合（已弃用，现在直接检查模块的解锁状态）
+     * @return true-设计中所有模块都已解锁，false-存在未解锁的模块
+     */
+    public boolean isDesignUnlocked(Set<String> researchedTechs) {
+        if (modules.isEmpty()) {
+            return true; // 如果没有模块，认为设计已解锁
+        }
+        
+        // 检查所有模块是否都已解锁（重构后直接检查模块的解锁状态）
+        for (ShipModule module : modules) {
+            if (!module.isUnlocked()) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 获取设计中未解锁的模块列表
+     * @param researchedTechs 已研发的科技集合（已弃用，现在直接检查模块的解锁状态）
+     * @return 未解锁的模块列表
+     */
+    public List<ShipModule> getLockedModules(Set<String> researchedTechs) {
+        List<ShipModule> lockedModules = new ArrayList<>();
+        
+        // 重构后直接检查模块的解锁状态
+        for (ShipModule module : modules) {
+            if (!module.isUnlocked()) {
+                lockedModules.add(module);
+            }
+        }
+        
+        return lockedModules;
     }
 
     // Getter 方法

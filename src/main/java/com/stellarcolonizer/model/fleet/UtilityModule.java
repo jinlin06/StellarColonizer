@@ -18,7 +18,19 @@ public class UtilityModule extends ShipModule {
     private final Map<String, Float> specialEffects;
 
     public UtilityModule(String name, UtilityType utilityType, float utilityValue) {
-        super(name, ModuleType.UTILITY, 150, 10); // 减少空间占用到150
+        super(name, ModuleType.UTILITY, 120, 10); // 默认大小120
+
+        this.utilityType = new SimpleObjectProperty<>(utilityType);
+        this.utilityValue = new SimpleFloatProperty(utilityValue);
+        this.specialEffects = new HashMap<>();
+
+        initializeUtilityCosts(utilityType);
+        initializeSpecialEffects(utilityType);
+    }
+
+    // 用于复制模块的构造函数
+    public UtilityModule(String name, ModuleType type, int size, int powerRequirement, UtilityType utilityType, float utilityValue) {
+        super(name, type, size, powerRequirement);
 
         this.utilityType = new SimpleObjectProperty<>(utilityType);
         this.utilityValue = new SimpleFloatProperty(utilityValue);

@@ -8,7 +8,13 @@ import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 public class PowerModule extends ShipModule {
 
     public PowerModule(int powerOutput) {
-        super("基础发电机", ModuleType.POWER, 250, -powerOutput); // 负数表示能源输出，减少空间占用到250
+        super("基础发电机", ModuleType.POWER, 200, -powerOutput); // 默认大小200
+        this.powerOutput.set(powerOutput);
+    }
+
+    // 用于复制模块的构造函数
+    public PowerModule(String name, ModuleType type, int size, int powerRequirement, int powerOutput) {
+        super(name, type, size, powerRequirement);
         this.powerOutput.set(powerOutput);
     }
 

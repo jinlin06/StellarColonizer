@@ -394,12 +394,12 @@ public class MainController {
         System.out.println("显示舰船设计");
         try {
             // 先检查gameEngine是否存在
-            if (gameEngine == null) {
+            if (gameEngine == null || gameEngine.getPlayerFaction() == null) {
                 showInfoDialog("错误", "游戏尚未初始化完成");
                 return;
             }
             
-            ShipDesignerUI shipDesignerUI = new ShipDesignerUI();
+            ShipDesignerUI shipDesignerUI = new ShipDesignerUI(gameEngine.getPlayerFaction());
             showComponentInWindow(shipDesignerUI, "舰船设计器");
         } catch (Exception e) {
             e.printStackTrace();

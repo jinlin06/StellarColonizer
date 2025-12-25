@@ -12,7 +12,13 @@ public class EngineModule extends ShipModule {
     private final FloatProperty thrust; // 推力
 
     public EngineModule(float baseThrust) {
-        super("基础引擎", ModuleType.ENGINE, 300, 50); // 减少空间占用到300
+        super("基础引擎", ModuleType.ENGINE, 250, 50); // 默认大小250
+        this.thrust = new SimpleFloatProperty(baseThrust);
+    }
+
+    // 用于复制模块的构造函数
+    public EngineModule(String name, ModuleType type, int size, int powerRequirement, float baseThrust) {
+        super(name, type, size, powerRequirement);
         this.thrust = new SimpleFloatProperty(baseThrust);
     }
 

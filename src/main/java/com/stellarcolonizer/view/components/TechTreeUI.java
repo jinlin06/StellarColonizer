@@ -199,19 +199,8 @@ public class TechTreeUI extends BorderPane {
         techTreePane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         techTreePane.getStyleClass().add("tech-tree-scroll-pane");
 
-        // 创建科技树布局
-        HBox treeLayout = new HBox(30); // 减小间距
-        treeLayout.setPadding(new Insets(10)); // 减小内边距
-        treeLayout.setStyle("-fx-background-color: #1e1e1e;");
-
-        // 物理学分支
-        VBox physicsBranch = createBranch("物理学", TechCategory.PHYSICS);
-        // 化学分支
-        VBox chemistryBranch = createBranch("化学", TechCategory.CHEMISTRY);
-        // 生物学分支
-        VBox biologyBranch = createBranch("生物学", TechCategory.BIOLOGY);
-
-        treeLayout.getChildren().addAll(physicsBranch, chemistryBranch, biologyBranch);
+        // 构建科技树（在buildTechTree方法中处理所有分支的绘制）
+        buildTechTree();
 
         // 添加到面板
         panel.getChildren().addAll(title, techTreePane);
@@ -357,50 +346,53 @@ public class TechTreeUI extends BorderPane {
         // 创建背景网格
         createGridBackground();
 
-        // 创建类别列 - 按照物理学、化学、生物学的顺序
+        // 创建类别列 - 按照物理学、化学、生物学、兵器科学的顺序
         double x = 50;
-        double columnWidth = 260; // 减小列宽
+        double columnWidth = 320; // 进一步增加列宽以适应更多科技
         double maxCategoryHeight = 0;
 
-        // 按顺序处理三个学科
-        for (TechCategory category : new TechCategory[]{TechCategory.PHYSICS, TechCategory.CHEMISTRY, TechCategory.BIOLOGY}) {
+        // 按顺序处理四个学科
+        for (TechCategory category : new TechCategory[]{TechCategory.PHYSICS, TechCategory.CHEMISTRY, TechCategory.BIOLOGY, TechCategory.WEAPONS_SCIENCE}) {
             List<Technology> categoryTechs = techsByCategory.get(category);
             if (categoryTechs.isEmpty()) continue;
 
             // 创建类别标题
             Label categoryTitle = new Label(category.getDisplayName() + " " + category.getIcon());
-            categoryTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16)); // 减小字体
+            categoryTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
             categoryTitle.setTextFill(category.getColor());
-            categoryTitle.setLayoutX(x + 20);
-            categoryTitle.setLayoutY(20);
-            categoryTitle.setEffect(new javafx.scene.effect.DropShadow(5, Color.BLACK));
+            categoryTitle.setLayoutX(x + 30);
+            categoryTitle.setLayoutY(30);
+            categoryTitle.setEffect(new javafx.scene.effect.DropShadow(8, Color.BLACK));
 
             // 创建类别列容器
-            VBox column = new VBox(20); // 减小间距
+            VBox column = new VBox(30); // 增加间距以避免重叠
             column.setLayoutX(x);
-            column.setLayoutY(60);
+            column.setLayoutY(80);
             column.setPrefWidth(columnWidth);
-            column.setStyle("-fx-background-color: rgba(30, 30, 30, 0.7); "
-                          + "-fx-background-radius: 8; " // 减小圆角
-                          + "-fx-padding: 10;"); // 减小内边距
+            column.setStyle("-fx-background-color: rgba(30, 30, 30, 0.5); "
+                          + "-fx-background-radius: 10; "
+                          + "-fx-padding: 15;");
 
             // 按层级排序科技
             Map<Integer, List<Technology>> techsByTier = groupByTier(categoryTechs);
 
+            // 获取最大层级，而不是固定8层
+            int maxTier = techsByTier.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
+            
             double y = 0;
-            for (int tier = 1; tier <= 8; tier++) {
+            for (int tier = 1; tier <= maxTier; tier++) {
                 List<Technology> tierTechs = techsByTier.getOrDefault(tier, new ArrayList<>());
 
                 if (!tierTechs.isEmpty()) {
                     // 创建层级标签
                     Label tierLabel = new Label("等级 " + tier);
-                    tierLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10)); // 减小字体
+                    tierLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
                     tierLabel.setTextFill(Color.LIGHTGRAY);
-                    tierLabel.setPadding(new Insets(0, 0, 3, 0)); // 减小内边距
+                    tierLabel.setPadding(new Insets(5, 0, 10, 0));
 
                     // 创建层级容器
-                    FlowPane tierContainer = new FlowPane(javafx.geometry.Orientation.HORIZONTAL, 10, 10); // 减小间距
-                    tierContainer.setPrefWidth(columnWidth - 20); // 调整宽度
+                    FlowPane tierContainer = new FlowPane(javafx.geometry.Orientation.HORIZONTAL, 15, 15);
+                    tierContainer.setPrefWidth(columnWidth - 30);
                     tierContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
                     for (Technology tech : tierTechs) {
@@ -408,30 +400,34 @@ public class TechTreeUI extends BorderPane {
                         if (!"ULTIMATE_WEAPON".equals(tech.getId())) {
                             TechCard techCard = new TechCard(tech);
                             techCardMap.put(tech, techCard);
+                            
+                            // 设置卡片位置
+                            techCard.setLayoutX(x + 20 + ((tierContainer.getChildren().size() % 3) * 110));
+                            techCard.setLayoutY(80 + y + 40);
+                            
                             tierContainer.getChildren().add(techCard);
                         }
                     }
 
-                    VBox tierBox = new VBox(3); // 减小间距
+                    VBox tierBox = new VBox(8);
                     tierBox.getChildren().addAll(tierLabel, tierContainer);
                     column.getChildren().add(tierBox);
-                    y += 100; // 减小每层高度
+                    y += 180; // 增加每层高度以避免重叠
                 }
             }
 
             techTreeCanvas.getChildren().addAll(categoryTitle, column);
             categoryColumns.put(category, column);
-            maxCategoryHeight = Math.max(maxCategoryHeight, y + 120); // 调整高度
+            maxCategoryHeight = Math.max(maxCategoryHeight, y + 150);
 
-            x += columnWidth + 30; // 减小间距
+            x += columnWidth + 60; // 增加列间距
         }
 
         // 添加终极武器科技到中心位置
         Technology ultimateWeapon = techTree.getTechnology("ULTIMATE_WEAPON");
         if (ultimateWeapon != null) {
-            // 计算中心位置，使其更居中并往下移动，再向右一些
-            double centerX = (x - columnWidth) / 2 + 50; // 在三个学科的中心偏右下位置
-            double centerY = maxCategoryHeight + 100; // 在所有科技下方更远的位置
+            double centerX = (x - columnWidth) / 2 - 50;
+            double centerY = maxCategoryHeight + 200;
             
             TechCard ultimateCard = new TechCard(ultimateWeapon);
             ultimateCard.setLayoutX(centerX);
@@ -439,8 +435,9 @@ public class TechTreeUI extends BorderPane {
             techCardMap.put(ultimateWeapon, ultimateCard);
             techTreeCanvas.getChildren().add(ultimateCard);
         }
+        
         // 更新科技树画布大小
-        updateCanvasSize(x, maxCategoryHeight + 200); // 为终极武器增加额外空间
+        updateCanvasSize(x, maxCategoryHeight + 400); // 大幅增加额外空间以确保展示完整
     }
 
     private void createGridBackground() {
@@ -539,7 +536,8 @@ public class TechTreeUI extends BorderPane {
     }
 
     private void updateCanvasSize(double width, double height) {
-        techTreeCanvas.setPrefSize(Math.max(width, 800), Math.max(height + 80, 600)); // 调整最小尺寸
+        // 设置画布大小，确保有足够的空间显示所有科技
+        techTreeCanvas.setPrefSize(Math.max(width, 1200), Math.max(height, 1000)); // 增加最小尺寸以确保展示完整
     }
 
     private void setupEventHandlers() {

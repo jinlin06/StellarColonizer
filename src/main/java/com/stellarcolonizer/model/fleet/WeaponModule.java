@@ -30,7 +30,32 @@ public class WeaponModule extends ShipModule {
     private final boolean isTurret;            // 是否是炮塔
 
     public WeaponModule(String name, WeaponType weaponType, float damage, float fireRate) {
-        super(name, ModuleType.WEAPON, 200, 20); // 减少空间占用到200
+        super(name, ModuleType.WEAPON, 100, 20); // 默认大小100
+
+        this.weaponType = new SimpleObjectProperty<>(weaponType);
+        this.damage = new SimpleFloatProperty(damage);
+        this.fireRate = new SimpleFloatProperty(fireRate);
+        this.range = new SimpleFloatProperty(calculateBaseRange(weaponType));
+        this.accuracy = new SimpleFloatProperty(calculateBaseAccuracy(weaponType));
+        this.armorPenetration = new SimpleFloatProperty(calculateBasePenetration(weaponType));
+
+        // 初始化弹药系统
+        this.usesAmmo = weaponType.usesAmmo();
+        this.ammoCapacity = new SimpleIntegerProperty(usesAmmo ? 100 : 0);
+        this.ammoConsumption = new SimpleIntegerProperty(usesAmmo ? 1 : 0);
+        this.ammoType = weaponType.getAmmoType();
+
+        // 初始化特殊属性
+        this.trackingSpeed = new SimpleFloatProperty(30.0f);
+        this.reloadTime = new SimpleFloatProperty(1.0f);
+        this.isTurret = weaponType.isTurret();
+
+        initializeWeaponCosts(weaponType);
+    }
+
+    // 用于复制模块的构造函数
+    public WeaponModule(String name, ModuleType type, int size, int powerRequirement, WeaponType weaponType, float damage, float fireRate) {
+        super(name, type, size, powerRequirement);
 
         this.weaponType = new SimpleObjectProperty<>(weaponType);
         this.damage = new SimpleFloatProperty(damage);

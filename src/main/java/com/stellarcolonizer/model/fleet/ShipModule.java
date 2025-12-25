@@ -27,6 +27,9 @@ public abstract class ShipModule {
     // 科技需求
     protected String requiredTechnology;
     protected final IntegerProperty techLevel;
+    
+    // 多个解锁前置条件（可以有多个科技解锁该模块）
+    protected final List<String> unlockPrerequisites;
 
     // 状态
     protected final BooleanProperty isActive;
@@ -49,8 +52,12 @@ public abstract class ShipModule {
         this.requiredTechnology = "BASIC_MODULE";
         this.techLevel = new SimpleIntegerProperty(1);
         
-        // 默认情况下模块是锁定的，需要科技解锁
-        this.unlocked = new SimpleBooleanProperty(false);
+        // 初始化解锁前置条件列表
+        this.unlockPrerequisites = new ArrayList<>();
+        this.unlockPrerequisites.add("BASIC_MODULE"); // 默认添加基础模块条件
+        
+        // 默认情况下模块是解锁的，除非有特定的科技需求
+        this.unlocked = new SimpleBooleanProperty("BASIC_MODULE".equals(requiredTechnology));
 
         this.isActive = new SimpleBooleanProperty(true);
         this.integrity = new SimpleFloatProperty(100.0f);
@@ -104,58 +111,63 @@ public abstract class ShipModule {
             // 尝试不同的构造函数签名
             Class<?> clazz = this.getClass();
             
-            // 首先尝试四参数构造函数 (String, ModuleType, int, int)
+            // 首先尝试四参数构造函数 (String, ModuleType, int, int) - 这个构造函数保留了大小和功率需求
             try {
                 return (ShipModule) clazz
                         .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class)
                         .newInstance(name.get(), type.get(), size.get(), powerRequirement.get());
             } catch (NoSuchMethodException e) {
-                // 如果失败，尝试武器模块的构造函数 (String, WeaponType, float, float)
+                // 如果失败，尝试武器模块的构造函数 (String, ModuleType, int, int, WeaponType, float, float)
                 if (this instanceof WeaponModule) {
                     WeaponModule weapon = (WeaponModule) this;
                     return (ShipModule) clazz
-                            .getDeclaredConstructor(String.class, WeaponType.class, float.class, float.class)
-                            .newInstance(name.get(), weapon.getWeaponType(), weapon.getDamage(), weapon.getFireRate());
+                            .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class, WeaponType.class, float.class, float.class)
+                            .newInstance(name.get(), type.get(), size.get(), powerRequirement.get(), 
+                                         weapon.getWeaponType(), weapon.getDamage(), weapon.getFireRate());
                 }
                 
-                // 如果还失败，尝试防御模块的构造函数 (String, DefenseType, float)
+                // 如果还失败，尝试防御模块的构造函数 (String, ModuleType, int, int, DefenseType, float)
                 if (this instanceof DefenseModule) {
                     DefenseModule defense = (DefenseModule) this;
                     return (ShipModule) clazz
-                            .getDeclaredConstructor(String.class, DefenseType.class, float.class)
-                            .newInstance(name.get(), defense.getDefenseType(), defense.getDefenseValue());
+                            .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class, DefenseType.class, float.class)
+                            .newInstance(name.get(), type.get(), size.get(), powerRequirement.get(), 
+                                         defense.getDefenseType(), defense.getDefenseValue());
                 }
                 
-                // 如果还失败，尝试功能模块的构造函数 (String, UtilityType, float)
+                // 如果还失败，尝试功能模块的构造函数 (String, ModuleType, int, int, UtilityType, float)
                 if (this instanceof UtilityModule) {
                     UtilityModule utility = (UtilityModule) this;
                     return (ShipModule) clazz
-                            .getDeclaredConstructor(String.class, UtilityType.class, float.class)
-                            .newInstance(name.get(), utility.getUtilityType(), utility.getUtilityValue());
+                            .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class, UtilityType.class, float.class)
+                            .newInstance(name.get(), type.get(), size.get(), powerRequirement.get(), 
+                                         utility.getUtilityType(), utility.getUtilityValue());
                 }
                 
-                // 如果还失败，尝试引擎模块的构造函数 (float)
+                // 如果还失败，尝试引擎模块的构造函数 (String, ModuleType, int, int, float)
                 if (this instanceof EngineModule) {
                     EngineModule engine = (EngineModule) this;
                     return (ShipModule) clazz
-                            .getDeclaredConstructor(float.class)
-                            .newInstance(engine.getThrust());
+                            .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class, float.class)
+                            .newInstance(name.get(), type.get(), size.get(), powerRequirement.get(), 
+                                         engine.getThrust());
                 }
                 
-                // 如果还失败，尝试电力模块的构造函数 (int)
+                // 如果还失败，尝试电力模块的构造函数 (String, ModuleType, int, int, int)
                 if (this instanceof PowerModule) {
                     PowerModule power = (PowerModule) this;
                     return (ShipModule) clazz
-                            .getDeclaredConstructor(int.class)
-                            .newInstance(power.getPowerOutput());
+                            .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class, int.class)
+                            .newInstance(name.get(), type.get(), size.get(), powerRequirement.get(), 
+                                         power.getPowerOutput());
                 }
                 
-                // 如果还失败，尝试船体模块的构造函数 (int)
+                // 如果还失败，尝试船体模块的构造函数 (String, ModuleType, int, int)
                 if (this instanceof HullModule) {
                     HullModule hull = (HullModule) this;
                     return (ShipModule) clazz
-                            .getDeclaredConstructor(int.class)
-                            .newInstance(hull.getSize());
+                            .getDeclaredConstructor(String.class, ModuleType.class, int.class, int.class)
+                            .newInstance(name.get(), type.get(), size.get(), powerRequirement.get());
                 }
                 
                 // 如果所有尝试都失败，抛出原始异常
@@ -190,7 +202,6 @@ public abstract class ShipModule {
 
     public String getRequiredTechnology() { return requiredTechnology; }
     
-    public void setRequiredTechnology(String requiredTechnology) { this.requiredTechnology = requiredTechnology; }
     public int getTechLevel() { return techLevel.get(); }
     public IntegerProperty techLevelProperty() { return techLevel; }
     
@@ -204,10 +215,19 @@ public abstract class ShipModule {
      * @return true-模块可以解锁，false-模块需要前置科技
      */
     public boolean canBeUnlocked(Set<String> researchedTechs) {
-        if ("BASIC_MODULE".equals(requiredTechnology)) {
-            return true; // 基础模块始终可用
+        if (researchedTechs == null) {
+            // 如果没有提供已研究科技列表，则检查是否为基础模块
+            return "BASIC_MODULE".equals(requiredTechnology);
         }
-        return researchedTechs != null && researchedTechs.contains(requiredTechnology);
+        
+        // 检查是否有任何解锁前置条件被满足
+        for (String prereq : unlockPrerequisites) {
+            if (researchedTechs.contains(prereq)) {
+                return true; // 满足任一前置条件即可解锁
+            }
+        }
+        
+        return false;
     }
 
     public boolean isActive() { return isActive.get(); }
@@ -215,4 +235,59 @@ public abstract class ShipModule {
 
     public float getIntegrity() { return integrity.get(); }
     public FloatProperty integrityProperty() { return integrity; }
+    
+    /**
+     * 添加解锁前置条件
+     * @param techId 科技ID
+     */
+    public void addUnlockPrerequisite(String techId) {
+        if (techId != null && !techId.trim().isEmpty() && !unlockPrerequisites.contains(techId)) {
+            unlockPrerequisites.add(techId);
+        }
+    }
+    
+    /**
+     * 移除解锁前置条件
+     * @param techId 科技ID
+     */
+    public void removeUnlockPrerequisite(String techId) {
+        unlockPrerequisites.remove(techId);
+    }
+    
+    /**
+     * 获取解锁前置条件列表
+     * @return 解锁前置条件列表
+     */
+    public List<String> getUnlockPrerequisites() {
+        return new ArrayList<>(unlockPrerequisites);
+    }
+    
+    /**
+     * 设置解锁前置条件列表
+     * @param prerequisites 解锁前置条件列表
+     */
+    public void setUnlockPrerequisites(List<String> prerequisites) {
+        this.unlockPrerequisites.clear();
+        if (prerequisites != null) {
+            this.unlockPrerequisites.addAll(prerequisites);
+        }
+    }
+    
+    /**
+     * 设置模块的唯一科技需求（同时会更新解锁前置条件列表）
+     * @param techId 科技ID
+     */
+    /**
+     * 设置模块的唯一科技需求（同时会更新解锁前置条件列表）
+     * @param techId 科技ID
+     */
+    public void setRequiredTechnology(String techId) {
+        this.requiredTechnology = techId;
+        
+        // 同时更新解锁前置条件列表
+        this.unlockPrerequisites.clear();
+        if (techId != null && !techId.trim().isEmpty()) {
+            this.unlockPrerequisites.add(techId);
+        }
+    }
 }
