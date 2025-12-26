@@ -35,9 +35,6 @@ public abstract class ShipModule {
     protected final BooleanProperty isActive;
     protected final FloatProperty integrity;         // 完整性（0-100%）
 
-    // 是否已解锁
-    protected final BooleanProperty unlocked;
-
     public ShipModule(String name, ModuleType type, int size, int powerRequirement) {
         this.name = new SimpleStringProperty(name);
         this.type = new SimpleObjectProperty<>(type);
@@ -56,8 +53,7 @@ public abstract class ShipModule {
         this.unlockPrerequisites = new ArrayList<>();
         this.unlockPrerequisites.add("BASIC_MODULE"); // 默认添加基础模块条件
         
-        // 默认情况下模块是解锁的，除非有特定的科技需求
-        this.unlocked = new SimpleBooleanProperty("BASIC_MODULE".equals(requiredTechnology));
+
 
         this.isActive = new SimpleBooleanProperty(true);
         this.integrity = new SimpleFloatProperty(100.0f);
@@ -205,9 +201,8 @@ public abstract class ShipModule {
     public int getTechLevel() { return techLevel.get(); }
     public IntegerProperty techLevelProperty() { return techLevel; }
     
-    public boolean isUnlocked() { return unlocked.get(); }
-    public BooleanProperty unlockedProperty() { return unlocked; }
-    public void setUnlocked(boolean unlocked) { this.unlocked.set(unlocked); }
+    // 移除解锁状态检查，使用canBeUnlocked方法替代
+    // isUnlocked方法已移除，请使用canBeUnlocked方法进行动态检查
     
     /**
      * 检查模块是否可以被解锁（需要特定科技）

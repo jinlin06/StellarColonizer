@@ -250,25 +250,19 @@ public class ShipDesign {
      * @return true-可以添加，false-不能添加
      */
     public boolean canAddModule(ShipModule module, Set<String> researchedTechs) {
-        // 移除武器和功能模块的数量限制检查
-
-        // 移除总模块数量限制检查
-
-        // 重构逻辑：不再进行科技检查，而是检查模块的解锁状态
-        // 检查模块是否已解锁
-        if (!module.isUnlocked()) {
-            return false;
+        // 重构舰船设计逻辑：移除原有的是否解锁标签，采用添加前检查的方法
+        // 科技等级为1的基础模块默认解锁，无需依赖任何科技
+        // 科技等级大于1的高级模块必须依赖对应的科技研发才能解锁
+        
+        // 检查模块是否可以解锁
+        if (module.getTechLevel() > 1) { // 只有科技等级大于1的模块才需要检查解锁状态
+            if (!module.canBeUnlocked(researchedTechs)) {
+                return false;
+            }
         }
+        // 科技等级为1的模块默认解锁，无需检查
 
-        // 检查能源是否足够
-        int totalPowerRequirement = modules.stream().mapToInt(ShipModule::getPowerRequirement).sum();
-        totalPowerRequirement += module.getPowerRequirement();
-
-        if (totalPowerRequirement > getAvailablePower()) {
-            return false;
-        }
-
-        // 检查船体空间是否足够（这是主要的修改点）
+        // 检查船体空间是否足够
         // 计算除船体模块外的所有模块占用的空间
         int totalSize = modules.stream()
                 .filter(m -> !(m instanceof HullModule))  // 船体模块不计入占用空间
@@ -396,13 +390,7 @@ public class ShipDesign {
         boolean valid = true;
         StringBuilder message = new StringBuilder();
 
-        // 检查能源平衡
-        int powerBalance = getAvailablePower();
-        if (powerBalance < 0) {
-            valid = false;
-            message.append("能源不足！缺少 ").append(-powerBalance).append(" 单位能源\n");
-        }
-
+        // 重构模块兼容规则：只要模块空间不超过船体空间就可以添加
         // 检查船体空间（这是主要的修改点）
         // 计算除船体模块外的所有模块占用的空间
         int totalSize = modules.stream()
@@ -413,12 +401,6 @@ public class ShipDesign {
             valid = false;
             int overload = totalSize - hullSize.get();
             message.append("船体空间不足！超载 ").append(overload).append(" 单位\n");
-        }
-
-        // 检查船员数量
-        if (crewCapacity.get() < 10) {
-            valid = false;
-            message.append("船员不足！最少需要10名船员\n");
         }
 
         isValidDesign.set(valid);
@@ -491,7 +473,7 @@ public class ShipDesign {
     
     /**
      * 验证整个设计是否符合解锁状态要求
-     * @param researchedTechs 已研发的科技集合（已弃用，现在直接检查模块的解锁状态）
+     * @param researchedTechs 已研发的科技集合
      * @return true-设计中所有模块都已解锁，false-存在未解锁的模块
      */
     public boolean isDesignUnlocked(Set<String> researchedTechs) {
@@ -499,9 +481,9 @@ public class ShipDesign {
             return true; // 如果没有模块，认为设计已解锁
         }
         
-        // 检查所有模块是否都已解锁（重构后直接检查模块的解锁状态）
+        // 检查所有模块是否都已解锁（重构后使用动态检查）
         for (ShipModule module : modules) {
-            if (!module.isUnlocked()) {
+            if (!module.canBeUnlocked(researchedTechs)) {
                 return false;
             }
         }
@@ -511,15 +493,15 @@ public class ShipDesign {
     
     /**
      * 获取设计中未解锁的模块列表
-     * @param researchedTechs 已研发的科技集合（已弃用，现在直接检查模块的解锁状态）
+     * @param researchedTechs 已研发的科技集合
      * @return 未解锁的模块列表
      */
     public List<ShipModule> getLockedModules(Set<String> researchedTechs) {
         List<ShipModule> lockedModules = new ArrayList<>();
         
-        // 重构后直接检查模块的解锁状态
+        // 重构后使用动态检查
         for (ShipModule module : modules) {
-            if (!module.isUnlocked()) {
+            if (!module.canBeUnlocked(researchedTechs)) {
                 lockedModules.add(module);
             }
         }

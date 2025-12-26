@@ -7,6 +7,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.paint.Color;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class TechTree {
 
@@ -22,6 +23,9 @@ public class TechTree {
     private final FloatProperty researchSpeedBonus;
     private final FloatProperty researchCostReduction;
 
+    // 科技研究完成监听器
+    private final List<Consumer<String>> researchCompletedListeners;
+
     public TechTree(String name) {
         this.name = new SimpleStringProperty(name);
         this.technologies = FXCollections.observableArrayList();
@@ -34,11 +38,13 @@ public class TechTree {
 
         this.researchSpeedBonus = new SimpleFloatProperty(1.0f);
         this.researchCostReduction = new SimpleFloatProperty(0.0f);
+        this.researchCompletedListeners = new ArrayList<>();
 
         initializeTechnologies();
     }
 
     private void initializeTechnologies() {
+        // 首先创建所有科技对象（不设置科技值）
         // 物理学分支 - 从基础到高级
         Technology basicPhysics = new Technology("BASIC_PHYSICS", "基础物理学",
                 "掌握基本物理原理", TechCategory.PHYSICS, 100, 3);
@@ -52,14 +58,24 @@ public class TechTree {
         thermodynamics.addPrerequisite("MECHANICS");
         thermodynamics.addUnlockedUnit("destroyer");
 
+        // 添加中间层级的科技来填补可能的空隙
+        Technology classicalPhysics = new Technology("CLASSICAL_PHYSICS", "经典物理学",
+                "经典物理学理论，为现代物理学奠定基础", TechCategory.PHYSICS, 225, 5);
+        classicalPhysics.addPrerequisite("THERMODYNAMICS");
+
+        // 再添加一个等级的物理学科技
+        Technology modernPhysics = new Technology("MODERN_PHYSICS", "现代物理学",
+                "现代物理学理论，结合量子力学与相对论的前沿理论", TechCategory.PHYSICS, 275, 7);
+        modernPhysics.addPrerequisite("CLASSICAL_PHYSICS");
+
         Technology quantumMechanics = new Technology("QUANTUM_MECHANICS", "量子力学",
                 "理解微观世界的规律，解锁巡洋舰建造", TechCategory.PHYSICS, 250, 6);
-        quantumMechanics.addPrerequisite("THERMODYNAMICS");
+        quantumMechanics.addPrerequisite("CLASSICAL_PHYSICS"); // 依赖新增的中间科技
         quantumMechanics.addUnlockedUnit("cruiser");
 
         Technology nuclearPhysics = new Technology("NUCLEAR_PHYSICS", "核物理学",
                 "掌握原子核反应原理，解锁战列舰建造", TechCategory.PHYSICS, 300, 7);
-        nuclearPhysics.addPrerequisite("QUANTUM_MECHANICS");
+        nuclearPhysics.addPrerequisite("MODERN_PHYSICS"); // 改为依赖新添加的现代物理
         nuclearPhysics.addUnlockedUnit("battleship");
 
         Technology electromagnetism = new Technology("ELECTROMAGNETISM", "电磁学",
@@ -78,11 +94,10 @@ public class TechTree {
 
         Technology quantumFieldTheory = new Technology("QUANTUM_FIELD_THEORY", "量子场论",
                 "量子场与基本力的统一理论", TechCategory.PHYSICS, 500, 11);
-        quantumFieldTheory.addPrerequisite("PARTICLE_PHYSICS");
+        quantumFieldTheory.addPrerequisite("RELATIVISTIC_PHYSICS");
 
         Technology unifiedFieldTheory = new Technology("UNIFIED_FIELD_THEORY", "统一场论",
                 "统一四种基本相互作用力", TechCategory.PHYSICS, 600, 12);
-        unifiedFieldTheory.addPrerequisite("RELATIVISTIC_PHYSICS");
         unifiedFieldTheory.addPrerequisite("QUANTUM_FIELD_THEORY");
 
         // 化学分支 - 从基础到高级
@@ -117,13 +132,19 @@ public class TechTree {
                 "纳米尺度的化学操控", TechCategory.CHEMISTRY, 350, 8);
         nanotechnology.addPrerequisite("MATERIALS_CHEMISTRY");
 
+        // 添加更多化学分支科技
+        Technology polymerChemistry = new Technology("POLYMER_CHEMISTRY", "高分子化学",
+                "高分子材料的合成与应用", TechCategory.CHEMISTRY, 375, 8);
+        polymerChemistry.addPrerequisite("NANOCHEMISTRY");
+
+        // 修复化学分支的依赖关系，避免依赖物理分支的科技
         Technology quantumChemistry = new Technology("QUANTUM_CHEMISTRY", "量子化学",
                 "量子力学在化学中的应用", TechCategory.CHEMISTRY, 400, 9);
-        quantumChemistry.addPrerequisite("QUANTUM_MECHANICS");
+        quantumChemistry.addPrerequisite("POLYMER_CHEMISTRY"); // 改为依赖新增的高分子化学
 
         Technology supramolecularChemistry = new Technology("SUPRAMOLECULAR_CHEMISTRY", "超分子化学",
                 "分子间相互作用与自组装", TechCategory.CHEMISTRY, 450, 10);
-        supramolecularChemistry.addPrerequisite("NANOCHEMISTRY");
+        supramolecularChemistry.addPrerequisite("QUANTUM_CHEMISTRY");
 
         Technology syntheticChemistry = new Technology("SYNTHETIC_CHEMISTRY", "合成化学",
                 "复杂分子的人工合成技术", TechCategory.CHEMISTRY, 500, 11);
@@ -161,13 +182,14 @@ public class TechTree {
                 "改造和优化生命形式", TechCategory.BIOLOGY, 400, 9);
         geneticEngineering.addPrerequisite("GENETICS");
 
+        // 添加更多生物学分支科技
+        Technology biotechnology = new Technology("BIOTECHNOLOGY", "生物技术",
+                "生物技术的工程应用", TechCategory.BIOLOGY, 425, 9);
+        biotechnology.addPrerequisite("BIOENGINEERING");
+
         Technology syntheticBiology = new Technology("SYNTHETIC_BIOLOGY", "合成生物学",
                 "人工生命的设计与创造", TechCategory.BIOLOGY, 450, 10);
-        syntheticBiology.addPrerequisite("GENETIC_ENGINEERING");
-
-        Technology xenobiology = new Technology("XENOBIOLOGY", "异种生物学",
-                "外星生命的科学研究", TechCategory.BIOLOGY, 500, 11);
-        xenobiology.addPrerequisite("SYNTHETIC_BIOLOGY");
+        syntheticBiology.addPrerequisite("BIOTECHNOLOGY"); // 改为依赖新增的生物技术
 
         Technology neuralBiology = new Technology("NEURAL_BIOLOGY", "神经生物学",
                 "神经系统与大脑功能", TechCategory.BIOLOGY, 400, 10);
@@ -177,8 +199,12 @@ public class TechTree {
                 "探索意识的本质与机制", TechCategory.BIOLOGY, 550, 12);
         consciousnessStudies.addPrerequisite("NEURAL_BIOLOGY");
 
+        Technology xenobiology = new Technology("XENOBIOLOGY", "异种生物学",
+                "外星生命的科学研究", TechCategory.BIOLOGY, 500, 11);
+        xenobiology.addPrerequisite("CONSCIOUSNESS_STUDIES");
+
         // 兵器科学分支 - 专门用于解锁武器、防御和功能模块
-        Technology weaponsScience = new Technology("WEAPONS_SCIENCE", "兵器科学",
+        Technology weaponsScience = new Technology("WEAPONS_SCIENCE", "武器与装备科学",
                 "基础武器理论研究，用于解锁后续武器、防御和功能模块", TechCategory.WEAPONS_SCIENCE, 150, 4);
         weaponsScience.addPrerequisite("MECHANICS");
 
@@ -203,6 +229,11 @@ public class TechTree {
                 "解锁重型轨道炮", TechCategory.WEAPONS_SCIENCE, 300, 7);
         heavyCannons.addPrerequisite("ADVANCED_LASER"); // 依赖先进激光科技
 
+        // 添加更多武器科技
+        Technology energyWeapons = new Technology("ENERGY_WEAPONS", "能量武器",
+                "高能束武器技术", TechCategory.WEAPONS_SCIENCE, 325, 7);
+        energyWeapons.addPrerequisite("HEAVY_CANNONS");
+
         // 防御科技
         // 复合装甲 - 150科研값
         Technology compositeArmor = new Technology("COMPOSITE_ARMOR", "复合装甲",
@@ -219,6 +250,11 @@ public class TechTree {
                 "解锁先进护盾", TechCategory.WEAPONS_SCIENCE, 250, 6);
         advancedShields.addPrerequisite("POINT_DEFENSE"); // 依赖点防御系统
 
+        // 添加更多防御科技
+        Technology adaptiveShields = new Technology("ADAPTIVE_SHIELDS", "自适应护盾",
+                "能够适应不同攻击类型的护盾系统", TechCategory.WEAPONS_SCIENCE, 325, 7);
+        adaptiveShields.addPrerequisite("ADVANCED_SHIELDS");
+
         // 功能模块科技
         // 高级功能模块科技
         Technology advancedUtilities = new Technology("ADVANCED_UTILITIES", "高级功能系统",
@@ -226,64 +262,155 @@ public class TechTree {
         advancedUtilities.addPrerequisite("WEAPONS_SCIENCE");
         advancedUtilities.addUnlockedUnit("advanced_sensor");
 
+        // 添加更多功能模块科技
+        Technology advancedStorage = new Technology("ADVANCED_STORAGE", "高级存储系统",
+                "提升货舱容量和效率", TechCategory.WEAPONS_SCIENCE, 375, 8);
+        advancedStorage.addPrerequisite("ADVANCED_UTILITIES");
+        advancedStorage.addPrerequisite("ZERO_POINT_POWER"); // 让高级存储系统也依赖零点能源
+
         // 引擎科技
         // 标准引擎 - 150科研값
         Technology standardEngines = new Technology("STANDARD_ENGINES", "标准引擎技术",
-                "解锁标准引擎", TechCategory.PHYSICS, 150, 4);
-        standardEngines.addPrerequisite("MECHANICS");
+                "解锁标准引擎", TechCategory.WEAPONS_SCIENCE, 150, 4);
+        standardEngines.addPrerequisite("WEAPONS_SCIENCE");
 
         // 高性能引擎 - 250科研값
         Technology highPerformanceEngines = new Technology("HIGH_PERFORMANCE_ENGINES", "高性能引擎技术",
-                "解锁高性能引擎", TechCategory.PHYSICS, 250, 6);
+                "解锁高性能引擎", TechCategory.WEAPONS_SCIENCE, 250, 6);
         highPerformanceEngines.addPrerequisite("STANDARD_ENGINES"); // 依赖标准引擎
 
         // 先进引擎 - 400科研값
         Technology advancedEngines = new Technology("ADVANCED_ENGINES", "先进引擎系统",
-                "解锁先进引擎", TechCategory.PHYSICS, 400, 8);
+                "解锁先进引擎", TechCategory.WEAPONS_SCIENCE, 400, 8);
         advancedEngines.addPrerequisite("HIGH_PERFORMANCE_ENGINES"); // 依赖高性能引擎
+
+        // 添加更多引擎科技
+        Technology warpDrive = new Technology("WARP_DRIVE", "曲速引擎",
+                "实现超光速航行", TechCategory.WEAPONS_SCIENCE, 425, 9);
+        warpDrive.addPrerequisite("ADVANCED_ENGINES");
+        warpDrive.addPrerequisite("ZERO_POINT_POWER"); // 让曲速引擎也依赖零点能源
 
         // 电力科技
         // 标准发电机 - 150科研값
         Technology standardPower = new Technology("STANDARD_POWER", "标准发电机技术",
-                "解锁标准发电机", TechCategory.PHYSICS, 150, 4);
-        standardPower.addPrerequisite("MECHANICS");
+                "解锁标准发电机", TechCategory.WEAPONS_SCIENCE, 150, 4);
+        standardPower.addPrerequisite("WEAPONS_SCIENCE");
 
         // 性能发电机 - 250科研값
         Technology highEfficiencyPower = new Technology("HIGH_EFFICIENCY_POWER", "高性能发电机技术",
-                "解锁性能发电机", TechCategory.PHYSICS, 250, 6);
+                "解锁性能发电机", TechCategory.WEAPONS_SCIENCE, 250, 6);
         highEfficiencyPower.addPrerequisite("STANDARD_POWER"); // 依赖标准发电机
 
         // 先进发电机 - 450科研값
         Technology advancedPower = new Technology("ADVANCED_POWER", "先进发电机系统",
-                "解锁先进发电机", TechCategory.PHYSICS, 450, 9);
+                "解锁先进发电机", TechCategory.WEAPONS_SCIENCE, 450, 9);
         advancedPower.addPrerequisite("HIGH_EFFICIENCY_POWER"); // 依赖性能发电机
+
+        // 添加更多电力科技
+        Technology zeroPointPower = new Technology("ZERO_POINT_POWER", "零点能源",
+                "从真空中提取能量的革命性技术", TechCategory.WEAPONS_SCIENCE, 475, 10);
+        zeroPointPower.addPrerequisite("ADVANCED_POWER");
 
         // 高级武器科技 - 300科研값（仅保留，但不用于解锁模块）
         Technology advancedWeapons = new Technology("ADVANCED_WEAPONS", "先进武器系统",
                 "高级武器理论研究，用于解锁后续科技", TechCategory.WEAPONS_SCIENCE, 300, 6);
-        advancedWeapons.addPrerequisite("HEAVY_CANNONS"); // 依赖重型火炮科技
+        advancedWeapons.addPrerequisite("ENERGY_WEAPONS"); // 改为依赖新增的能量武器
 
         // 高级防御科技 - 350科研값（仅保留，但不用于解锁模块）
         Technology advancedDefenses = new Technology("ADVANCED_DEFENSES", "高级防御系统",
                 "高级防御理论研究，用于解锁后续科技", TechCategory.WEAPONS_SCIENCE, 350, 7);
-        advancedDefenses.addPrerequisite("ADVANCED_SHIELDS"); // 依赖高级护盾科技
+        advancedDefenses.addPrerequisite("ADAPTIVE_SHIELDS"); // 改为依赖新增的自适应护盾
 
         // 终极科技 - 终极武器
         Technology ultimateWeapon = new Technology("ULTIMATE_WEAPON", "终极武器",
-                "一种能够摧毁整个星系的超级武器", TechCategory.PHYSICS, 1000, 15);
+                "一种能够摧毁整个星系的超级武器", TechCategory.PHYSICS, 1500, 16); // 设置科技值为1500
         // 添加所有顶级科技作为前置条件
         ultimateWeapon.addPrerequisite("UNIFIED_FIELD_THEORY"); // 物理学最高级
         ultimateWeapon.addPrerequisite("SYNTHETIC_CHEMISTRY"); // 化学最高级
-        ultimateWeapon.addPrerequisite("CONSCIOUSNESS_STUDIES"); // 生物学最高级
-        ultimateWeapon.addPrerequisite("ADVANCED_UTILITIES"); // 兵器科学最高级
+        ultimateWeapon.addPrerequisite("SYNTHETIC_BIOLOGY"); // 生物学分支最终科技
+        ultimateWeapon.addPrerequisite("XENOBIOLOGY"); // 生物学分支最终科技
+        ultimateWeapon.addPrerequisite("ADVANCED_DEFENSES"); // 武器与装备科学分支最终科技
+
+        // 先将所有科技添加到映射中，但暂不添加到列表
+        Map<String, Technology> tempTechMap = new HashMap<>();
+        tempTechMap.put("BASIC_PHYSICS", basicPhysics);
+        tempTechMap.put("MECHANICS", mechanics);
+        tempTechMap.put("THERMODYNAMICS", thermodynamics);
+        tempTechMap.put("CLASSICAL_PHYSICS", classicalPhysics); // 添加新的中间科技
+        tempTechMap.put("MODERN_PHYSICS", modernPhysics); // 再添加一个等级的物理科技
+        tempTechMap.put("QUANTUM_MECHANICS", quantumMechanics);
+        tempTechMap.put("NUCLEAR_PHYSICS", nuclearPhysics);
+        tempTechMap.put("ELECTROMAGNETISM", electromagnetism);
+        tempTechMap.put("PARTICLE_PHYSICS", particlePhysics);
+        tempTechMap.put("RELATIVISTIC_PHYSICS", relativisticPhysics);
+        tempTechMap.put("QUANTUM_FIELD_THEORY", quantumFieldTheory);
+        tempTechMap.put("UNIFIED_FIELD_THEORY", unifiedFieldTheory);
+        tempTechMap.put("BASIC_CHEMISTRY", basicChemistry);
+        tempTechMap.put("INORGANIC_CHEMISTRY", inorganicChemistry);
+        tempTechMap.put("ORGANIC_CHEMISTRY", organicChemistry);
+        tempTechMap.put("BIOCHEMISTRY", biochemistry);
+        tempTechMap.put("ANALYTICAL_CHEMISTRY", analyticalChemistry);
+        tempTechMap.put("PHYSICAL_CHEMISTRY", physicalChemistry);
+        tempTechMap.put("MATERIALS_CHEMISTRY", materialsChemistry);
+        tempTechMap.put("NANOCHEMISTRY", nanotechnology);
+        tempTechMap.put("POLYMER_CHEMISTRY", polymerChemistry); // 添加新的化学科技
+        tempTechMap.put("QUANTUM_CHEMISTRY", quantumChemistry);
+        tempTechMap.put("SUPRAMOLECULAR_CHEMISTRY", supramolecularChemistry);
+        tempTechMap.put("SYNTHETIC_CHEMISTRY", syntheticChemistry);
+        tempTechMap.put("BASIC_BIOLOGY", basicBiology);
+        tempTechMap.put("CELLULAR_BIOLOGY", cellularBiology);
+        tempTechMap.put("GENETICS", genetics);
+        tempTechMap.put("MOLECULAR_BIOLOGY", molecularBiology);
+        tempTechMap.put("EVOLUTIONARY_BIOLOGY", evolutionaryBiology);
+        tempTechMap.put("MICROBIOLOGY", microbiology);
+        tempTechMap.put("BIOENGINEERING", bioengineering);
+        tempTechMap.put("GENETIC_ENGINEERING", geneticEngineering);
+        tempTechMap.put("BIOTECHNOLOGY", biotechnology); // 添加新的生物科技
+        tempTechMap.put("SYNTHETIC_BIOLOGY", syntheticBiology);
+        tempTechMap.put("XENOBIOLOGY", xenobiology);
+        tempTechMap.put("NEURAL_BIOLOGY", neuralBiology);
+        tempTechMap.put("CONSCIOUSNESS_STUDIES", consciousnessStudies);
+        tempTechMap.put("WEAPONS_SCIENCE", weaponsScience);
+        tempTechMap.put("PLASMA_WEAPONS", plasmaWeapons);
+        tempTechMap.put("RAILGUN_WEAPONS", railgunWeapons);
+        tempTechMap.put("ADVANCED_LASER", advancedLaser);
+        tempTechMap.put("HEAVY_CANNONS", heavyCannons);
+        tempTechMap.put("ENERGY_WEAPONS", energyWeapons); // 添加新的武器科技
+        tempTechMap.put("COMPOSITE_ARMOR", compositeArmor);
+        tempTechMap.put("POINT_DEFENSE", pointDefense);
+        tempTechMap.put("ADVANCED_SHIELDS", advancedShields);
+        tempTechMap.put("ADAPTIVE_SHIELDS", adaptiveShields); // 添加新的防御科技
+        tempTechMap.put("ADVANCED_UTILITIES", advancedUtilities);
+        tempTechMap.put("ADVANCED_STORAGE", advancedStorage); // 添加新的功能科技
+        tempTechMap.put("STANDARD_ENGINES", standardEngines);
+        tempTechMap.put("HIGH_PERFORMANCE_ENGINES", highPerformanceEngines);
+        tempTechMap.put("ADVANCED_ENGINES", advancedEngines);
+        tempTechMap.put("WARP_DRIVE", warpDrive); // 添加新的引擎科技
+        tempTechMap.put("STANDARD_POWER", standardPower);
+        tempTechMap.put("HIGH_EFFICIENCY_POWER", highEfficiencyPower);
+        tempTechMap.put("ADVANCED_POWER", advancedPower);
+        tempTechMap.put("ZERO_POINT_POWER", zeroPointPower); // 添加新的电力科技
+        tempTechMap.put("ADVANCED_WEAPONS", advancedWeapons);
+        tempTechMap.put("ADVANCED_DEFENSES", advancedDefenses);
+        tempTechMap.put("ULTIMATE_WEAPON", ultimateWeapon);
+
+        // 重新计算每个科技的层级和科技值
+        for (Technology tech : tempTechMap.values()) {
+            int tier = calculateTechTier(tech, tempTechMap, new HashSet<>());
+            int researchCost = calculateResearchCostForTier(tier, tech.getCategory());
+            tech.setResearchCost(researchCost);
+            tech.setResearchTime(tier + 2); // 研发时间通常为层级+2
+        }
 
         // 添加所有科技
         addTechnology(basicPhysics);
         addTechnology(mechanics);
         addTechnology(thermodynamics);
-        addTechnology(electromagnetism);
+        addTechnology(classicalPhysics); // 添加新的中间科技
+        addTechnology(modernPhysics); // 再添加一个等级的物理科技
         addTechnology(quantumMechanics);
         addTechnology(nuclearPhysics);
+        addTechnology(electromagnetism);
         addTechnology(particlePhysics);
         addTechnology(relativisticPhysics);
         addTechnology(quantumFieldTheory);
@@ -296,6 +423,7 @@ public class TechTree {
         addTechnology(physicalChemistry);
         addTechnology(materialsChemistry);
         addTechnology(nanotechnology);
+        addTechnology(polymerChemistry); // 添加新的化学科技
         addTechnology(quantumChemistry);
         addTechnology(supramolecularChemistry);
         addTechnology(syntheticChemistry);
@@ -309,6 +437,7 @@ public class TechTree {
         addTechnology(microbiology);
         addTechnology(bioengineering);
         addTechnology(geneticEngineering);
+        addTechnology(biotechnology); // 添加新的生物科技
         addTechnology(syntheticBiology);
         addTechnology(xenobiology);
         addTechnology(neuralBiology);
@@ -322,28 +451,84 @@ public class TechTree {
         addTechnology(railgunWeapons);
         addTechnology(advancedLaser);
         addTechnology(heavyCannons);
+        addTechnology(energyWeapons); // 添加新的武器科技
         addTechnology(advancedWeapons);
 
         // 添加防御科技
         addTechnology(compositeArmor);
         addTechnology(pointDefense);
         addTechnology(advancedShields);
+        addTechnology(adaptiveShields); // 添加新的防御科技
         addTechnology(advancedDefenses);
 
         // 添加功能模块科技
         addTechnology(advancedUtilities);
+        addTechnology(advancedStorage); // 添加新的功能科技
 
         // 添加引擎科技
         addTechnology(standardEngines);
         addTechnology(highPerformanceEngines);
         addTechnology(advancedEngines);
+        addTechnology(warpDrive); // 添加新的引擎科技
 
         // 添加能源科技
         addTechnology(standardPower);
         addTechnology(highEfficiencyPower);
         addTechnology(advancedPower);
+        addTechnology(zeroPointPower); // 添加新的电力科技
 
         addTechnology(ultimateWeapon);
+    }
+
+    /**
+     * 计算科技的层级（基于前置科技的递归计算）
+     * @param tech 要计算层级的科技
+     * @param techMap 科技映射表
+     * @param visited 已访问的科技集合（避免循环依赖）
+     * @return 科技的层级
+     */
+    private int calculateTechTier(Technology tech, Map<String, Technology> techMap, Set<String> visited) {
+        // 避免循环依赖
+        if (visited.contains(tech.getId())) {
+            return 1; // 如果出现循环依赖，返回基础层级
+        }
+
+        // 如果没有前置科技，层级为1
+        if (tech.getPrerequisites().isEmpty()) {
+            return 1;
+        }
+
+        // 递归计算前置科技中的最高层级
+        int maxPrereqTier = 0;
+        visited.add(tech.getId());
+        
+        for (String prereqId : tech.getPrerequisites()) {
+            Technology prereq = techMap.get(prereqId);
+            if (prereq != null) {
+                int prereqTier = calculateTechTier(prereq, techMap, visited);
+                maxPrereqTier = Math.max(maxPrereqTier, prereqTier);
+            }
+        }
+        
+        visited.remove(tech.getId());
+        return maxPrereqTier + 1;
+    }
+
+    /**
+     * 根据层级和科技类别计算研究成本
+     * @param tier 科技层级
+     * @param category 科技类别
+     * @return 研究成本
+     */
+    private int calculateResearchCostForTier(int tier, TechCategory category) {
+        // 基础成本：层级越高，成本越高
+        int baseCost = tier * 50; // 每层基础50点
+        
+        // 根据类别调整成本
+        double categoryMultiplier = category.getCostMultiplier();
+        
+        // 最终成本
+        return (int) (baseCost * categoryMultiplier * 2); // 乘以2确保成本足够高
     }
 
     public void addTechnology(Technology technology) {
@@ -407,7 +592,11 @@ public class TechTree {
         boolean completed = currentProject.progress(intEffectivePoints);
 
         if (completed) {
+            Technology completedTech = currentProject.getTechnology();
             researchQueue.remove(0);
+
+            // 通知所有监听器科技已完成
+            notifyResearchCompleted(completedTech.getId());
 
             if (!researchQueue.isEmpty()) {
                 // 可以发送通知
@@ -576,5 +765,31 @@ public class TechTree {
         int remainingCost = technology.getResearchCost();
 
         return (int) Math.ceil(remainingCost / effectivePointsPerRound);
+    }
+
+    /**
+     * 添加科技研究完成监听器
+     * @param listener 监听器
+     */
+    public void addResearchCompletedListener(Consumer<String> listener) {
+        this.researchCompletedListeners.add(listener);
+    }
+
+    /**
+     * 移除科技研究完成监听器
+     * @param listener 监听器
+     */
+    public void removeResearchCompletedListener(Consumer<String> listener) {
+        this.researchCompletedListeners.remove(listener);
+    }
+
+    /**
+     * 通知所有监听器科技已完成
+     * @param techId 完成的科技ID
+     */
+    private void notifyResearchCompleted(String techId) {
+        for (Consumer<String> listener : new ArrayList<>(researchCompletedListeners)) {
+            listener.accept(techId);
+        }
     }
 }

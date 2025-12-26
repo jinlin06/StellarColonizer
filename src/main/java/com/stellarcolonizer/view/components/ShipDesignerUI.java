@@ -95,6 +95,9 @@ public class ShipDesignerUI extends BorderPane {
                     .map(Technology::getId)
                     .collect(java.util.stream.Collectors.toList())
             );
+            
+            // 添加监听器以更新模块解锁状态
+            faction.getTechTree().addResearchCompletedListener(this::onResearchCompleted);
         } else {
             // 初始化为空的已研发科技列表
             this.researchedTechnologies = new java.util.HashSet<>();
@@ -655,14 +658,16 @@ public class ShipDesignerUI extends BorderPane {
             // 获取当前选中的模块
             ShipModule selectedModule = getSelectedModuleFromLibrary();
             if (selectedModule != null && currentDesign != null) {
-                // 检查模块是否已解锁
-                if (!selectedModule.isUnlocked()) {
-                    showAlert("无法添加模块", "该模块尚未解锁，请先研究相关科技。");
+                // 检查模块是否可以解锁（重构：采用添加前检查的方法）
+                // 仅对科技等级大于1的模块进行解锁检查，科技等级为1的基础模块默认解锁
+                if (selectedModule.getTechLevel() > 1 && !selectedModule.canBeUnlocked(researchedTechnologies)) {
+                    showAlert("无法添加模块", "该模块尚未解锁，请先研究相关科技。" +
+                              "\n所需科技: " + selectedModule.getRequiredTechnology());
                     return;
                 }
                 
-                // 检查能否添加模块（只检查资源和空间等条件，不检查科技）
-                if (!currentDesign.canAddModule(selectedModule)) {
+                // 检查能否添加模块（检查空间等条件）
+                if (!currentDesign.canAddModule(selectedModule, researchedTechnologies)) {
                     // 获取详细的失败原因
                     String errorMessage = getDetailedFailureReason(selectedModule);
                     showAlert("无法添加模块", errorMessage);
@@ -678,10 +683,7 @@ public class ShipDesignerUI extends BorderPane {
                     String errorMessage = currentDesign.getValidationMessage();
                     if (errorMessage == null || errorMessage.isEmpty()) {
                         errorMessage = "无法添加模块。可能的原因：\n" +
-                                      "1. 超过模块数量限制\n" +
-                                      "2. 能源不足\n" +
-                                      "3. 船体空间不足\n" +
-                                      "4. 达到武器/功能模块上限";
+                                      "1. 船体空间不足\n";
                     }
                     showAlert("无法添加模块", errorMessage);
                 }
@@ -772,133 +774,128 @@ public class ShipDesignerUI extends BorderPane {
 
         // 武器模块 - 基础级
         WeaponModule basicLaser = createWeaponModule("小型激光炮", WeaponType.LASER, 50, 2, 100, 1);
-        basicLaser.setUnlocked(true); // 基础模块默认解锁
+        // 小型激光炮是基础模块，不需要科技解锁
+        basicLaser.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicLaser);
         
         // 轻型等离子炮 - 需要等离子武器科技解锁
         WeaponModule lightPlasma = createWeaponModule("轻型等离子炮", WeaponType.PLASMA, 100, 1, 150, 2);
-        lightPlasma.setUnlocked(false); // 需要科技解锁
         lightPlasma.setRequiredTechnology("PLASMA_WEAPONS");
         availableModules.add(lightPlasma);
         
         WeaponModule basicMissile = createWeaponModule("基础导弹", WeaponType.MISSILE, 150, 0.3f, 180, 2);
-        basicMissile.setUnlocked(true); // 基础模块默认解锁
+        // 基础导弹是基础模块，不需要科技解锁
+        basicMissile.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicMissile);
 
         // 武器模块 - 中级（需要科技解锁）
         // 标准磁轨炮 - 需要磁轨炮科技解锁
         WeaponModule standardRailgun = createWeaponModule("标准磁轨炮", WeaponType.RAILGUN, 200, 0.5f, 200, 3);
-        standardRailgun.setUnlocked(false); // 需要科技解锁
         standardRailgun.setRequiredTechnology("RAILGUN_WEAPONS");
         availableModules.add(standardRailgun);
 
         // 武器模块 - 高级（需要科技解锁）
         // 先进激光炮 - 需要高级激光科技解锁
         WeaponModule advancedLaser = createWeaponModule("先进激光炮", WeaponType.LASER, 120, 3, 250, 4);
-        advancedLaser.setUnlocked(false); // 需要科技解锁
         advancedLaser.setRequiredTechnology("ADVANCED_LASER");
         availableModules.add(advancedLaser);
         
         // 重型轨道炮 - 需要重型火炮科技解锁
         WeaponModule heavyCannon = createWeaponModule("重型轨道炮", WeaponType.RAILGUN, 350, 0.4f, 350, 5);
-        heavyCannon.setUnlocked(false); // 需要科技解锁
         heavyCannon.setRequiredTechnology("HEAVY_CANNONS");
         availableModules.add(heavyCannon);
 
         // 防御模块 - 基础级
         DefenseModule basicShield = createDefenseModule("基础能量护盾", DefenseType.SHIELD, 200, 120, 1);
-        basicShield.setUnlocked(true); // 基础模块默认解锁
+        // 基础能量护盾是基础模块，不需要科技解锁
+        basicShield.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicShield);
         
         // 复合装甲 - 需要复合装甲科技解锁
         DefenseModule compositeArmor = createDefenseModule("复合装甲", DefenseType.ARMOR, 100, 100, 1);
-        compositeArmor.setUnlocked(false); // 需要科技解锁
         compositeArmor.setRequiredTechnology("COMPOSITE_ARMOR");
         availableModules.add(compositeArmor);
         
         DefenseModule basicECM = createDefenseModule("电子对抗系统", DefenseType.ECM, 30, 80, 3);
-        basicECM.setUnlocked(true); // 基础模块默认解锁
+        // 电子对抗系统是基础模块，不需要科技解锁
+        basicECM.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicECM);
 
         // 防御模块 - 中级（需要科技解锁）
         // 点防御系统 - 需要点防御系统科技解锁
         DefenseModule pointDefenseSystem = createDefenseModule("点防御系统", DefenseType.POINT_DEFENSE, 50, 100, 2);
-        pointDefenseSystem.setUnlocked(false); // 需要科技解锁
         pointDefenseSystem.setRequiredTechnology("POINT_DEFENSE");
         availableModules.add(pointDefenseSystem);
 
         // 防御模块 - 高级（需要科技解锁）
         // 先进护盾 - 需要高级护盾科技解锁
         DefenseModule advancedShield = createDefenseModule("先进护盾", DefenseType.SHIELD, 400, 250, 3);
-        advancedShield.setUnlocked(false); // 需要科技解锁
         advancedShield.setRequiredTechnology("ADVANCED_SHIELDS");
         availableModules.add(advancedShield);
 
         // 功能模块 - 基础级
         UtilityModule basicSensor = createUtilityModule("基础传感器", UtilityType.SENSOR, 50, 80, 1);
-        basicSensor.setUnlocked(true); // 基础模块默认解锁
+        // 基础传感器是基础模块，不需要科技解锁
+        basicSensor.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicSensor);
         
         UtilityModule basicCargoBay = createUtilityModule("简易货舱", UtilityType.CARGO_BAY, 100, 100, 1);
-        basicCargoBay.setUnlocked(true); // 基础模块默认解锁
+        // 简易货舱是基础模块，不需要科技解锁
+        basicCargoBay.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicCargoBay);
         
         UtilityModule basicHangar = createUtilityModule("基础机库", UtilityType.HANGAR, 80, 200, 3);
-        basicHangar.setUnlocked(true); // 基础模块默认解锁
+        // 基础机库是基础模块，不需要科技解锁
+        basicHangar.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicHangar);
 
         // 功能模块 - 高级（需要科技解锁）
         UtilityModule advancedSensor = createUtilityModule("先进传感器", UtilityType.SENSOR, 120, 180, 3);
-        advancedSensor.setUnlocked(false); // 需要科技解锁
         advancedSensor.setRequiredTechnology("ADVANCED_UTILITIES"); // 使用正确的高级功能模块科技ID
         availableModules.add(advancedSensor);
 
         // 引擎模块 - 基础级
         EngineModule basicEngine = createEngineModule("基础引擎", 150, 300, 1);
-        basicEngine.setUnlocked(true); // 基础模块默认解锁
+        // 基础引擎是基础模块，不需要科技解锁
+        basicEngine.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicEngine);
 
         // 引擎模块 - 中级（需要科技解锁）
         // 标准引擎 - 需要标准引擎科技解锁
         EngineModule standardEngine = createEngineModule("标准引擎", 200, 320, 2);
-        standardEngine.setUnlocked(false); // 需要科技解锁
         standardEngine.setRequiredTechnology("STANDARD_ENGINES");
         availableModules.add(standardEngine);
         
         // 高性能引擎 - 需要高性能引擎科技解锁
         EngineModule highPerformanceEngine = createEngineModule("高性能引擎", 300, 350, 3);
-        highPerformanceEngine.setUnlocked(false); // 需要科技解锁
         highPerformanceEngine.setRequiredTechnology("HIGH_PERFORMANCE_ENGINES");
         availableModules.add(highPerformanceEngine);
 
         // 引擎模块 - 高级（需要科技解锁）
         EngineModule advancedEngine = createEngineModule("先进引擎", 500, 450, 5);
-        advancedEngine.setUnlocked(false); // 需要科技解锁
         advancedEngine.setRequiredTechnology("ADVANCED_ENGINES");
         availableModules.add(advancedEngine);
 
         // 电力模块 - 基础级
         PowerModule basicPower = createPowerModule("基础发电机", 500, 250, 1);
-        basicPower.setUnlocked(true); // 基础模块默认解锁
+        // 基础发电机是基础模块，不需要科技解锁
+        basicPower.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicPower);
         
         // 电力模块 - 中级（需要科技解锁）
         // 标准发电机 - 需要标准发电机科技解锁
         PowerModule standardPower = createPowerModule("标准发电机", 1000, 280, 2);
-        standardPower.setUnlocked(false); // 需要科技解锁
         standardPower.setRequiredTechnology("STANDARD_POWER");
         availableModules.add(standardPower);
 
         // 电力模块 - 高级（需要科技解锁）
         // 性能发电机 - 需要高性能发电机科技解锁
         PowerModule highEfficiencyPower = createPowerModule("性能发电机", 2000, 300, 3);
-        highEfficiencyPower.setUnlocked(false); // 需要科技解锁
         highEfficiencyPower.setRequiredTechnology("HIGH_EFFICIENCY_POWER");
         availableModules.add(highEfficiencyPower);
 
         // 电力模块 - 顶级（需要科技解锁）
         PowerModule advancedPower = createPowerModule("先进发电机", 5000, 400, 5);
-        advancedPower.setUnlocked(false); // 需要科技解锁
         advancedPower.setRequiredTechnology("ADVANCED_POWER");
         availableModules.add(advancedPower);
     }
@@ -916,11 +913,13 @@ public class ShipDesignerUI extends BorderPane {
             techLevelField.setAccessible(true);
             ((javafx.beans.property.IntegerProperty) techLevelField.get(module)).set(techLevel);
             
-            // 设置科技需求
-            if (techLevel > 1) {
-                module.setRequiredTechnology("advanced_defenses");
-            } else {
-                module.setRequiredTechnology("BASIC_MODULE");
+            // 仅在未设置科技需求时才设置默认值
+            if (module.getRequiredTechnology().equals("BASIC_MODULE")) {
+                if (techLevel > 1) {
+                    module.setRequiredTechnology("advanced_defenses");
+                } else {
+                    module.setRequiredTechnology("BASIC_MODULE");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -941,11 +940,13 @@ public class ShipDesignerUI extends BorderPane {
             techLevelField.setAccessible(true);
             ((javafx.beans.property.IntegerProperty) techLevelField.get(module)).set(techLevel);
             
-            // 设置科技需求
-            if (techLevel > 1) {
-                module.setRequiredTechnology("advanced_utilities");
-            } else {
-                module.setRequiredTechnology("BASIC_MODULE");
+            // 仅在未设置科技需求时才设置默认值
+            if (module.getRequiredTechnology().equals("BASIC_MODULE")) {
+                if (techLevel > 1) {
+                    module.setRequiredTechnology("advanced_utilities");
+                } else {
+                    module.setRequiredTechnology("BASIC_MODULE");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -966,11 +967,13 @@ public class ShipDesignerUI extends BorderPane {
             techLevelField.setAccessible(true);
             ((javafx.beans.property.IntegerProperty) techLevelField.get(module)).set(techLevel);
             
-            // 设置科技需求
-            if (techLevel > 1) {
-                module.setRequiredTechnology("advanced_weapons");
-            } else {
-                module.setRequiredTechnology("BASIC_MODULE");
+            // 仅在未设置科技需求时才设置默认值
+            if (module.getRequiredTechnology().equals("BASIC_MODULE")) {
+                if (techLevel > 1) {
+                    module.setRequiredTechnology("advanced_weapons");
+                } else {
+                    module.setRequiredTechnology("BASIC_MODULE");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -995,11 +998,13 @@ public class ShipDesignerUI extends BorderPane {
             techLevelField.setAccessible(true);
             ((javafx.beans.property.IntegerProperty) techLevelField.get(module)).set(techLevel);
             
-            // 设置科技需求
-            if (techLevel > 1) {
-                module.setRequiredTechnology("advanced_engines");
-            } else {
-                module.setRequiredTechnology("BASIC_MODULE");
+            // 仅在未设置科技需求时才设置默认值
+            if (module.getRequiredTechnology().equals("BASIC_MODULE")) {
+                if (techLevel > 1) {
+                    module.setRequiredTechnology("advanced_engines");
+                } else {
+                    module.setRequiredTechnology("BASIC_MODULE");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1024,11 +1029,13 @@ public class ShipDesignerUI extends BorderPane {
             techLevelField.setAccessible(true);
             ((javafx.beans.property.IntegerProperty) techLevelField.get(module)).set(techLevel);
             
-            // 设置科技需求
-            if (techLevel > 1) {
-                module.setRequiredTechnology("advanced_power");
-            } else {
-                module.setRequiredTechnology("BASIC_MODULE");
+            // 仅在未设置科技需求时才设置默认值
+            if (module.getRequiredTechnology().equals("BASIC_MODULE")) {
+                if (techLevel > 1) {
+                    module.setRequiredTechnology("advanced_power");
+                } else {
+                    module.setRequiredTechnology("BASIC_MODULE");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1061,7 +1068,7 @@ public class ShipDesignerUI extends BorderPane {
         switch (shipClass) {
             case CORVETTE:
                 hullModule = new HullModule(900);
-                hullModule.setUnlocked(true); // 护卫舰船体默认解锁
+                // 护卫舰船体默认解锁（通过设置为BASIC_MODULE）
                 hullModule.setRequiredTechnology("BASIC_MODULE");
                 design.addModule(hullModule);
                 design.addModule(new EngineModule(150));
@@ -1070,7 +1077,6 @@ public class ShipDesignerUI extends BorderPane {
             case FRIGATE:
                 hullModule = new HullModule(1800);
                 // 驱逐舰船体需要THERMODYNAMICS科技解锁
-                hullModule.setUnlocked(researchedTechnologies.contains("THERMODYNAMICS"));
                 hullModule.setRequiredTechnology("THERMODYNAMICS");
                 design.addModule(hullModule);
                 design.addModule(new EngineModule(120));
@@ -1079,7 +1085,6 @@ public class ShipDesignerUI extends BorderPane {
             case DESTROYER:
                 hullModule = new HullModule(3500);
                 // 巡洋舰船体需要QUANTUM_MECHANICS科技解锁
-                hullModule.setUnlocked(researchedTechnologies.contains("QUANTUM_MECHANICS"));
                 hullModule.setRequiredTechnology("QUANTUM_MECHANICS");
                 design.addModule(hullModule);
                 design.addModule(new EngineModule(100));
@@ -1088,7 +1093,6 @@ public class ShipDesignerUI extends BorderPane {
             case CRUISER:
                 hullModule = new HullModule(8000);
                 // 巡洋舰船体需要QUANTUM_MECHANICS科技解锁
-                hullModule.setUnlocked(researchedTechnologies.contains("QUANTUM_MECHANICS"));
                 hullModule.setRequiredTechnology("QUANTUM_MECHANICS");
                 design.addModule(hullModule);
                 design.addModule(new EngineModule(80));
@@ -1097,7 +1101,6 @@ public class ShipDesignerUI extends BorderPane {
             case BATTLESHIP:
                 hullModule = new HullModule(18000);
                 // 战列舰船体需要NUCLEAR_PHYSICS科技解锁
-                hullModule.setUnlocked(researchedTechnologies.contains("NUCLEAR_PHYSICS"));
                 hullModule.setRequiredTechnology("NUCLEAR_PHYSICS");
                 design.addModule(hullModule);
                 design.addModule(new EngineModule(60));
@@ -1106,7 +1109,6 @@ public class ShipDesignerUI extends BorderPane {
             case CARRIER:
                 hullModule = new HullModule(28000);
                 // 航母船体需要ELECTROMAGNETISM科技解锁
-                hullModule.setUnlocked(researchedTechnologies.contains("ELECTROMAGNETISM"));
                 hullModule.setRequiredTechnology("ELECTROMAGNETISM");
                 design.addModule(hullModule);
                 design.addModule(new EngineModule(50));
@@ -1144,13 +1146,9 @@ public class ShipDesignerUI extends BorderPane {
     }
     
     private void updateModuleUnlockStatus() {
-        // 重构逻辑：不再进行科技检查，而是直接使用模块的解锁状态
-        // 基础模块保持其初始解锁状态（true），需要科技解锁的模块在对应科技解锁后通过方法设置为true
-        
-        // 只刷新界面显示，不修改模块的解锁状态
-        // 模块的解锁状态由其初始化状态和科技解锁事件决定
-        
-        // 更新当前设计中模块的解锁状态显示
+        // 重构逻辑：移除静态解锁状态管理，不再进行科技检查
+        // 模块的解锁状态将在使用时动态检查
+        // 刷新界面显示以确保显示更新
         updateCurrentModules();
         
         // 刷新模块库列表以确保显示更新
@@ -1167,7 +1165,7 @@ public class ShipDesignerUI extends BorderPane {
     }
     
     /**
-     * 解锁特定科技相关的模块
+     * 解锁特定科技相关的模块（重构：此方法现在仅用于刷新界面）
      * @param techId 科技ID
      */
     public void unlockModulesForTechnology(String techId) {
@@ -1178,25 +1176,8 @@ public class ShipDesignerUI extends BorderPane {
         // 将科技添加到已研发列表
         researchedTechnologies.add(techId);
         
-        // 更新可用模块的解锁状态
-        for (ShipModule module : availableModules) {
-            // 使用canBeUnlocked方法检查模块是否可以解锁
-            if (module.canBeUnlocked(researchedTechnologies)) {
-                module.setUnlocked(true);
-            }
-        }
-        
-        // 如果当前设计存在，也更新其模块的解锁状态
-        if (currentDesign != null) {
-            for (ShipModule module : currentDesign.getModules()) {
-                // 使用canBeUnlocked方法检查模块是否可以解锁
-                if (module.canBeUnlocked(researchedTechnologies)) {
-                    module.setUnlocked(true);
-                }
-            }
-        }
-        
-        // 更新当前设计中模块的解锁状态显示
+        // 刷新界面显示以确保显示更新
+        // 不再更新模块的内部解锁状态，而是依赖动态检查
         updateCurrentModules();
         
         // 刷新模块库列表以确保显示更新
@@ -1219,12 +1200,7 @@ public class ShipDesignerUI extends BorderPane {
     public void setResearchedTechnologies(Set<String> researchedTechs) {
         this.researchedTechnologies = new HashSet<>(researchedTechs);
         
-        // 重构逻辑：不再直接更新模块解锁状态，而是依赖模块自身的解锁状态
-        // 当科技状态改变时，通过解锁相关模块
-        for (String techId : researchedTechs) {
-            unlockModulesForTechnology(techId);
-        }
-        
+        // 重构逻辑：不再直接更新模块解锁状态，而是依赖动态检查
         // 如果当前设计存在，更新其状态
         if (currentDesign != null) {
             updateUIFromDesign();
@@ -1415,10 +1391,8 @@ n     * @return 已研发的科技集合
         techLevelLabel.setTextFill(Color.LIGHTGRAY);
         detailsPanel.getChildren().add(techLevelLabel);
         
-        // 解锁状态
-        Label unlockLabel = new Label(module.isUnlocked() ? "状态: 已解锁" : "状态: 未解锁");
-        unlockLabel.setTextFill(module.isUnlocked() ? Color.GREEN : Color.RED);
-        detailsPanel.getChildren().add(unlockLabel);
+        // 移除解锁状态显示，因为用户可以通过能否添加模块来判断是否已解锁
+        // 原来的代码是显示"状态: 已解锁"/"状态: 未解锁"
 
         // 模块属性
         addDetailRow(detailsPanel, "占用空间:", module.getSize() + " 单位");
@@ -1514,50 +1488,14 @@ n     * @return 已研发的科技集合
         StringBuilder reason = new StringBuilder();
         reason.append("无法添加模块 \"").append(module.getName()).append("\"：\n\n");
         
-        // 检查模块是否已解锁
-        if (!module.isUnlocked()) {
+        // 检查模块是否可以解锁（重构：采用添加前检查的方法）
+        // 仅对科技等级大于1的模块进行解锁检查，科技等级为1的基础模块默认解锁
+        if (module.getTechLevel() > 1 && !module.canBeUnlocked(researchedTechnologies)) {
             reason.append("• 模块尚未解锁，请先研发相关科技\n");
+            reason.append("  所需科技: ").append(module.getRequiredTechnology()).append("\n");
         }
         
-        // 检查模块数量限制
-        /*
-        if (currentDesign.getModules().size() >= currentDesign.getMaxModules()) {
-            reason.append("• 已达到最大模块数量限制 (").append(currentDesign.getMaxModules()).append(")\n");
-        }
-        */
-        
-        // 检查特定类型模块限制
-        /*
-        if (module instanceof WeaponModule) {
-            long weaponCount = currentDesign.getModules().stream()
-                    .filter(m -> m instanceof WeaponModule)
-                    .count();
-            if (weaponCount >= currentDesign.getMaxWeapons()) {
-                reason.append("• 已达到最大武器模块数量限制 (").append(currentDesign.getMaxWeapons()).append(")\n");
-            }
-        } else if (module instanceof UtilityModule) {
-            long utilityCount = currentDesign.getModules().stream()
-                    .filter(m -> m instanceof UtilityModule)
-                    .count();
-            if (utilityCount >= currentDesign.getMaxUtility()) {
-                reason.append("• 已达到最大功能模块数量限制 (").append(currentDesign.getMaxUtility()).append(")\n");
-            }
-        }
-        */
-        
-        // 检查能源是否足够
-        int totalPowerRequirement = currentDesign.getModules().stream()
-                .mapToInt(ShipModule::getPowerRequirement)
-                .sum();
-        totalPowerRequirement += module.getPowerRequirement();
-        
-        int availablePower = currentDesign.getAvailablePower();
-        int powerDeficit = totalPowerRequirement - (availablePower + module.getPowerRequirement());
-        if (powerDeficit > 0) {
-            reason.append("• 能源不足，还需要 ").append(powerDeficit).append(" 单位能源\n");
-        }
-        
-        // 检查船体空间是否足够
+        // 检查船体空间是否足够（这是主要的修改点）
         // 计算除船体模块外的所有模块占用的空间
         int totalSize = currentDesign.getModules().stream()
                 .filter(m -> !(m instanceof HullModule))  // 船体模块不计入占用空间
@@ -1666,11 +1604,6 @@ n     * @return 已研发的科技集合
             specs.append(" | 能耗: ").append(module.getPowerRequirement());
             specs.append(" | 科技等级: ").append(module.getTechLevel());
             
-            // 显示是否已解锁
-            if (!module.isUnlocked()) {
-                specs.append(" | [未解锁]");
-            }
-
             if (module instanceof WeaponModule) {
                 WeaponModule weapon = (WeaponModule) module;
                 specs.append(" | 伤害: ").append(String.format("%.0f", weapon.getDamage()));
@@ -1695,8 +1628,8 @@ n     * @return 已研发的科技集合
     private static void updateModuleUnlockStatus(List<com.stellarcolonizer.model.fleet.ShipModule> modules, 
                                                java.util.Set<String> researchedTechs) {
         for (com.stellarcolonizer.model.fleet.ShipModule module : modules) {
-            // 根据科技研发情况更新模块解锁状态
-            module.setUnlocked(module.canBeUnlocked(researchedTechs));
+            // 重构：移除静态解锁状态管理，不再更新模块的解锁状态
+            // 模块解锁状态应在使用时动态检查
         }
     }
     
@@ -1719,5 +1652,29 @@ n     * @return 已研发的科技集合
         }
         
         return multiplier;
+    }
+    
+    /**
+     * 当科技研究完成时的回调方法
+     * @param techId 完成的科技ID
+     */
+    private void onResearchCompleted(String techId) {
+        // 更新已研发科技列表
+        this.researchedTechnologies.add(techId);
+        
+        // 刷新界面显示（不再更新模块内部解锁状态，而是刷新UI显示）
+        if (moduleTabs != null) {
+            // 通过重新设置items来强制刷新列表
+            for (Tab tab : moduleTabs.getTabs()) {
+                if (tab.getContent() instanceof ListView) {
+                    ListView<ShipModule> listView = (ListView<ShipModule>) tab.getContent();
+                    // 刷新列表项
+                    listView.refresh();
+                }
+            }
+        }
+        
+        // 更新当前模块列表
+        updateCurrentModules();
     }
 }

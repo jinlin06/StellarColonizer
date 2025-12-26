@@ -346,7 +346,7 @@ public class TechTreeUI extends BorderPane {
         // 创建背景网格
         createGridBackground();
 
-        // 创建类别列 - 按照物理学、化学、生物学、兵器科学的顺序
+        // 创建类别列 - 按照物理学、化学、生物学、武器与装备科学的顺序
         double x = 50;
         double columnWidth = 320; // 进一步增加列宽以适应更多科技
         double maxCategoryHeight = 0;
@@ -380,11 +380,12 @@ public class TechTreeUI extends BorderPane {
             int maxTier = techsByTier.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
             
             double y = 0;
-            for (int tier = 1; tier <= maxTier; tier++) {
-                List<Technology> tierTechs = techsByTier.getOrDefault(tier, new ArrayList<>());
+            // 只处理有科技存在的层级
+            for (int tier : techsByTier.keySet().stream().sorted().mapToInt(Integer::intValue).toArray()) {
+                List<Technology> tierTechs = techsByTier.get(tier);
 
                 if (!tierTechs.isEmpty()) {
-                    // 创建层级标签
+                    // 确保层级标签只在有科技时显示
                     Label tierLabel = new Label("等级 " + tier);
                     tierLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
                     tierLabel.setTextFill(Color.LIGHTGRAY);
@@ -426,14 +427,30 @@ public class TechTreeUI extends BorderPane {
         // 添加终极武器科技到中心位置
         Technology ultimateWeapon = techTree.getTechnology("ULTIMATE_WEAPON");
         if (ultimateWeapon != null) {
-            double centerX = (x - columnWidth) / 2 - 50;
-            double centerY = maxCategoryHeight + 200;
+            // 计算化学和生物学分支之间的中间位置
+            // 化学分支x位置: 50 + (320 + 60) = 430
+            // 生物学分支x位置: 50 + (320 + 60) * 2 = 790
+            // 它们之间的中间位置: (430 + 790) / 2 = 610
+            double chemistryX = 50 + (320 + 60); // 430
+            double biologyX = 50 + (320 + 60) * 2; // 790
+            double centerX = (chemistryX + biologyX) / 2; // 610
+            // Y坐标放在化学和生物学分支下方，但不会太靠下
+            double centerY = maxCategoryHeight - 200; // 放在分支下方但更靠上一些
             
             TechCard ultimateCard = new TechCard(ultimateWeapon);
-            ultimateCard.setLayoutX(centerX);
+            // 设置更大的尺寸来突出其重要性
+            ultimateCard.setPrefSize(200, 120); // 进一步增加卡片尺寸
+            ultimateCard.setLayoutX(centerX - 100); // 调整位置以居中
             ultimateCard.setLayoutY(centerY);
             techCardMap.put(ultimateWeapon, ultimateCard);
             techTreeCanvas.getChildren().add(ultimateCard);
+            
+            // 添加一个特殊的视觉效果来突出终极武器
+            javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
+            glow.setColor(javafx.scene.paint.Color.RED);
+            glow.setRadius(25); // 增加发光半径
+            glow.setSpread(0.9); // 增加发光强度
+            ultimateCard.setEffect(glow);
         }
         
         // 更新科技树画布大小
@@ -472,18 +489,33 @@ public class TechTreeUI extends BorderPane {
     }
 
     private int calculateTier(Technology tech) {
-        // 根据前置科技数量确定层级
-        if (tech.getPrerequisites().isEmpty()) return 1;
+        return calculateTier(tech, new HashSet<>());
+    }
+    
+    private int calculateTier(Technology tech, Set<String> visited) {
+        // 防止循环依赖导致无限递归
+        if (visited.contains(tech.getId())) {
+            return 1; // 如果出现循环依赖，返回基础层级
+        }
 
+        // 如果没有前置科技，层级为1
+        if (tech.getPrerequisites().isEmpty()) {
+            return 1;
+        }
+
+        // 递归计算前置科技中的最高层级
         int maxPrereqTier = 0;
+        visited.add(tech.getId());
+        
         for (String prereqId : tech.getPrerequisites()) {
             Technology prereq = techTree.getTechnology(prereqId);
             if (prereq != null) {
-                int prereqTier = calculateTier(prereq);
+                int prereqTier = calculateTier(prereq, visited);
                 maxPrereqTier = Math.max(maxPrereqTier, prereqTier);
             }
         }
-
+        
+        visited.remove(tech.getId());
         return maxPrereqTier + 1;
     }
 
@@ -599,6 +631,14 @@ public class TechTreeUI extends BorderPane {
 
         Label costLabel = new Label("科技值: " + selectedTechnology.getResearchCost() + " 科学点");
         costLabel.setTextFill(Color.YELLOW);
+        
+        // 如果是终极武器，添加额外说明
+        if ("ULTIMATE_WEAPON".equals(selectedTechnology.getId())) {
+            Label ultimateLabel = new Label("终极武器 - 游戏终局内容");
+            ultimateLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+            ultimateLabel.setTextFill(Color.RED);
+            infoRow.getChildren().add(ultimateLabel);
+        }
         
         // 计算预计完成回合数（基于当前科研产出）
         int remainingRounds = techTree.getRemainingRoundsForTechnology(selectedTechnology);
