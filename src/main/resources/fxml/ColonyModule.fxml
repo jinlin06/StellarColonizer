@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<!-- 殖民地功能模块根容器 -->
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.stellarcolonizer.view.controllers.ColonyModuleController"
+      spacing="10" padding="10"
+      style="-fx-background-color: #2b2b2b; -fx-pref-width: 400;">
+
+    <!-- 标题 -->
+    <Label text="殖民地管理" style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #ffffff;"/>
+
+    <!-- 殖民地列表 -->
+    <ListView fx:id="colonyListView"
+              style="-fx-background-color: #3a3a3a; -fx-pref-height: 200;">
+        <placeholder>
+            <Label text="暂无殖民地" style="-fx-text-fill: #aaaaaa;"/>
+        </placeholder>
+    </ListView>
+
+    <!-- 选中殖民地的详情面板（替换N/A为具体值） -->
+    <VBox fx:id="colonyDetailPanel" spacing="8" padding="8"
+          style="-fx-background-color: #444444; -fx-border-radius: 5; -fx-background-radius: 5;">
+        <Label text="殖民地详情" style="-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #ffffff;"/>
+
+        <!-- 名称+行星 -->
+        <HBox spacing="5">
+            <Label text="名称：" style="-fx-text-fill: #dddddd;"/>
+            <Label fx:id="colonyNameLabel" style="-fx-text-fill: #ffffff;"/>
+            <Label text="（行星：" style="-fx-text-fill: #dddddd;"/>
+            <Label fx:id="planetNameLabel" style="-fx-text-fill: #ffffff;"/>
+            <Label text="）" style="-fx-text-fill: #dddddd;"/>
+        </HBox>
+
+        <!-- 人口 -->
+        <HBox spacing="5">
+            <Label text="人口：" style="-fx-text-fill: #dddddd;"/>
+            <Label fx:id="populationLabel" style="-fx-text-fill: #ffffff;"/>
+        </HBox>
+
+        <!-- 幸福度 -->
+        <HBox spacing="5">
+            <Label text="幸福度：" style="-fx-text-fill: #dddddd;"/>
+            <Label fx:id="happinessLabel" style="-fx-text-fill: #ffffff;"/>
+        </HBox>
+
+        <!-- 稳定度 -->
+        <HBox spacing="5">
+            <Label text="稳定度：" style="-fx-text-fill: #dddddd;"/>
+            <Label fx:id="stabilityLabel" style="-fx-text-fill: #ffffff;"/>
+        </HBox>
+
+        <!-- 发展度 -->
+        <HBox spacing="5">
+            <Label text="发展度：" style="-fx-text-fill: #dddddd;"/>
+            <Label fx:id="developmentLabel" style="-fx-text-fill: #ffffff;"/>
+        </HBox>
+    </VBox>
+</VBox>
