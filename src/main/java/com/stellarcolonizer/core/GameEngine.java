@@ -3,6 +3,7 @@ package com.stellarcolonizer.core;
 import com.stellarcolonizer.model.colony.Colony;
 import com.stellarcolonizer.model.galaxy.*;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
+import com.stellarcolonizer.model.economy.UniversalResourceMarket;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.faction.PlayerFaction;
 import com.stellarcolonizer.model.service.event.EventBus;
@@ -35,11 +36,15 @@ public class GameEngine {
     private EventBus eventBus;
     private List<GameEventListener> listeners;
     private VictoryConditionManager victoryConditionManager;
+    
+    // 宇宙资源市场
+    private UniversalResourceMarket universalResourceMarket;
 
     public GameEngine() {
         this.eventBus = new EventBus();
         this.listeners = new CopyOnWriteArrayList<>();
         this.factions = new ArrayList<>();
+        this.universalResourceMarket = null; // 初始化为null，将在initialize方法中创建
     }
 
     public void initialize() {
@@ -54,6 +59,9 @@ public class GameEngine {
         // 注意：这里应该把玩家派系添加到factions列表中
         factions.add(playerFaction);
         galaxy.addFaction(playerFaction);
+        
+        // 初始化宇宙资源市场
+        this.universalResourceMarket = new UniversalResourceMarket(playerFaction);
         
         // 设置玩家起始位置
         setupPlayerStartLocation();
@@ -92,6 +100,13 @@ public class GameEngine {
                         // 设置该星系的控制派系
                         system.setControllingFaction(playerFaction);
                         
+                        // 给予玩家初始资源
+                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
+                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
+                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
+                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+
                         return;
                     }
                 }
@@ -157,6 +172,13 @@ public class GameEngine {
                             // 设置该星系的控制派系
                             system.setControllingFaction(playerFaction);
                             
+                            // 给予玩家初始资源
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+
                             return;
                         }
                     }
@@ -264,9 +286,11 @@ public class GameEngine {
                         system.setControllingFaction(faction);
                         
                         // 给予初始资源
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
                         faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
                         
                         System.out.println(faction.getName() + " 在星系 " + system.getName() + " 的行星 " + planet.getName() + " 上建立了殖民地（强制殖民）");
                         return; // 只为每个派系分配一个星系
@@ -303,9 +327,11 @@ public class GameEngine {
                     }
 
                     // 给予初始资源
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
                     faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
 
                     eventBus.publish(new GameEvent("COLONY_ESTABLISHED", faction.getName() + " 在 " + homeworld.getName() + " 建立了殖民地"));
                 }
@@ -461,5 +487,13 @@ public class GameEngine {
     public void removeEventListener(GameEventListener listener) {
         listeners.remove(listener);
         eventBus.unregister(listener);
+    }
+    
+    public UniversalResourceMarket getUniversalResourceMarket() { return universalResourceMarket; }
+    
+    public void initializeUniversalResourceMarket() {
+        if (this.universalResourceMarket == null && playerFaction != null) {
+            this.universalResourceMarket = new UniversalResourceMarket(playerFaction);
+        }
     }
 }

@@ -12,6 +12,7 @@ import com.stellarcolonizer.model.technology.TechTree;
 import com.stellarcolonizer.view.components.*;
 import com.stellarcolonizer.view.components.StarSystemInfoView; // 添加导入
 import com.stellarcolonizer.view.components.DiplomacyView; // 添加外交界面导入
+import com.stellarcolonizer.view.controllers.UniversalResourceMarketController; // 添加市场控制器导入
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -190,39 +191,33 @@ public class MainController {
     private void updateResourceDisplay() {
         if (gameEngine == null || gameEngine.getPlayerFaction() == null) return;
 
-        // 获取玩家阵营的真实资源数据（从所有殖民地获取）
-        Map<ResourceType, Float> totalResources = new EnumMap<>(ResourceType.class);
+        // 获取玩家阵营的统一资源数据（现在所有资源都存储在派系层面）
+        ResourceStockpile factionStockpile = gameEngine.getPlayerFaction().getResourceStockpile();
+        
+        // 计算所有殖民地的净产量总和
         Map<ResourceType, Float> totalNetProduction = new EnumMap<>(ResourceType.class);
         
-        // 初始化所有资源类型
+        // 初始化所有资源类型的净产量
         for (ResourceType type : ResourceType.values()) {
-            totalResources.put(type, 0f);
             totalNetProduction.put(type, 0f);
         }
         
         System.out.println("更新资源显示，殖民地数量: " + gameEngine.getPlayerFaction().getColonies().size());
         
-        // 遍历所有殖民地计算资源总量和净产量
+        // 遍历所有殖民地计算总净产量
         for (Colony colony : gameEngine.getPlayerFaction().getColonies()) {
-            ResourceStockpile stockpile = colony.getResourceStockpile();
-            Map<ResourceType, Float> resources = stockpile.getAllResources();
             Map<ResourceType, Float> netProduction = colony.getNetProduction();
             
             System.out.println("殖民地: " + colony.getName());
-            System.out.println("资源库存: " + resources.size() + " 种");
             System.out.println("净产量: " + netProduction.size() + " 种");
             
-            // 累加资源总量
+            // 累加净产量
             for (ResourceType type : ResourceType.values()) {
-                float resourceAmount = resources.getOrDefault(type, 0f);
                 float netAmount = netProduction.getOrDefault(type, 0f);
-                
-                totalResources.put(type, totalResources.get(type) + resourceAmount);
                 totalNetProduction.put(type, totalNetProduction.get(type) + netAmount);
                 
-                if (resourceAmount != 0 || netAmount != 0) {
+                if (netAmount != 0) {
                     System.out.println("  " + type.getDisplayName() + 
-                        " 库存: " + String.format("%.2f", resourceAmount) + 
                         " 净产量: " + String.format("%.2f", netAmount));
                 }
             }
@@ -237,8 +232,8 @@ public class MainController {
                 continue; // 跳过科研资源，不在主资源界面显示
             }
             
-            float amount = totalResources.get(type);
-            float net = totalNetProduction.get(type); // 使用实际的净产量
+            float amount = factionStockpile.getResource(type);  // 从派系库存获取资源数量
+            float net = totalNetProduction.get(type); // 使用所有殖民地的净产量总和
             
             Label resourceLabel = new Label(formatResourceText(type, amount, net));
             resourceLabel.setTextFill(Color.web(type.getColor()));
@@ -423,6 +418,37 @@ public class MainController {
         } catch (Exception e) {
             e.printStackTrace();
             showInfoDialog("错误", "无法打开殖民地管理器 " + e.getMessage());
+        }
+    }
+    
+    @FXML
+    private void showUniversalMarket() {
+        System.out.println("显示宇宙资源市场");
+
+        // 创建并显示宇宙资源市场界面
+        try {
+            // 检查gameEngine和playerFaction是否存在
+            if (gameEngine == null || gameEngine.getPlayerFaction() == null) {
+                showInfoDialog("错误", "游戏尚未初始化完成");
+                return;
+            }
+
+            // 创建宇宙资源市场（如果不存在）
+            if (gameEngine.getUniversalResourceMarket() == null) {
+                gameEngine.initializeUniversalResourceMarket();
+            }
+
+            UniversalResourceMarketController marketController =
+                new UniversalResourceMarketController(gameEngine.getPlayerFaction(),
+                    gameEngine.getUniversalResourceMarket());
+                    
+            // 设置交易完成回调，以便更新主界面资源显示
+            marketController.setOnTransactionComplete(this::updateResourceDisplay);
+            
+            marketController.showMarketWindow();
+        } catch (Exception e) {
+            e.printStackTrace();
+            showInfoDialog("错误", "无法打开宇宙资源市场: " + e.getMessage());
         }
     }
 

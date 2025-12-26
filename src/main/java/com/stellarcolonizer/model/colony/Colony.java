@@ -5,6 +5,7 @@ import com.stellarcolonizer.model.colony.enums.GrowthFocus;
 import com.stellarcolonizer.model.colony.enums.PopType;
 import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.faction.Faction;
+import com.stellarcolonizer.model.faction.PlayerFaction; // 导入PlayerFaction类
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.galaxy.enums.PlanetTrait;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
@@ -24,7 +25,7 @@ public class Colony {
     private final FloatProperty growthRate;
     private final FloatProperty happiness;
 
-    private final ResourceStockpile resourceStockpile;
+
     private final Map<ResourceType, FloatProperty> productionRates;
     private final Map<ResourceType, FloatProperty> consumptionRates;
 
@@ -45,6 +46,9 @@ public class Colony {
     public Colony(Planet planet, Faction faction) {
         this.planet = planet;
         this.faction = faction;
+        
+        // 殖民地不再维护独立的资源库存，所有资源都由派系统一管理
+        // this.resourceStockpile = new ResourceStockpile();
 
         String defaultName = faction.getName() + "殖民地-" + planet.getName();
         this.name = new SimpleStringProperty(defaultName);
@@ -55,9 +59,6 @@ public class Colony {
 
         this.growthRate = new SimpleFloatProperty(0.01f);
         this.happiness = new SimpleFloatProperty(0.7f);
-
-        this.resourceStockpile = new ResourceStockpile();
-        initializeResources();
 
         this.productionRates = new EnumMap<>(ResourceType.class);
         this.consumptionRates = new EnumMap<>(ResourceType.class);
@@ -79,6 +80,7 @@ public class Colony {
         this.governor = new SimpleObjectProperty<>(null);
         
         // 在构造函数中计算初始生产率，确保殖民地创建后立即有正确的产出
+        // 仅调用calculateProduction方法，该方法会重置并重新计算所有生产率
         calculateProduction();
         
         System.out.println("[" + name.get() + "] 殖民地创建完成");
@@ -100,19 +102,29 @@ public class Colony {
         }
     }
 
-    private void initializeResources() {
-        // 参考群星机制设置初始资源
-        resourceStockpile.addResource(ResourceType.ENERGY, 200);
-        resourceStockpile.addResource(ResourceType.METAL, 200);
-        resourceStockpile.addResource(ResourceType.FOOD, 200);
-        resourceStockpile.addResource(ResourceType.FUEL, 100);  // 初始燃料设置为100
-    }
 
     private void initializeProductionRates() {
         for (ResourceType type : ResourceType.values()) {
             productionRates.put(type, new SimpleFloatProperty(0));
             consumptionRates.put(type, new SimpleFloatProperty(0));
         }
+    }
+    
+    private void initializeBaseProductionRates() {
+        // 基础生产率初始化 - 只设置人口相关的基本生产率
+        float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.15f;
+        float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.1125f;
+        float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.09f;
+        float scienceProduction = 500.0f; // 固定初始科技值
+        float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.03f;
+        float moneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.015f;
+
+        productionRates.get(ResourceType.ENERGY).set(energyProduction);
+        productionRates.get(ResourceType.METAL).set(metalProduction);
+        productionRates.get(ResourceType.FOOD).set(foodProduction);
+        productionRates.get(ResourceType.SCIENCE).set(scienceProduction);
+        productionRates.get(ResourceType.FUEL).set(fuelProduction);
+        productionRates.get(ResourceType.MONEY).set(moneyProduction);
     }
 
     private float calculateBaseFoodProduction() {
@@ -159,17 +171,6 @@ public class Colony {
             System.out.println("[" + name.get() + "] " + entry.getKey().getDisplayName() + ": " + entry.getValue());
         }
         
-        // 重新计算初始生产率（因为initializeProductionRates在initializePopulation之前被调用）
-        float baseEnergy = planet.getType().getBaseEnergy() * 20;  // 提高基础能量产量
-        float baseMetal = planet.getType().getBaseMetal() * 10;   // 提高基础金属产量
-        float baseFood = calculateBaseFoodProduction() + 20.0f;  // 添加基础食物产量确保不会为负
-
-        productionRates.get(ResourceType.ENERGY).set(baseEnergy);
-        productionRates.get(ResourceType.METAL).set(baseMetal);
-        productionRates.get(ResourceType.FOOD).set(baseFood);
-        
-        System.out.println("[" + name.get() + "] 重新计算基础生产率: 能量=" + baseEnergy + ", 金属=" + baseMetal + ", 食物=" + baseFood);
-        
         updatePopulation();
         calculateProduction();
         calculateConsumption();
@@ -182,16 +183,32 @@ public class Colony {
     }
 
     private void updatePopulation() {
-        float growth = totalPopulation.get() * growthRate.get();
-        growth *= happiness.get();
-        growth *= (1 - crimeRate.get() / 100.0f);
+        // 使用负反馈机制来控制人口增长，防止资源爆仓
+        // 基础增长 = 基础增长率 * 人口比例因子
+        float baseGrowthRate = growthRate.get();
+        
+        // 引入人口密度因子，随人口增长而递减
+        // 假设行星最大承载能力为100000人口，当人口接近这个值时增长率会显著下降
+        float carryingCapacity = planet.getSize() * 1000.0f; // 根据行星大小调整承载能力
+        float populationDensityFactor = 1.0f - Math.min(0.95f, totalPopulation.get() / carryingCapacity);
+        
+        // 计算调整后的增长率
+        float adjustedGrowth = baseGrowthRate * populationDensityFactor;
+        
+        // 应用其他影响因素
+        adjustedGrowth *= happiness.get();
+        adjustedGrowth *= (1 - crimeRate.get() / 100.0f);
 
         float foodSufficiency = getFoodSufficiency();
         if (foodSufficiency < 0.8f) {
-            growth *= foodSufficiency;
+            adjustedGrowth *= foodSufficiency;
         }
+        
+        // 限制单回合最大人口增长，防止在低人口时增长过快
+        float maxGrowth = totalPopulation.get() * 0.05f; // 最大增长不超过当前人口的5%
+        adjustedGrowth = Math.min(adjustedGrowth, maxGrowth);
 
-        int newPopulation = totalPopulation.get() + (int) growth;
+        int newPopulation = totalPopulation.get() + (int) adjustedGrowth;
         totalPopulation.set(newPopulation);
 
         updatePopulationDistribution();
@@ -217,6 +234,9 @@ public class Colony {
             int diff = total - currentTotal;
             populationByType.put(PopType.FARMERS, populationByType.get(PopType.FARMERS) + diff);
         }
+        
+        // 人口分布改变后，立即更新生产率以保持一致性
+        calculateProduction();
     }
 
     private void calculateProduction() {
@@ -226,19 +246,22 @@ public class Colony {
         }
 
         // 基于人口计算基础生产率 (参考群星机制)
-        float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.2f;  // 每个工人生产0.2能量
-        float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.15f;   // 每个矿工生产0.15金属
-        float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.12f;   // 每个农民生产0.12食物
-        float scienceProduction = 500.0f; // 固定初始科技值为20，不受人口影响
+        float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.15f;  // 每个工人生产0.15能量，上调以保证前期正产出
+        float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.1125f;   // 每个矿工生产0.1125金属，上调以保证前期正产出
+        float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.09f;   // 每个农民生产0.09食物，上调以保证前期正产出
+        float scienceProduction = 500.0f; // 固定初始科技值为500，不受人口影响
         
         // 燃料生产（基于工匠数量）
-        float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.04f;  // 每个工匠生产0.04燃料
+        float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.03f;  // 每个工匠生产0.03燃料，上调以保证前期正产出
+        // 金币生产（基于工匠数量）
+        float moneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.015f;  // 每个工匠生产0.015金币，上调以保证前期正产出
 
         productionRates.get(ResourceType.ENERGY).set(energyProduction);
         productionRates.get(ResourceType.METAL).set(metalProduction);
         productionRates.get(ResourceType.FOOD).set(foodProduction);
         productionRates.get(ResourceType.SCIENCE).set(scienceProduction);
         productionRates.get(ResourceType.FUEL).set(fuelProduction);
+        productionRates.get(ResourceType.MONEY).set(moneyProduction);
         
         // 只有当星球拥有特定稀有资源时才生产该资源
         Map<ResourceType, Float> planetResources = planet.getResources();
@@ -248,8 +271,11 @@ public class Colony {
             
             // 只处理稀有资源
             if (isRareResource(resourceType) && resourceAmount > 0) {
-                // 基于星球上的资源储量和矿工数量计算生产率
-                float productionRate = populationByType.getOrDefault(PopType.MINERS, 0) * 0.002f * (resourceAmount / 100f);
+                // 基于星球上的资源储量和矿工数量计算生产率，加入递减因子
+                float baseRate = populationByType.getOrDefault(PopType.MINERS, 0) * 0.001f * (resourceAmount / 100f);
+                // 引入资源枯竭因子，随资源开采递减
+                float depletionFactor = Math.max(0.1f, 1.0f - (faction.getResourceStockpile().getResource(resourceType) / resourceAmount) * 0.5f);
+                float productionRate = baseRate * depletionFactor;
                 productionRates.get(resourceType).set(productionRate);
             }
         }
@@ -259,7 +285,8 @@ public class Colony {
                           ", 金属=" + metalProduction + 
                           ", 食物=" + foodProduction + 
                           ", 科研=" + scienceProduction +
-                          ", 燃料=" + fuelProduction);
+                          ", 燃料=" + fuelProduction +
+                          ", 金钱=" + moneyProduction);
 
         // 建筑加成
         for (Building building : buildings) {
@@ -298,7 +325,8 @@ public class Colony {
                           ", 金属=" + productionRates.get(ResourceType.METAL).get() + 
                           ", 食物=" + productionRates.get(ResourceType.FOOD).get() + 
                           ", 科研=" + productionRates.get(ResourceType.SCIENCE).get() +
-                          ", 燃料=" + productionRates.get(ResourceType.FUEL).get());
+                          ", 燃料=" + productionRates.get(ResourceType.FUEL).get() +
+                          ", 金钱=" + productionRates.get(ResourceType.MONEY).get());
                           
         // 输出稀有资源生产率
         for (ResourceType type : ResourceType.values()) {
@@ -326,19 +354,19 @@ public class Colony {
 
     private void calculateConsumption() {
         // 参考群星机制设置消耗率，下调食物消耗确保不会出现负增长
-        float foodConsumption = totalPopulation.get() * 0.00005f;  // 每人消耗0.00005食物（下调）
+        float foodConsumption = totalPopulation.get() * 0.00008f;  // 每人消耗0.00008食物（略微下调以匹配生产上调）
         consumptionRates.get(ResourceType.FOOD).set(foodConsumption);
 
-        float energyConsumption = 0.5f;  // 基础能量消耗
+        float energyConsumption = 0.8f;  // 基础能量消耗
         for (Building building : buildings) {
             energyConsumption += building.getMaintenanceCost(ResourceType.ENERGY) * 0.7f;  // 建筑维护消耗（下调）
         }
-        energyConsumption += totalPopulation.get() * 0.00005f;  // 人口相关能量消耗（下调）
+        energyConsumption += totalPopulation.get() * 0.00008f;  // 人口相关能量消耗（略微下调以匹配生产上调）
 
         consumptionRates.get(ResourceType.ENERGY).set(energyConsumption);
         
         // 稀有资源消耗（用于建筑维护或其他用途）
-        float fuelConsumption = totalPopulation.get() * 0.000005f;  // 人口燃料消耗（下调）
+        float fuelConsumption = totalPopulation.get() * 0.000008f;  // 人口燃料消耗（略微下调以匹配生产上调）
         consumptionRates.get(ResourceType.FUEL).set(fuelConsumption);
         
         // 输出调试信息
@@ -360,8 +388,8 @@ public class Colony {
 
             // 不再直接添加科研资源，因为科研现在用于研发科技
             if (type != ResourceType.SCIENCE) {
-                // 添加资源，即使是负数（表示消耗）
-                resourceStockpile.addResource(type, net); // 直接使用净产量，不应用任何系数
+                // 所有资源产出和消耗现在都统一到派系层面
+                faction.getResourceStockpile().addResource(type, net);
             }
             
             // 调试信息
@@ -370,7 +398,7 @@ public class Colony {
                     " 产量: " + String.format("%.2f", production) + 
                     ", 消耗: " + String.format("%.2f", consumption) + 
                     ", 净产量: " + String.format("%.2f", net) + 
-                    ", 总量: " + String.format("%.2f", resourceStockpile.getResource(type)));
+                    ", 派系总量: " + String.format("%.2f", faction.getResourceStockpile().getResource(type)));
             }
         }
 
@@ -378,7 +406,7 @@ public class Colony {
     }
 
     private void checkResourceShortages() {
-        float foodAmount = resourceStockpile.getResource(ResourceType.FOOD);
+        float foodAmount = faction.getResourceStockpile().getResource(ResourceType.FOOD);
         float foodConsumption = consumptionRates.get(ResourceType.FOOD).get();
 
         if (foodAmount < foodConsumption * 0.5f) {
@@ -386,22 +414,38 @@ public class Colony {
             growthRate.set(growthRate.get() * 0.8f);
         }
 
-        float energyAmount = resourceStockpile.getResource(ResourceType.ENERGY);
+        float energyAmount = faction.getResourceStockpile().getResource(ResourceType.ENERGY);
         float energyConsumption = consumptionRates.get(ResourceType.ENERGY).get();
 
-        if (energyAmount < energyConsumption) {
-            for (FloatProperty rate : productionRates.values()) {
-                rate.set(rate.get() * 0.5f);
+        if (energyConsumption > 0) { // 只有在有能量消耗时才检查
+            // 改进能量不足处理：使用库存天数来决定惩罚程度，而不是简单的二元开关
+            float energyDaysOfStock = energyAmount / energyConsumption;
+            
+            // 如果能量库存少于1天的消耗，降低生产率
+            if (energyDaysOfStock < 1.0f) {
+                // 使用库存天数作为惩罚因子，但设置最低值
+                float penaltyFactor = Math.max(0.2f, energyDaysOfStock); // 最低保留20%的生产率
+                for (FloatProperty rate : productionRates.values()) {
+                    // 现在对所有生产率都应用惩罚，包括能量生产率
+                    // 因为能量不足会影响所有生产活动，包括能量生产
+                    rate.set(rate.get() * penaltyFactor);
+                }
             }
         }
     }
 
     private float getFoodSufficiency() {
-        float foodAmount = resourceStockpile.getResource(ResourceType.FOOD);
+        float foodAmount = faction.getResourceStockpile().getResource(ResourceType.FOOD);
         float foodConsumption = consumptionRates.get(ResourceType.FOOD).get();
 
         if (foodConsumption <= 0) return 1.0f;
-        return Math.min(1.0f, foodAmount / foodConsumption);
+        // 通过计算一个回合的消耗量来更准确地评估食物充足度
+        // 防止食物库存过高时出现资源爆仓问题
+        float dailyConsumption = foodConsumption; // 每回合消耗量
+        float sufficiency = foodAmount / (dailyConsumption * 10); // 以10回合的储备作为标准
+        
+        // 限制食物充足度在合理范围内，防止过高资源导致的爆仓
+        return Math.min(1.5f, sufficiency); // 最高1.5，防止资源过度积累
     }
 
     private void updateDevelopment() {
@@ -477,7 +521,7 @@ public class Colony {
             case 0:
                 ResourceType discoveredResource = ResourceType.values()[random.nextInt(ResourceType.values().length)];
                 float amount = 100 + random.nextFloat() * 900;
-                resourceStockpile.addResource(discoveredResource, amount);
+                faction.getResourceStockpile().addResource(discoveredResource, amount);
                 addColonyLog("发现了 " + amount + " 单位的 " + discoveredResource.getDisplayName());
                 break;
 
@@ -529,7 +573,7 @@ public class Colony {
 
         System.out.println("[" + name.get() + "] 检查建筑资源需求: " + building.getName());
         for (ResourceRequirement requirement : building.getConstructionRequirements()) {
-            float available = resourceStockpile.getResource(requirement.getResourceType());
+            float available = faction.getResourceStockpile().getResource(requirement.getResourceType());
             System.out.println("[" + name.get() + "] 需求: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
             if (available < requirement.getAmount()) {
                 System.out.println("[" + name.get() + "] 资源不足: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
@@ -556,9 +600,9 @@ public class Colony {
 
         System.out.println("[" + name.get() + "] 开始消耗资源建造建筑: " + building.getName());
         for (ResourceRequirement requirement : building.getConstructionRequirements()) {
-            float before = resourceStockpile.getResource(requirement.getResourceType());
-            boolean success = resourceStockpile.consumeResource(requirement.getResourceType(), requirement.getAmount());
-            float after = resourceStockpile.getResource(requirement.getResourceType());
+            float before = faction.getResourceStockpile().getResource(requirement.getResourceType());
+            boolean success = faction.getResourceStockpile().consumeResource(requirement.getResourceType(), requirement.getAmount());
+            float after = faction.getResourceStockpile().getResource(requirement.getResourceType());
             System.out.println("[" + name.get() + "] 消耗资源: " + requirement.getResourceType().getDisplayName() + ", 消耗前: " + before + ", 消耗后: " + after + ", 消耗量: " + requirement.getAmount() + ", 成功: " + success);
             if (!success) {
                 System.out.println("[" + name.get() + "] 消耗资源失败: " + requirement.getResourceType().getDisplayName());
@@ -587,7 +631,7 @@ public class Colony {
 
         System.out.println("[" + name.get() + "] 检查升级资源需求: " + building.getName() + " 到等级 " + (building.getLevel() + 1));
         for (ResourceRequirement requirement : upgrade.getResourceRequirements()) {
-            float available = resourceStockpile.getResource(requirement.getResourceType());
+            float available = faction.getResourceStockpile().getResource(requirement.getResourceType());
             System.out.println("[" + name.get() + "] 升级需求: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
             if (available < requirement.getAmount()) {
                 System.out.println("[" + name.get() + "] 升级资源不足: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
@@ -597,9 +641,9 @@ public class Colony {
 
         System.out.println("[" + name.get() + "] 开始消耗资源升级建筑: " + building.getName());
         for (ResourceRequirement requirement : upgrade.getResourceRequirements()) {
-            float before = resourceStockpile.getResource(requirement.getResourceType());
-            boolean success = resourceStockpile.consumeResource(requirement.getResourceType(), requirement.getAmount());
-            float after = resourceStockpile.getResource(requirement.getResourceType());
+            float before = faction.getResourceStockpile().getResource(requirement.getResourceType());
+            boolean success = faction.getResourceStockpile().consumeResource(requirement.getResourceType(), requirement.getAmount());
+            float after = faction.getResourceStockpile().getResource(requirement.getResourceType());
             System.out.println("[" + name.get() + "] 消耗升级资源: " + requirement.getResourceType().getDisplayName() + ", 消耗前: " + before + ", 消耗后: " + after + ", 消耗量: " + requirement.getAmount() + ", 成功: " + success);
             if (!success) {
                 System.out.println("[" + name.get() + "] 升级消耗资源失败: " + requirement.getResourceType().getDisplayName());
@@ -623,7 +667,7 @@ public class Colony {
 
         for (ResourceRequirement requirement : building.getConstructionRequirements()) {
             float refund = requirement.getAmount() * 0.5f;
-            resourceStockpile.addResource(requirement.getResourceType(), refund);
+            faction.getResourceStockpile().addResource(requirement.getResourceType(), refund);
         }
 
         addColonyLog("拆除了建筑: " + building.getName());
@@ -779,7 +823,7 @@ public class Colony {
     public void setHappiness(float happiness) { this.happiness.set(happiness); }
     public FloatProperty happinessProperty() { return happiness; }
 
-    public ResourceStockpile getResourceStockpile() { return resourceStockpile; }
+    public ResourceStockpile getResourceStockpile() { return faction.getResourceStockpile(); }
 
     public List<Building> getBuildings() { return new ArrayList<>(buildings); }
 

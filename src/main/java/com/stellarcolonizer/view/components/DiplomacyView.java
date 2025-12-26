@@ -1,172 +1,153 @@
 package com.stellarcolonizer.view.components;
 
+import com.stellarcolonizer.model.diplomacy.DiplomaticRelationship;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.galaxy.Galaxy;
-import com.stellarcolonizer.model.galaxy.StarSystem;
 import javafx.geometry.Insets;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
 
-public class DiplomacyView extends VBox {
-    
-    private Galaxy galaxy;
-    private Faction playerFaction;
-    
-    public DiplomacyView(Galaxy galaxy, Faction playerFaction) {
-        this.galaxy = galaxy;
-        this.playerFaction = playerFaction;
-        initializeUI();
-    }
-    
-    private void initializeUI() {
-        this.setSpacing(10);
-        this.setPadding(new Insets(15));
-        this.setStyle("-fx-background-color: #2b2b2b;");
+public class DiplomacyView {
+    public static void showDiplomacyView(Galaxy galaxy, Faction playerFaction) {
+        Stage diplomacyStage = new Stage();
+        diplomacyStage.initModality(Modality.APPLICATION_MODAL);
+        diplomacyStage.setTitle("外交界面");
+        diplomacyStage.setWidth(800);
+        diplomacyStage.setHeight(600);
+        
+        VBox mainLayout = new VBox(10);
+        mainLayout.setPadding(new Insets(10));
         
         // 标题
-        Label titleLabel = new Label("外交概览");
-        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
+        Label titleLabel = new Label("外交界面");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
         
-        // 星系控制情况列表
-        VBox systemControlBox = new VBox(5);
-        systemControlBox.setPadding(new Insets(10));
-        systemControlBox.setStyle("-fx-background-color: #3c3c3c; -fx-background-radius: 5;");
+        // 显示玩家派系名称
+        Label playerFactionLabel = new Label("您的派系: " + playerFaction.getName());
+        playerFactionLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         
-        Label systemControlTitle = new Label("星系控制情况:");
-        systemControlTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+        // 创建外交关系表格
+        TableView<DiplomaticRelationship> relationshipTable = createRelationshipTable(galaxy, playerFaction);
         
-        // 使用TreeView按派系分组显示
-        TreeView<String> systemControlTree = new TreeView<>();
-        systemControlTree.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+        // 按钮面板
+        HBox buttonPanel = new HBox(10);
+        Button declareWarButton = new Button("宣战");
+        Button makePeaceButton = new Button("议和");
+        Button tradeAgreementButton = new Button("贸易协定");
+        Button cancelButton = new Button("关闭");
         
-        // 填充星系控制树
-        populateSystemControlTree(systemControlTree);
+        // 按钮样式
+        declareWarButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
+        makePeaceButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        tradeAgreementButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+        cancelButton.setStyle("-fx-background-color: #9E9E9E; -fx-text-fill: white;");
         
-        // 设置TreeCell工厂以显示派系颜色
-        systemControlTree.setCellFactory(tree -> new TreeCell<String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    setText(item);
-                    
-                    // 检查是否是派系节点（包含"(我方)"或"(AI)"）
-                    if (item.contains(" (我方)") || item.contains(" (AI)")) {
-                        // 遍历所有派系找到匹配项并设置颜色
-                        List<StarSystem> starSystems = galaxy.getStarSystems();
-                        Map<Faction, List<StarSystem>> factionSystems = new HashMap<>();
-                        
-                        for (StarSystem system : starSystems) {
-                            if (system.getControllingFaction() != null) {
-                                factionSystems.computeIfAbsent(system.getControllingFaction(), k -> new ArrayList<>()).add(system);
-                            }
-                        }
-                        
-                        for (Map.Entry<Faction, List<StarSystem>> entry : factionSystems.entrySet()) {
-                            String factionName = entry.getKey().getName() + (entry.getKey() == playerFaction ? " (我方)" : " (AI)");
-                            if (factionName.equals(item)) {
-                                Color factionColor = entry.getKey().getColor();
-                                if (factionColor != null) {
-                                    String hexColor = String.format("#%02X%02X%02X",
-                                        (int)(factionColor.getRed() * 255),
-                                        (int)(factionColor.getGreen() * 255),
-                                        (int)(factionColor.getBlue() * 255));
-                                    setStyle("-fx-text-fill: " + hexColor + ";");
-                                }
-                                break;
-                            }
-                        }
-                    } else {
-                        setStyle(""); // 普通星系名称使用默认样式
-                    }
-                }
+        buttonPanel.getChildren().addAll(declareWarButton, makePeaceButton, tradeAgreementButton, cancelButton);
+        
+        // 按钮事件
+        declareWarButton.setOnAction(e -> {
+            DiplomaticRelationship selected = relationshipTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                Faction targetFaction = selected.getTargetFaction().equals(playerFaction) ? 
+                                       selected.getSourceFaction() : selected.getTargetFaction();
+                playerFaction.declareWarOn(targetFaction);
+                relationshipTable.refresh();
+                showAlert("宣战", "已向 " + targetFaction.getName() + " 宣战！");
+            } else {
+                showAlert("错误", "请选择一个派系进行操作。");
             }
         });
         
-        systemControlBox.getChildren().addAll(systemControlTitle, systemControlTree);
+        makePeaceButton.setOnAction(e -> {
+            DiplomaticRelationship selected = relationshipTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                Faction targetFaction = selected.getTargetFaction().equals(playerFaction) ? 
+                                       selected.getSourceFaction() : selected.getTargetFaction();
+                playerFaction.makePeaceWith(targetFaction);
+                relationshipTable.refresh();
+                showAlert("议和", "已与 " + targetFaction.getName() + " 议和！");
+            } else {
+                showAlert("错误", "请选择一个派系进行操作。");
+            }
+        });
         
-        this.getChildren().addAll(titleLabel, systemControlBox);
+        tradeAgreementButton.setOnAction(e -> {
+            DiplomaticRelationship selected = relationshipTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                Faction targetFaction = selected.getTargetFaction().equals(playerFaction) ? 
+                                       selected.getSourceFaction() : selected.getTargetFaction();
+                playerFaction.establishTradeAgreementWith(targetFaction);
+                relationshipTable.refresh();
+                showAlert("贸易协定", "已与 " + targetFaction.getName() + " 签署贸易协定！");
+            } else {
+                showAlert("错误", "请选择一个派系进行操作。");
+            }
+        });
+        
+        cancelButton.setOnAction(e -> diplomacyStage.close());
+        
+        mainLayout.getChildren().addAll(titleLabel, playerFactionLabel, relationshipTable, buttonPanel);
+        
+        Scene scene = new Scene(mainLayout);
+        diplomacyStage.setScene(scene);
+        diplomacyStage.show();
     }
     
-    private void populateSystemControlTree(TreeView<String> treeView) {
-        // 按派系分组星系
-        Map<Faction, List<StarSystem>> factionSystems = new HashMap<>();
+    private static TableView<DiplomaticRelationship> createRelationshipTable(Galaxy galaxy, Faction playerFaction) {
+        // 创建列
+        TableColumn<DiplomaticRelationship, String> factionColumn = new TableColumn<>("派系");
+        factionColumn.setCellValueFactory(cellData -> {
+            DiplomaticRelationship rel = cellData.getValue();
+            Faction otherFaction = rel.getTargetFaction().equals(playerFaction) ? 
+                                  rel.getSourceFaction() : rel.getTargetFaction();
+            return new javafx.beans.property.SimpleStringProperty(otherFaction.getName());
+        });
         
-        for (StarSystem system : galaxy.getStarSystems()) {
-            if (system.getControllingFaction() != null) {
-                factionSystems.computeIfAbsent(system.getControllingFaction(), k -> new ArrayList<>()).add(system);
+        TableColumn<DiplomaticRelationship, String> statusColumn = new TableColumn<>("关系状态");
+        statusColumn.setCellValueFactory(cellData -> {
+            DiplomaticRelationship rel = cellData.getValue();
+            String status = rel.getStatus().getDisplayName();
+            return new javafx.beans.property.SimpleStringProperty(status);
+        });
+        
+        TableColumn<DiplomaticRelationship, Integer> valueColumn = new TableColumn<>("关系值");
+        valueColumn.setCellValueFactory(cellData -> {
+            DiplomaticRelationship rel = cellData.getValue();
+            return new javafx.beans.property.SimpleIntegerProperty(rel.getRelationshipValue()).asObject();
+        });
+        
+        // 创建表格
+        TableView<DiplomaticRelationship> table = new TableView<>();
+        table.getColumns().addAll(factionColumn, statusColumn, valueColumn);
+        
+        // 填充数据
+        List<Faction> allFactions = galaxy.getFactions();
+        for (Faction faction : allFactions) {
+            if (!faction.equals(playerFaction)) {
+                DiplomaticRelationship relationship = playerFaction.getRelationshipWith(faction);
+                if (relationship == null) {
+                    // 如果没有关系，创建一个中立关系
+                    relationship = new DiplomaticRelationship(playerFaction, faction, 
+                        DiplomaticRelationship.RelationshipStatus.NEUTRAL);
+                }
+                table.getItems().add(relationship);
             }
         }
         
-        // 创建根节点
-        TreeItem<String> root = new TreeItem<>("派系控制星系");
-        root.setExpanded(true);
-        
-        // 为每个派系创建节点
-        for (Map.Entry<Faction, List<StarSystem>> entry : factionSystems.entrySet()) {
-            Faction faction = entry.getKey();
-            List<StarSystem> systems = entry.getValue();
-            
-            // 创建派系节点
-            String factionName = faction.getName() + (faction == playerFaction ? " (我方)" : " (AI)");
-            TreeItem<String> factionItem = new TreeItem<>(factionName);
-            
-            // 添加该派系控制的星系
-            for (StarSystem system : systems) {
-                TreeItem<String> systemItem = new TreeItem<>(system.getName());
-                factionItem.getChildren().add(systemItem);
-            }
-            
-            root.getChildren().add(factionItem);
-        }
-        
-        treeView.setRoot(root);
-        treeView.setShowRoot(false); // 隐藏根节点
+        table.setPrefHeight(400);
+        return table;
     }
     
-    private void populateSystemControlList(ListView<StarSystem> listView) {
-        List<StarSystem> starSystems = galaxy.getStarSystems();
-        
-        // 只添加有派系控制的星系
-        for (StarSystem system : starSystems) {
-            if (system.getControllingFaction() != null) {
-                listView.getItems().add(system);
-            }
-        }
-    }
-    
-    public static void showDiplomacyView(Galaxy galaxy, Faction playerFaction) {
-        Stage dialog = new Stage();
-        dialog.setTitle("外交概览");
-        dialog.initModality(javafx.stage.Modality.WINDOW_MODAL);
-        dialog.setResizable(true);
-        
-        try {
-            javafx.scene.image.Image icon = new javafx.scene.image.Image(
-                DiplomacyView.class.getResourceAsStream("/images/icon.png"));
-            dialog.getIcons().add(icon);
-        } catch (Exception e) {
-            System.err.println("无法加载窗口图标: " + e.getMessage());
-        }
-        
-        DiplomacyView view = new DiplomacyView(galaxy, playerFaction);
-        
-        javafx.scene.Scene scene = new javafx.scene.Scene(view, 500, 600);
-        scene.getStylesheets().add(DiplomacyView.class.getResource("/css/main.css").toExternalForm());
-        dialog.setScene(scene);
-        dialog.show();
+    private static void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

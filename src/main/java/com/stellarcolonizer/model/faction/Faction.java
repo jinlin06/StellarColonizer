@@ -2,21 +2,31 @@
 package com.stellarcolonizer.model.faction;
 
 import com.stellarcolonizer.model.colony.Colony;
+import com.stellarcolonizer.model.diplomacy.DiplomaticRelationship;
+import com.stellarcolonizer.model.diplomacy.DiplomacyManager;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
+import com.stellarcolonizer.model.galaxy.Galaxy;
+import com.stellarcolonizer.model.galaxy.Hex;
+import com.stellarcolonizer.model.galaxy.Planet;
+import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.service.ai.AIController;
 import com.stellarcolonizer.model.technology.Technology;
 import com.stellarcolonizer.model.technology.TechTree;
+import com.stellarcolonizer.model.fleet.Fleet;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Faction {
 
     private final String name;
     private final boolean isAI;
     private javafx.scene.paint.Color color;
+    
+    private Galaxy galaxy; // 指向游戏星系的引用
 
     private final ResourceStockpile resourceStockpile;
     private final ObservableList<Colony> colonies;
@@ -33,6 +43,11 @@ public class Faction {
     private int totalPopulation;
     private float totalProduction;
     private float totalResearch;
+    
+    private long turnCount; // 当前回合数
+    
+    // 外交关系
+    private DiplomacyManager diplomacyManager;
 
     public Faction(String name, boolean isAI) {
         this.name = name;
@@ -42,6 +57,7 @@ public class Faction {
         this.colonies = FXCollections.observableArrayList();
         this.researchedTechnologies = new HashSet<>();
         this.techTree = new TechTree(name + "科技树");
+        this.diplomacyManager = new DiplomacyManager();
 
         initializeTechnologies();
         
@@ -94,9 +110,6 @@ public class Faction {
         for (Colony colony : colonies) {
             System.out.println("[" + name + "] 处理殖民地: " + colony.getName());
             colony.processTurn();
-
-            // 收集资源
-            collectResourcesFromColony(colony);
         }
 
         // 计算科研点数
@@ -124,20 +137,7 @@ public class Faction {
         System.out.println("[" + name + "] 派系处理回合结束");
     }
 
-    private void collectResourcesFromColony(Colony colony) {
-        // 收集殖民地的净产量
-        Map<ResourceType, Float> netProduction = colony.getNetProduction();
 
-        for (Map.Entry<ResourceType, Float> entry : netProduction.entrySet()) {
-            // 不再从殖民地收集资源到派系资源池，因为资源现在直接存储在殖民地中
-            // 这样可以避免重复计算和显示问题
-            /*
-            if (entry.getValue() > 0) {
-                resourceStockpile.addResource(entry.getKey(), entry.getValue());
-            }
-            */
-        }
-    }
 
     private void updateStatistics() {
         // 更新总人口
@@ -189,4 +189,65 @@ public class Faction {
 
     public TechTree getTechTree() { return techTree; }
     public void setTechTree(TechTree techTree) { this.techTree = techTree; }
+    
+    public Galaxy getGalaxy() { return galaxy; }
+    public void setGalaxy(Galaxy galaxy) { this.galaxy = galaxy; }
+    
+    public List<Fleet> getFleets() {
+        if (galaxy == null) {
+            return new ArrayList<>(); // 如果没有星系引用，返回空列表
+        }
+        
+        // 遍历所有六边形，收集属于该派系的舰队
+        return galaxy.getHexGrid().getAllHexes().stream()
+                .flatMap(hex -> hex.getFleets().stream())
+                .filter(fleet -> fleet.getFaction().equals(this))
+                .collect(Collectors.toList());
+    }
+    
+    // 外交相关方法
+    public DiplomacyManager getDiplomacyManager() { return diplomacyManager; }
+    
+    public DiplomaticRelationship getRelationshipWith(Faction otherFaction) {
+        return diplomacyManager.getRelationship(this, otherFaction);
+    }
+    
+    public void adjustRelationshipWith(Faction otherFaction, int delta) {
+        diplomacyManager.adjustRelationship(this, otherFaction, delta);
+    }
+    
+    public void declareWarOn(Faction targetFaction) {
+        diplomacyManager.declareWar(this, targetFaction);
+    }
+    
+    public void makePeaceWith(Faction targetFaction) {
+        diplomacyManager.makePeace(this, targetFaction);
+    }
+    
+    public void establishTradeAgreementWith(Faction otherFaction) {
+        diplomacyManager.establishTradeAgreement(this, otherFaction);
+    }
+    
+    public void terminateTradeAgreementWith(Faction otherFaction) {
+        diplomacyManager.terminateTradeAgreement(this, otherFaction);
+    }
+    
+    public List<Faction> getHostileFactions() {
+        return diplomacyManager.getHostileFactions(this);
+    }
+    
+    public List<Faction> getFriendlyFactions() {
+        return diplomacyManager.getFriendlyFactions(this);
+    }
+    
+    public List<Faction> getNeutralFactions() {
+        return diplomacyManager.getNeutralFactions(this);
+    }
+    
+    public long getTurnCount() { return turnCount; }
+    public void incrementTurnCount() { this.turnCount++; }
+    
+    public void nextTurn() {
+        diplomacyManager.nextTurn();
+    }
 }

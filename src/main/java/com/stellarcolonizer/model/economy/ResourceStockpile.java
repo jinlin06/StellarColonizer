@@ -25,6 +25,7 @@ public class ResourceStockpile {
         capacity.put(ResourceType.FOOD, 10000000f);
         capacity.put(ResourceType.SCIENCE, 10000000f);
         capacity.put(ResourceType.FUEL, 10000000f);
+        capacity.put(ResourceType.MONEY, 10000000f); // 为金钱设置容量
 
         // 稀有资源容量较小
         for (ResourceType rare : ResourceType.getRareResources()) {

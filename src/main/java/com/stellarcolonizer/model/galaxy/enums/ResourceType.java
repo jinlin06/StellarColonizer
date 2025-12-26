@@ -9,6 +9,7 @@ public enum ResourceType {
     FUEL("燃料", "#ff8800"),
     FOOD("食物", "#00ff00"),
     SCIENCE("科研", "#00ffff"),
+    MONEY("金钱", "#ffff00"), // 添加金钱资源类型
 
     // 稀有资源
     EXOTIC_MATTER("奇异物质", "#ff00ff"),
