@@ -358,8 +358,11 @@ public class Colony {
         consumptionRates.get(ResourceType.FOOD).set(foodConsumption);
 
         float energyConsumption = 0.8f;  // 基础能量消耗
+        // 只对活跃建筑计算维护成本
         for (Building building : buildings) {
-            energyConsumption += building.getMaintenanceCost(ResourceType.ENERGY) * 0.7f;  // 建筑维护消耗（下调）
+            if (building.isActive()) { // 只计算活跃建筑的维护成本
+                energyConsumption += building.getMaintenanceCost(ResourceType.ENERGY);  // 建筑维护消耗
+            }
         }
         energyConsumption += totalPopulation.get() * 0.00008f;  // 人口相关能量消耗（略微下调以匹配生产上调）
 
@@ -381,9 +384,18 @@ public class Colony {
     }
 
     private void updateResourceStockpile() {
+        // 首先计算能量惩罚因子
+        float energyPenaltyFactor = getEnergyPenaltyFactor();
+        
         for (ResourceType type : ResourceType.values()) {
             float production = productionRates.get(type).get();
             float consumption = consumptionRates.get(type).get();
+            
+            // 对生产率应用能量惩罚（除了科研资源）
+            if (type != ResourceType.SCIENCE) {
+                production = production * energyPenaltyFactor;
+            }
+            
             float net = production - consumption;
 
             // 不再直接添加科研资源，因为科研现在用于研发科技
@@ -402,7 +414,24 @@ public class Colony {
             }
         }
 
-        checkResourceShortages();
+        // 应用能量惩罚到生产率（这会影响下一回合的计算）
+        if (energyPenaltyFactor < 1.0f) {
+            for (ResourceType type : ResourceType.values()) {
+                if (type != ResourceType.SCIENCE) {
+                    FloatProperty rate = productionRates.get(type);
+                    if (rate != null) {
+                        rate.set(rate.get() * energyPenaltyFactor);
+                        
+                        // 调试输出
+                        if (type == ResourceType.ENERGY || type == ResourceType.METAL) {
+                            System.out.println("[" + name.get() + "] 应用能量惩罚: " + type.getDisplayName() + 
+                                " 生产率降至 " + String.format("%.2f", rate.get()) + 
+                                " (惩罚因子: " + String.format("%.2f", energyPenaltyFactor) + ")");
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void checkResourceShortages() {
@@ -425,13 +454,30 @@ public class Colony {
             if (energyDaysOfStock < 1.0f) {
                 // 使用库存天数作为惩罚因子，但设置最低值
                 float penaltyFactor = Math.max(0.2f, energyDaysOfStock); // 最低保留20%的生产率
-                for (FloatProperty rate : productionRates.values()) {
-                    // 现在对所有生产率都应用惩罚，包括能量生产率
-                    // 因为能量不足会影响所有生产活动，包括能量生产
-                    rate.set(rate.get() * penaltyFactor);
-                }
+                
+                // 记录原始生产率，用于调试
+                System.out.println("[" + name.get() + "] 能量不足惩罚: 惩罚因子为 " + String.format("%.2f", penaltyFactor));
             }
         }
+    }
+    
+    // 获取能量惩罚因子，用于在getNetProduction中应用
+    private float getEnergyPenaltyFactor() {
+        float energyAmount = faction.getResourceStockpile().getResource(ResourceType.ENERGY);
+        float energyConsumption = consumptionRates.get(ResourceType.ENERGY).get();
+
+        if (energyConsumption > 0) { // 只有在有能量消耗时才检查
+            // 改进能量不足处理：使用库存天数来决定惩罚程度，而不是简单的二元开关
+            float energyDaysOfStock = energyAmount / energyConsumption;
+            
+            // 如果能量库存少于1天的消耗，返回惩罚因子
+            if (energyDaysOfStock < 1.0f) {
+                // 使用库存天数作为惩罚因子，但设置最低值
+                return Math.max(0.2f, energyDaysOfStock); // 最低保留20%的生产率
+            }
+        }
+        
+        return 1.0f; // 没有能量不足，无惩罚
     }
 
     private float getFoodSufficiency() {
@@ -689,6 +735,93 @@ public class Colony {
         addColonyLog("重新分配了 " + amount + " 人口从 " + fromType.getDisplayName() + " 到 " + toType.getDisplayName());
     }
 
+    /**
+     * 重点发展农业：将农民人口占比上调至50%，工人占比下调至20%，其他不变
+     */
+    public void focusAgriculture() {
+        int totalPop = totalPopulation.get();
+        
+        // 重新分配人口：农民50%，工人20%，矿工15%，工匠15%
+        populationByType.put(PopType.FARMERS, (int)(totalPop * 0.5));  // 50% 农民
+        populationByType.put(PopType.WORKERS, (int)(totalPop * 0.2));  // 20% 工人
+        populationByType.put(PopType.MINERS, (int)(totalPop * 0.15));  // 15% 矿工
+        populationByType.put(PopType.ARTISANS, (int)(totalPop * 0.15)); // 15% 工匠
+        
+        // 确保总数正确（处理舍入误差）
+        int currentTotal = populationByType.get(PopType.FARMERS) + 
+                          populationByType.get(PopType.WORKERS) + 
+                          populationByType.get(PopType.MINERS) + 
+                          populationByType.get(PopType.ARTISANS);
+        
+        if (currentTotal != totalPop) {
+            int diff = totalPop - currentTotal;
+            populationByType.put(PopType.FARMERS, populationByType.get(PopType.FARMERS) + diff);
+        }
+        
+        // 重新计算生产率
+        calculateProduction();
+        
+        addColonyLog("重点发展农业：农民占比50%，工人占比20%，其他人口保持不变");
+    }
+
+    /**
+     * 重点发展工业：将农民人口下调至20%，工人人口上调至50%，其余人口不变
+     */
+    public void focusIndustry() {
+        int totalPop = totalPopulation.get();
+        
+        // 重新分配人口：农民20%，工人50%，矿工15%，工匠15%
+        populationByType.put(PopType.FARMERS, (int)(totalPop * 0.2));  // 20% 农民
+        populationByType.put(PopType.WORKERS, (int)(totalPop * 0.5));  // 50% 工人
+        populationByType.put(PopType.MINERS, (int)(totalPop * 0.15));  // 15% 矿工
+        populationByType.put(PopType.ARTISANS, (int)(totalPop * 0.15)); // 15% 工匠
+        
+        // 确保总数正确（处理舍入误差）
+        int currentTotal = populationByType.get(PopType.FARMERS) + 
+                          populationByType.get(PopType.WORKERS) + 
+                          populationByType.get(PopType.MINERS) + 
+                          populationByType.get(PopType.ARTISANS);
+        
+        if (currentTotal != totalPop) {
+            int diff = totalPop - currentTotal;
+            populationByType.put(PopType.FARMERS, populationByType.get(PopType.FARMERS) + diff);
+        }
+        
+        // 重新计算生产率
+        calculateProduction();
+        
+        addColonyLog("重点发展工业：农民占比20%，工人占比50%，其他人口保持不变");
+    }
+
+    /**
+     * 平衡发展：将农民人口和工人人口都调整到35%，其余人口不变
+     */
+    public void balanceDevelopment() {
+        int totalPop = totalPopulation.get();
+        
+        // 重新分配人口：农民35%，工人35%，矿工15%，工匠15%
+        populationByType.put(PopType.FARMERS, (int)(totalPop * 0.35));  // 35% 农民
+        populationByType.put(PopType.WORKERS, (int)(totalPop * 0.35));  // 35% 工人
+        populationByType.put(PopType.MINERS, (int)(totalPop * 0.15));   // 15% 矿工
+        populationByType.put(PopType.ARTISANS, (int)(totalPop * 0.15)); // 15% 工匠
+        
+        // 确保总数正确（处理舍入误差）
+        int currentTotal = populationByType.get(PopType.FARMERS) + 
+                          populationByType.get(PopType.WORKERS) + 
+                          populationByType.get(PopType.MINERS) + 
+                          populationByType.get(PopType.ARTISANS);
+        
+        if (currentTotal != totalPop) {
+            int diff = totalPop - currentTotal;
+            populationByType.put(PopType.FARMERS, populationByType.get(PopType.FARMERS) + diff);
+        }
+        
+        // 重新计算生产率
+        calculateProduction();
+        
+        addColonyLog("平衡发展：农民占比35%，工人占比35%，其他人口保持不变");
+    }
+
     public void setGrowthFocus(GrowthFocus focus) {
         switch (focus) {
             case RAPID_GROWTH:  // 重点发展农业
@@ -748,16 +881,29 @@ public class Colony {
 
     public Map<ResourceType, Float> getNetProduction() {
         Map<ResourceType, Float> net = new EnumMap<>(ResourceType.class);
+        
+        // 获取能量惩罚因子
+        float energyPenaltyFactor = getEnergyPenaltyFactor();
+        
+        // 使用当前的实际生产率和消耗率来计算净产量
         for (ResourceType type : ResourceType.values()) {
             float production = productionRates.get(type).get();
             float consumption = consumptionRates.get(type).get();
-            net.put(type, production - consumption);
+            
+            // 对生产率应用能量惩罚（除了科研，因为科研惩罚在updateResourceStockpile后才应用）
+            if (type != ResourceType.SCIENCE) {
+                production = production * energyPenaltyFactor;
+            }
+            
+            float netValue = production - consumption;
+            
+            // 对于科研资源，加上临时奖励
+            if (type == ResourceType.SCIENCE) {
+                netValue += temporaryScienceBonus;
+            }
+            
+            net.put(type, netValue);
         }
-        
-        // 科研资源现在用于研发科技，而不是作为库存
-        // 但我们需要考虑临时科研奖励
-        float currentScienceNet = net.get(ResourceType.SCIENCE);
-        net.put(ResourceType.SCIENCE, currentScienceNet + temporaryScienceBonus);
         
         System.out.println("获取净产量，总计: " + net.size() + " 种");
         for (Map.Entry<ResourceType, Float> entry : net.entrySet()) {

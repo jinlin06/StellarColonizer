@@ -185,13 +185,10 @@ public class ColonyManagerView extends VBox {
         // 生产统计
         VBox productionStats = createProductionStatsBox();
 
-        // 资源库存
-        resourcePanel = createResourcePanel();
-
         // 快速操作按钮
         HBox quickActions = createQuickActionButtons();
 
-        tabContent.getChildren().addAll(productionStats, resourcePanel, quickActions);
+        tabContent.getChildren().addAll(productionStats, quickActions);
         return tabContent;
     }
 
@@ -235,7 +232,7 @@ public class ColonyManagerView extends VBox {
         focusIndustryButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
         focusIndustryButton.setOnAction(e -> setGrowthFocus(GrowthFocus.STABLE_GROWTH));
 
-        Button focusQualityButton = new Button("提高生活质量");
+        Button focusQualityButton = new Button("平衡发展");
         focusQualityButton.setStyle("-fx-background-color: #9C27B0; -fx-text-fill: white;");
         focusQualityButton.setOnAction(e -> setGrowthFocus(GrowthFocus.QUALITY_OF_LIFE));
 
@@ -663,6 +660,11 @@ public class ColonyManagerView extends VBox {
             float prod = production.getOrDefault(type, 0f);
             float cons = consumption.getOrDefault(type, 0f);
             float netValue = net.getOrDefault(type, 0f);
+
+            // 只显示生产和消耗不全为0的资源
+            if (prod == 0 && cons == 0) {
+                continue;
+            }
 
             HBox statRow = new HBox(10);
 

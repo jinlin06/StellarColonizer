@@ -61,9 +61,9 @@ public class BasicBuilding extends Building {
 
     @Override
     protected void initializeMaintenanceCosts() {
-        // 基础维护费
-        maintenanceCosts.put(ResourceType.ENERGY, 15.0f * level.get() * level.get()); // 维护费按等级平方增长
-        maintenanceCosts.put(ResourceType.METAL, 3.0f * level.get() * level.get()); // 维护费按等级平方增长
+        // 基础维护费 - 降低初始维护成本
+        maintenanceCosts.put(ResourceType.ENERGY, 5.0f * level.get()); // 维护费按等级线性增长
+        maintenanceCosts.put(ResourceType.METAL, 1.0f * level.get()); // 维护费按等级线性增长
     }
 
     private void initializeBonuses() {

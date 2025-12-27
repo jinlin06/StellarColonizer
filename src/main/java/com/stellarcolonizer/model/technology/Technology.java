@@ -20,7 +20,6 @@ public class Technology {
     private String description;             // 详细描述
     private TechCategory category;          // 科技分类
     private int researchCost;               // 研究成本（科学点数）
-    private int researchTime;               // 基础研究时间（游戏内天数）
     private boolean isRepeatable;           // 是否可重复研究（用于某些增益科技）
     private int maxResearchLevel;           // 最大研究等级（默认为1）
     private BooleanProperty researched;     // 是否已研究
@@ -45,7 +44,6 @@ public class Technology {
         this.description = "";
         this.category = TechCategory.PHYSICS; // 默认分类
         this.researchCost = 100;
-        this.researchTime = 30;
         this.isRepeatable = false;
         this.maxResearchLevel = 1;
         this.researched = new SimpleBooleanProperty(false);
@@ -62,14 +60,13 @@ public class Technology {
      * 完整构造函数
      */
     public Technology(String id, String displayName, String description,
-                      TechCategory category, int researchCost, int researchTime,
+                      TechCategory category, int researchCost,
                       boolean isRepeatable, int maxResearchLevel) {
         this.id = id;
         this.displayName = displayName;
         this.description = description;
         this.category = category;
         this.researchCost = researchCost;
-        this.researchTime = researchTime;
         this.isRepeatable = isRepeatable;
         this.maxResearchLevel = maxResearchLevel;
         this.researched = new SimpleBooleanProperty(false);
@@ -86,9 +83,9 @@ public class Technology {
      * 简化构造函数（无等级和重复性参数）
      */
     public Technology(String id, String displayName, String description,
-                      TechCategory category, int researchCost, int researchTime) {
+                      TechCategory category, int researchCost) {
         this(id, displayName, description, category, researchCost,
-                researchTime, false, 1);
+                false, 1);
     }
 
     // ==================== Getter方法 ====================
@@ -119,10 +116,6 @@ public class Technology {
 
     public int getBaseCost() {
         return researchCost;
-    }
-
-    public int getResearchTime() {
-        return researchTime;
     }
 
     public boolean isRepeatable() {
@@ -201,13 +194,6 @@ public class Technology {
             throw new IllegalArgumentException("研究成本不能为负数");
         }
         this.researchCost = researchCost;
-    }
-
-    public void setResearchTime(int researchTime) {
-        if (researchTime < 1) {
-            throw new IllegalArgumentException("研究时间至少为1天");
-        }
-        this.researchTime = researchTime;
     }
 
     public void setRepeatable(boolean repeatable) {
@@ -349,17 +335,7 @@ public class Technology {
         return (int) Math.round(researchCost * multiplier);
     }
 
-    /**
-     * 计算实际研究时间（考虑游戏难度等因素）
-     * @param difficultyMultiplier 难度系数（1.0为普通）
-     * @return 调整后的研究时间
-     */
-    public int getAdjustedResearchTime(double difficultyMultiplier) {
-        if (difficultyMultiplier <= 0) {
-            throw new IllegalArgumentException("难度系数必须大于0");
-        }
-        return (int) Math.round(researchTime * difficultyMultiplier);
-    }
+
 
     /**
      * 检查科技是否可研发（满足所有前置条件）
@@ -451,7 +427,6 @@ public class Technology {
         clone.description = this.description;
         clone.category = this.category;
         clone.researchCost = this.researchCost;
-        clone.researchTime = this.researchTime;
         clone.isRepeatable = this.isRepeatable;
         clone.maxResearchLevel = this.maxResearchLevel;
         clone.researched = new SimpleBooleanProperty(this.researched.get());

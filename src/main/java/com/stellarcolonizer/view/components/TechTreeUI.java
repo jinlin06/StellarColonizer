@@ -302,7 +302,7 @@ public class TechTreeUI extends BorderPane {
 
     private VBox createRightPanel() {
         VBox panel = new VBox(10);
-        panel.setPrefWidth(350);
+        panel.setPrefWidth(450); // 增加宽度以显示更多内容
         panel.setPadding(new Insets(10));
         panel.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 5;");
 
@@ -311,21 +311,32 @@ public class TechTreeUI extends BorderPane {
         title.setTextFill(Color.WHITE);
 
         // 科技详情面板
-        VBox detailsPanel = createTechnologyDetailsPanel();
+        ScrollPane detailsPanel = createTechnologyDetailsPanel();
 
         panel.getChildren().addAll(title, detailsPanel);
         return panel;
     }
 
-    private VBox createTechnologyDetailsPanel() {
-        VBox panel = new VBox(10);
-        panel.setPadding(new Insets(15));
-        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+    private ScrollPane createTechnologyDetailsPanel() {
+        VBox contentPanel = new VBox(10);
+        contentPanel.setPadding(new Insets(15));
+        contentPanel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
 
         // 这里的内容会在选择科技时动态更新
-        panel.setId("tech-details");
+        contentPanel.setId("tech-details");
+        
+        // 创建滚动面板
+        ScrollPane scrollPane = new ScrollPane(contentPanel);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefWidth(420); // 设置滚动面板宽度以匹配面板宽度
+        scrollPane.setPrefHeight(600); // 增加高度以显示更多内容
+        scrollPane.setPrefViewportHeight(600); // 设置视口高度
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED); // 需要时显示滚动条
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // 水平方向不需要滚动
+        scrollPane.setStyle("-fx-background: #333333; -fx-border-color: #555555;");
+        scrollPane.setId("tech-details-scroll"); // 添加ID用于查找
 
-        return panel;
+        return scrollPane;
     }
 
     private void buildTechTree() {
@@ -606,7 +617,13 @@ public class TechTreeUI extends BorderPane {
     }
 
     private void updateTechnologyDetails() {
-        VBox detailsPanel = (VBox) lookup("#tech-details");
+        ScrollPane scrollPane = (ScrollPane) lookup("#tech-details-scroll");
+        VBox detailsPanel = null;
+        
+        if (scrollPane != null && scrollPane.getContent() instanceof VBox) {
+            detailsPanel = (VBox) scrollPane.getContent();
+        }
+        
         if (detailsPanel == null || selectedTechnology == null) return;
 
         detailsPanel.getChildren().clear();
@@ -621,7 +638,7 @@ public class TechTreeUI extends BorderPane {
         Label descLabel = new Label(selectedTechnology.getDescription());
         descLabel.setWrapText(true);
         descLabel.setTextFill(Color.LIGHTGRAY);
-        descLabel.setPrefWidth(300);
+        descLabel.setPrefWidth(400); // 增加描述标签的宽度以适应更大的面板
         detailsPanel.getChildren().add(descLabel);
 
         // 类别和成本
@@ -877,7 +894,7 @@ public class TechTreeUI extends BorderPane {
                 Label nameLabel = new Label(tech.getName());
                 nameLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
 
-                Label costLabel = new Label("时间: " + tech.getResearchTime() + " 回合");
+                Label costLabel = new Label("成本: " + tech.getResearchCost() + " 科研点");
                 costLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 11;");
 
                 infoBox.getChildren().addAll(nameLabel, costLabel);
