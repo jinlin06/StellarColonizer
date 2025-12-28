@@ -20,7 +20,12 @@ public class HullModule extends ShipModule {
     @Override
     protected void initializeCosts() {
         constructionCost.put(ResourceType.METAL, size.get() * 0.8f);
-        constructionCost.put(ResourceType.EXOTIC_MATTER, size.get() * 0.01f);
+        
+        // 只有大型船体（航母、无畏舰等，假设大小超过500）才需要稀有资源
+        if (size.get() > 500) {
+            constructionCost.put(ResourceType.EXOTIC_MATTER, size.get() * 0.01f);
+            constructionCost.put(ResourceType.DARK_MATTER, size.get() * 0.005f);
+        }
     }
 
     @Override

@@ -124,22 +124,26 @@ public class WeaponModule extends ShipModule {
 
         switch (type) {
             case LASER:
-                constructionCost.put(ResourceType.CRYSTAL, 20F);
+                // 基础激光武器只使用普通资源
                 maintenanceCost.put(ResourceType.ENERGY, 5F);
                 break;
             case PLASMA:
+                // 中级等离子武器开始使用稀有资源
                 constructionCost.put(ResourceType.EXOTIC_MATTER, 10F);
                 maintenanceCost.put(ResourceType.ENERGY, 8F);
                 break;
             case RAILGUN:
+                // 中级磁轨炮开始使用稀有资源
                 constructionCost.put(ResourceType.NEUTRONIUM, 15F);
                 maintenanceCost.put(ResourceType.ENERGY, 3F);
                 break;
             case MISSILE:
+                // 中级导弹使用稀有资源
                 constructionCost.put(ResourceType.ANTI_MATTER, 5F);
                 maintenanceCost.put(ResourceType.METAL, 2F); // 导弹消耗
                 break;
             case TORPEDO:
+                // 高级鱼雷使用稀有资源
                 constructionCost.put(ResourceType.DARK_MATTER, 8F);
                 maintenanceCost.put(ResourceType.ANTI_MATTER, 3F);
                 break;

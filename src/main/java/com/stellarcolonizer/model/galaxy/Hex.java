@@ -30,12 +30,12 @@ public class Hex {
 
     public void addEntity(Fleet entity) {
         entities.add(entity);
-        // entity.setCurrentHex(this); // 需要在Fleet类中实现这个方法
+        entity.setCurrentHex(this); // 设置舰队位置
     }
 
     public void removeEntity(Fleet entity) {
         entities.remove(entity);
-        // entity.setCurrentHex(null); // 需要在Fleet类中实现这个方法
+        // 不再设置为null，保持舰队的最后位置信息
     }
 
     public boolean containsFleet(Faction faction) {

@@ -1,8 +1,11 @@
 package com.stellarcolonizer.view.controllers;
 
 import com.stellarcolonizer.core.GameEngine;
+import com.stellarcolonizer.model.colony.Building;
 import com.stellarcolonizer.model.colony.Colony;
+import com.stellarcolonizer.model.colony.ResourceRequirement;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
+import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.galaxy.Hex;
 import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
@@ -15,8 +18,13 @@ import com.stellarcolonizer.view.components.DiplomacyView; // 添加外交界面
 import com.stellarcolonizer.view.controllers.UniversalResourceMarketController; // 添加市场控制器导入
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+
+import java.util.Optional;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
@@ -96,6 +104,21 @@ public class MainController {
             Hex selectedHex = event.getSelectedHex();
             onHexSelected(selectedHex);
         });
+        
+        // 设置舰队选择监听
+        hexMapView.addEventHandler(FleetSelectedEvent.FLEET_SELECTED, event -> {
+            Fleet selectedFleet = event.getSelectedFleet();
+            onFleetSelected(selectedFleet);
+        });
+        
+        // 添加点击地图时清除选中舰队的监听器
+        hexMapView.addEventHandler(HexSelectedEvent.HEX_SELECTED, event -> {
+            // 如果点击的是其他六边形且当前有选中的舰队，清除选中状态
+            if (hexMapView.getSelectedFleet() != null && 
+                !event.getSelectedHex().equals(hexMapView.getSelectedFleet().getCurrentHex())) {
+                hexMapView.setSelectedFleet(null);
+            }
+        });
     }
 
     private void setupEventListeners() {
@@ -128,6 +151,18 @@ public class MainController {
             showHexInfo(hex);
         }
     }
+    
+    private void onFleetSelected(Fleet fleet) {
+        // 显示选中的舰队信息
+        if (fleet != null) {
+            showFleetInfo(fleet);
+            
+            // 设置地图视图中的选中舰队，以高亮显示可移动范围
+            if (hexMapView != null) {
+                hexMapView.setSelectedFleet(fleet);
+            }
+        }
+    }
 
     private void showStarSystemInfo(StarSystem system) {
         // 使用新的星系信息展示窗口
@@ -141,6 +176,31 @@ public class MainController {
 
         showInfoDialog(String.format("%.1f%%", hex.getVisibility() * 100), info);
     }
+    
+    private void showFleetInfo(Fleet fleet) {
+        // 显示舰队信息和操作选项
+        if (fleet != null) {
+            showFleetOperations(fleet);
+        }
+    }
+    
+    private void showFleetOperations(Fleet fleet) {
+        String info = "舰队: " + fleet.getName() + "\n" +
+                "舰船数量: " + fleet.getShipCount() + "\n" +
+                "战斗力: " + String.format("%.0f", fleet.getTotalCombatPower()) + "\n" +
+                "任务: " + fleet.getCurrentMission().getDisplayName() + "\n" +
+                "位置: " + fleet.getCurrentHex().getCoord();
+        
+        // 在地图上高亮显示舰队信息，不弹出独立窗口
+        showInfoDialog("舰队信息", info);
+        
+        // 设置地图视图中的选中舰队，以高亮显示可移动范围
+        if (hexMapView != null) {
+            hexMapView.setSelectedFleet(fleet);
+        }
+    }
+    
+
 
     private void showInfoDialog(String title, String content) {
         // 创建弹窗显示信息
@@ -219,6 +279,20 @@ public class MainController {
                 if (netAmount != 0) {
                     System.out.println("  " + type.getDisplayName() + 
                         " 净产量: " + String.format("%.2f", netAmount));
+                }
+            }
+            
+            // 添加建筑维护成本的考虑
+            for (Building building : colony.getBuildings()) {
+                // 获取所有资源类型的维护成本
+                for (ResourceType type : ResourceType.values()) {
+                    float maintenanceCost = building.getMaintenanceCost(type);
+                    if (maintenanceCost > 0) {
+                        totalNetProduction.put(type, totalNetProduction.get(type) - maintenanceCost);
+                        
+                        System.out.println("  " + type.getDisplayName() + 
+                            " 维护成本: " + String.format("%.2f", maintenanceCost));
+                    }
                 }
             }
         }

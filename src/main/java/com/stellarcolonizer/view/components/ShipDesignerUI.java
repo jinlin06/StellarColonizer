@@ -40,6 +40,7 @@ public class ShipDesignerUI extends BorderPane {
     private Label crewLabel;
     private Label cargoLabel;
     private Label fuelLabel;
+    private Label damageLabel;
     private Label combatPowerLabel;
     private Label strategicValueLabel;
 
@@ -338,10 +339,11 @@ public class ShipDesignerUI extends BorderPane {
         warpSpeedLabel = createStatLabel("跃迁:", "1.0");
         maneuverabilityLabel = createStatLabel("机动:", "80");
         crewLabel = createStatLabel("船员:", "50");
+        damageLabel = createStatLabel("伤害:", "0");
 
         leftColumn.getChildren().addAll(nameLabel, shipNameLabel, shipClassLabel);
         middleColumn.getChildren().addAll(hitPointsLabel, shieldLabel, armorLabel, evasionLabel);
-        rightColumn.getChildren().addAll(speedLabel, warpSpeedLabel, maneuverabilityLabel, crewLabel);
+        rightColumn.getChildren().addAll(speedLabel, warpSpeedLabel, maneuverabilityLabel, crewLabel, damageLabel);
 
         panel.getChildren().addAll(leftColumn, middleColumn, rightColumn);
         return panel;
@@ -471,6 +473,15 @@ public class ShipDesignerUI extends BorderPane {
         );
         listView.setItems(filteredModules);
         listView.setCellFactory(lv -> new ModuleListCell());
+        
+        // 添加选择监听器，当点击模块库中的模块时显示其详细信息
+        listView.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldVal, newVal) -> {
+                    if (newVal != null) {
+                        updateModuleDetails(newVal);
+                    }
+                }
+        );
 
         return listView;
     }
@@ -595,6 +606,31 @@ public class ShipDesignerUI extends BorderPane {
         // 保存设计按钮
         saveDesignButton.setOnAction(e -> {
             if (currentDesign != null) {
+                // 检查设计是否包含必需的模块
+                boolean hasHull = false;
+                boolean hasEngine = false;
+                boolean hasPower = false;
+                
+                for (ShipModule module : currentDesign.getModules()) {
+                    if (module instanceof HullModule) {
+                        hasHull = true;
+                    } else if (module instanceof EngineModule) {
+                        hasEngine = true;
+                    } else if (module instanceof PowerModule) {
+                        hasPower = true;
+                    }
+                }
+                
+                if (!hasHull || !hasEngine || !hasPower) {
+                    StringBuilder missingModules = new StringBuilder("设计缺少必需的模块：\n");
+                    if (!hasHull) missingModules.append("• 船体模块\n");
+                    if (!hasEngine) missingModules.append("• 引擎模块\n");
+                    if (!hasPower) missingModules.append("• 发电机模块\n");
+                    
+                    showAlert("无法保存设计", missingModules.toString());
+                    return;
+                }
+                
                 // 显示输入对话框让用户输入设计名称
                 TextInputDialog dialog = new TextInputDialog(currentDesign.getName());
                 dialog.setTitle("保存设计");
@@ -699,10 +735,8 @@ public class ShipDesignerUI extends BorderPane {
             ShipModule selectedModule = currentModulesList.getSelectionModel().getSelectedItem();
             if (selectedModule != null && currentDesign != null) {
                 // 检查是否是核心模块（不能移除）
-                if (selectedModule instanceof HullModule || 
-                    selectedModule instanceof EngineModule || 
-                    selectedModule instanceof PowerModule) {
-                    showAlert("无法移除模块", "核心模块（船体、引擎、电力）不能被移除。");
+                if (selectedModule instanceof HullModule) {
+                    showAlert("无法移除模块", "船体模块不能被移除。");
                     return;
                 }
                 
@@ -1259,6 +1293,9 @@ n     * @return 已研发的科技集合
         crewLabel.setText(String.format("船员: %d", currentDesign.getCrewCapacity()));
         cargoLabel.setText(String.format("货舱: %d", currentDesign.getCargoCapacity()));
         fuelLabel.setText(String.format("燃料: %d", currentDesign.getFuelCapacity()));
+        
+        // 更新伤害值
+        damageLabel.setText(String.format("伤害: %.0f", currentDesign.calculateTotalDamage()));
         
         // 更新船体空间加成
         hullSizeMultiplierLabel.setText(String.format("船体加成: %.1f%%", currentDesign.getHullSizeMultiplier() * 100));

@@ -130,10 +130,17 @@ public class Faction {
         // 更新统计
         updateStatistics();
 
+        // 处理舰队
+        List<Fleet> fleets = getFleets();
+        for (Fleet fleet : fleets) {
+            fleet.processTurn();
+        }
+        
         // AI决策
         if (isAI && aiController != null) {
             aiController.makeDecision();
         }
+        
         System.out.println("[" + name + "] 派系处理回合结束");
     }
 

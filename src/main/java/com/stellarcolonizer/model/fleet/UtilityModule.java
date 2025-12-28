@@ -46,28 +46,33 @@ public class UtilityModule extends ShipModule {
 
         switch (type) {
             case SENSOR:
-                constructionCost.put(ResourceType.CRYSTAL, 25F);
+                // 基础传感器只使用普通资源
                 maintenanceCost.put(ResourceType.ENERGY, 3F);
                 maintenanceCost.put(ResourceType.SCIENCE, 0.5f);
                 break;
             case CLOAKING:
+                // 高级隐形使用稀有资源
                 constructionCost.put(ResourceType.DARK_MATTER, 20F);
                 maintenanceCost.put(ResourceType.ENERGY, 12F);
                 break;
             case CARGO_BAY:
+                // 基础货舱只使用普通资源
                 constructionCost.put(ResourceType.METAL, 100F); // 额外金属
                 break;
             case HANGAR:
+                // 中级机库使用稀有资源
                 constructionCost.put(ResourceType.METAL, 150F);
                 constructionCost.put(ResourceType.ENERGY, 80F);
                 maintenanceCost.put(ResourceType.ENERGY, 10F);
                 break;
             case RESEARCH_LAB:
+                // 基础研究实验室只使用普通资源
                 constructionCost.put(ResourceType.SCIENCE, 50F);
                 maintenanceCost.put(ResourceType.ENERGY, 5F);
                 maintenanceCost.put(ResourceType.SCIENCE, 2F);
                 break;
             case MEDICAL_BAY:
+                // 高级医疗舱使用稀有资源
                 constructionCost.put(ResourceType.LIVING_METAL, 15F);
                 maintenanceCost.put(ResourceType.FOOD, 1F);
                 break;

@@ -58,17 +58,19 @@ public class DefenseModule extends ShipModule {
 
         switch (type) {
             case SHIELD:
-                constructionCost.put(ResourceType.CRYSTAL, 30F);
+                // 基础护盾只使用普通资源
                 maintenanceCost.put(ResourceType.ENERGY, 8F);
                 break;
             case ARMOR:
-                constructionCost.put(ResourceType.NEUTRONIUM, 20F);
+                // 基础装甲只使用普通资源
                 break;
             case POINT_DEFENSE:
+                // 中级点防御开始使用稀有资源
                 constructionCost.put(ResourceType.ANTI_MATTER, 10F);
                 maintenanceCost.put(ResourceType.ENERGY, 5F);
                 break;
             case ECM:
+                // 高级ECM使用稀有资源
                 constructionCost.put(ResourceType.EXOTIC_MATTER, 15F);
                 maintenanceCost.put(ResourceType.ENERGY, 3F);
                 maintenanceCost.put(ResourceType.SCIENCE, 1F);

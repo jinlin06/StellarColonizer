@@ -61,6 +61,11 @@ public class Fleet {
         this.supplies = new EnumMap<>(ResourceType.class);
         initializeSupplies();
         this.supplyEfficiency = new SimpleFloatProperty(1.0f);
+        
+        // 将新舰队添加到初始六边形中
+        if (initialHex != null) {
+            initialHex.addEntity(this);
+        }
     }
 
     private void initializeSupplies() {
@@ -121,9 +126,9 @@ public class Fleet {
     }
 
     private void updateFleetStats() {
-        // 计算总战斗力
+        // 计算总战斗力 - 修复：使用舰船设计的综合战斗力计算
         float combatPower = ships.stream()
-                .map(Ship::calculateDamageOutput)
+                .map(ship -> ship.getDesign().calculateCombatPower())
                 .reduce(0f, Float::sum);
         totalCombatPower.set(combatPower);
 
@@ -170,6 +175,11 @@ public class Fleet {
 
         // 检查任务状态
         checkMission();
+        
+        // 处理移动 - 如果在移动且燃料充足，尝试移动到目的地
+        if (isMoving.get() && canMove()) {
+            moveTowardsDestination();
+        }
 
         // 自动补给
         autoResupply();
@@ -414,12 +424,22 @@ public class Fleet {
         }
     }
 
-    public void moveTo(Hex destination) {
-        if (destination == null || destination.equals(currentHex.get())) return;
+    public boolean moveTo(Hex destination) {
+        if (destination == null || destination.equals(currentHex.get())) return false;
 
+        // 从当前六边形中移除舰队
+        if (currentHex.get() != null) {
+            currentHex.get().removeEntity(this);
+        }
+        
         this.destination.set(destination);
         isMoving.set(true);
         currentMission.set(FleetMission.MOVE);
+        
+        // 到达目的地后，将舰队添加到目标六边形
+        // 这部分逻辑在processTurn中处理
+        
+        return true;
     }
 
     public boolean canMove() {
@@ -557,6 +577,7 @@ public class Fleet {
 
     public Hex getCurrentHex() { return currentHex.get(); }
     public ObjectProperty<Hex> currentHexProperty() { return currentHex; }
+    public void setCurrentHex(Hex hex) { currentHex.set(hex); }
 
     public ObservableList<Ship> getShips() { return ships; }
     public Map<ShipDesign, Integer> getShipCountByDesign() { return new HashMap<>(shipCountByDesign); }
@@ -593,5 +614,26 @@ public class Fleet {
     public int getShipCount() { return ships.size(); }
     public int getTotalCrew() {
         return ships.stream().mapToInt(Ship::getCurrentCrew).sum();
+    }
+    
+    private void moveTowardsDestination() {
+        if (destination.get() != null && !currentHex.get().equals(destination.get())) {
+            // 从当前六边形中移除舰队
+            if (currentHex.get() != null) {
+                currentHex.get().removeEntity(this);
+            }
+            
+            // 将舰队移动到目的地六边形
+            currentHex.set(destination.get());
+            
+            // 确保舰队被添加到新的六边形中
+            if (destination.get() != null) {
+                destination.get().addEntity(this);
+            }
+            
+            // 停止移动标志
+            isMoving.set(false);
+            currentMission.set(FleetMission.STANDBY);
+        }
     }
 }

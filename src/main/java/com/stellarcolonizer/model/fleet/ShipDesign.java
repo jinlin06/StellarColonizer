@@ -228,7 +228,7 @@ public class ShipDesign {
     }
 
     public boolean removeModule(ShipModule module) {
-        if (module instanceof HullModule || module instanceof EngineModule || module instanceof PowerModule) {
+        if (module instanceof HullModule) {
             return false;
         }
 
@@ -321,13 +321,14 @@ public class ShipDesign {
     }
 
     private void recalculateStats() {
-        float baseHitPoints = hitPoints.get();
-        float baseArmor = armor.get();
-        float baseShield = shieldStrength.get();
-        float baseEvasion = evasion.get();
-        float baseEnginePower = enginePower.get();
-        float baseWarpSpeed = warpSpeed.get();
-        float baseManeuverability = maneuverability.get();
+        // 从基础值开始重新计算，而不是从当前值
+        float baseHitPoints = getBaseValueForType("hitPoints");
+        float baseArmor = getBaseValueForType("armor");
+        float baseShield = getBaseValueForType("shieldStrength");
+        float baseEvasion = getBaseValueForType("evasion");
+        float baseEnginePower = getBaseValueForType("enginePower");
+        float baseWarpSpeed = getBaseValueForType("warpSpeed");
+        float baseManeuverability = getBaseValueForType("maneuverability");
 
         for (ShipModule module : modules) {
             baseHitPoints += module.getHitPointBonus();
@@ -350,10 +351,85 @@ public class ShipDesign {
         recalculateCapacities();
     }
 
+    // 根据舰船等级获取基础属性值
+    private float getBaseValueForType(String type) {
+        switch (shipClass.get()) {
+            case CORVETTE:
+                return switch (type) {
+                    case "hitPoints" -> 1000;
+                    case "armor" -> 50;
+                    case "shieldStrength" -> 100;
+                    case "evasion" -> 30;
+                    case "enginePower" -> 150;
+                    case "warpSpeed" -> 1.0f;
+                    case "maneuverability" -> 80;
+                    default -> 0;
+                };
+            case FRIGATE:
+                return switch (type) {
+                    case "hitPoints" -> 2500;
+                    case "armor" -> 100;
+                    case "shieldStrength" -> 250;
+                    case "evasion" -> 20;
+                    case "enginePower" -> 120;
+                    case "warpSpeed" -> 1.2f;
+                    case "maneuverability" -> 60;
+                    default -> 0;
+                };
+            case DESTROYER:
+                return switch (type) {
+                    case "hitPoints" -> 5000;
+                    case "armor" -> 200;
+                    case "shieldStrength" -> 500;
+                    case "evasion" -> 15;
+                    case "enginePower" -> 100;
+                    case "warpSpeed" -> 1.5f;
+                    case "maneuverability" -> 40;
+                    default -> 0;
+                };
+            case CRUISER:
+                return switch (type) {
+                    case "hitPoints" -> 10000;
+                    case "armor" -> 400;
+                    case "shieldStrength" -> 1000;
+                    case "evasion" -> 10;
+                    case "enginePower" -> 80;
+                    case "warpSpeed" -> 2.0f;
+                    case "maneuverability" -> 30;
+                    default -> 0;
+                };
+            case BATTLESHIP:
+                return switch (type) {
+                    case "hitPoints" -> 20000;
+                    case "armor" -> 800;
+                    case "shieldStrength" -> 2000;
+                    case "evasion" -> 5;
+                    case "enginePower" -> 60;
+                    case "warpSpeed" -> 2.5f;
+                    case "maneuverability" -> 20;
+                    default -> 0;
+                };
+            case CARRIER:
+                return switch (type) {
+                    case "hitPoints" -> 30000;
+                    case "armor" -> 600;
+                    case "shieldStrength" -> 1500;
+                    case "evasion" -> 3;
+                    case "enginePower" -> 50;
+                    case "warpSpeed" -> 2.2f;
+                    case "maneuverability" -> 15;
+                    default -> 0;
+                };
+            default:
+                return 0;
+        }
+    }
+
     private void recalculateCapacities() {
-        int baseCrew = crewCapacity.get();
-        int baseCargo = cargoCapacity.get();
-        int baseFuel = fuelCapacity.get();
+        // 从基础值开始重新计算，而不是从当前值
+        int baseCrew = getBaseCapacityValueForType("crew");
+        int baseCargo = getBaseCapacityValueForType("cargo");
+        int baseFuel = getBaseCapacityValueForType("fuel");
 
         for (ShipModule module : modules) {
             baseCrew += module.getCrewBonus();
@@ -364,6 +440,56 @@ public class ShipDesign {
         crewCapacity.set(Math.max(10, baseCrew));
         cargoCapacity.set(Math.max(0, baseCargo));
         fuelCapacity.set(Math.max(100, baseFuel));
+    }
+    
+    // 根据舰船等级获取基础容量值
+    private int getBaseCapacityValueForType(String type) {
+        switch (shipClass.get()) {
+            case CORVETTE:
+                return switch (type) {
+                    case "crew" -> 50;
+                    case "cargo" -> 100;
+                    case "fuel" -> 200;
+                    default -> 0;
+                };
+            case FRIGATE:
+                return switch (type) {
+                    case "crew" -> 120;
+                    case "cargo" -> 250;
+                    case "fuel" -> 400;
+                    default -> 0;
+                };
+            case DESTROYER:
+                return switch (type) {
+                    case "crew" -> 250;
+                    case "cargo" -> 500;
+                    case "fuel" -> 800;
+                    default -> 0;
+                };
+            case CRUISER:
+                return switch (type) {
+                    case "crew" -> 500;
+                    case "cargo" -> 1000;
+                    case "fuel" -> 1500;
+                    default -> 0;
+                };
+            case BATTLESHIP:
+                return switch (type) {
+                    case "crew" -> 1000;
+                    case "cargo" -> 2000;
+                    case "fuel" -> 3000;
+                    default -> 0;
+                };
+            case CARRIER:
+                return switch (type) {
+                    case "crew" -> 1500;
+                    case "cargo" -> 5000;
+                    case "fuel" -> 5000;
+                    default -> 0;
+                };
+            default:
+                return 0;
+        }
     }
 
     private void recalculateCosts() {
@@ -381,9 +507,6 @@ public class ShipDesign {
                 maintenanceCost.merge(entry.getKey(), entry.getValue(), Float::sum);
             }
         }
-
-        constructionCost.merge(ResourceType.METAL, hullSize.get() * 0.5f, Float::sum);
-        constructionCost.merge(ResourceType.ENERGY, hullSize.get() * 0.2f, Float::sum);
     }
 
     private void validateDesign() {
@@ -455,6 +578,23 @@ public class ShipDesign {
         }
 
         return strategicValue;
+    }
+    
+    /**
+     * 计算舰船的总伤害输出
+     * @return 舰船的总伤害值
+     */
+    public float calculateTotalDamage() {
+        float totalDamage = 0;
+        
+        for (ShipModule module : modules) {
+            if (module instanceof WeaponModule) {
+                WeaponModule weapon = (WeaponModule) module;
+                totalDamage += weapon.getDamage();
+            }
+        }
+        
+        return totalDamage;
     }
 
     public ShipDesign createCopy(String newName) {

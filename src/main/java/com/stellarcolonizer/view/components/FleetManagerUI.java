@@ -1,12 +1,16 @@
 package com.stellarcolonizer.view.components;
 
+import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.fleet.*;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.fleet.enums.FleetMission;
 import com.stellarcolonizer.model.fleet.enums.ShipClass;
 import com.stellarcolonizer.model.galaxy.CubeCoord;
 import com.stellarcolonizer.model.galaxy.Hex;
+import com.stellarcolonizer.model.galaxy.Planet;
+import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.colony.Colony;
+import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
@@ -14,6 +18,7 @@ import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -62,13 +67,108 @@ public class FleetManagerUI extends BorderPane {
     private Button mergeFleetButton;
     private Button repairFleetButton;
     private Button resupplyFleetButton;
-    private Button changeMissionButton;
     private Button buildShipButton;
     private Button scrapShipButton;
     private Button transferShipButton;
 
     // 任务选择
+    // private ComboBox<FleetMission> missionComboBox;
+    
+    // 任务控制按钮
+    // private Button changeMissionButton;
+
+    private VBox createRightPanel() {
+        VBox panel = new VBox(10);
+        panel.setPrefWidth(250);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 5;");
+
+        Label title = new Label("舰队操作");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        title.setTextFill(Color.WHITE);
+
+        // 舰队操作按钮
+        VBox fleetOperations = createFleetOperationsPanel();
+
+        // 移除了舰船操作面板，因为用户不需要此功能
+        // VBox shipOperations = createShipOperationsPanel();
+
+        // 移除了任务控制面板，因为用户不需要此功能
+        // VBox missionControl = createMissionControlPanel();
+
+        // 移除了shipOperations和missionControl，因为它们已被移除
+        panel.getChildren().addAll(title, fleetOperations);
+        return panel;
+    }
+
+    private void setupEventHandlers() {
+        // 舰队选择
+        fleetListView.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldFleet, newFleet) -> {
+                    selectedFleet = newFleet;
+                    updateFleetDetails();
+                    updateShipList();
+                }
+        );
+
+        // 舰船选择
+        shipListView.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldShip, newShip) -> {
+                    selectedShip = newShip;
+                    updateShipDetails();
+                }
+        );
+
+        // 操作按钮事件
+        setupOperationButtons();
+    }
+
+    private void setupOperationButtons() {
+        // 移动舰队
+        moveFleetButton.setOnAction(e -> showMoveFleetDialog());
+
+        // 拆分舰队
+        splitFleetButton.setOnAction(e -> showSplitFleetDialog());
+
+        // 合并舰队
+        mergeFleetButton.setOnAction(e -> showMergeFleetDialog());
+
+        // 修理舰队
+        repairFleetButton.setOnAction(e -> repairSelectedFleet());
+
+        // 补给舰队
+        resupplyFleetButton.setOnAction(e -> resupplySelectedFleet());
+
+        // 移除更改任务功能
+        // changeMissionButton.setOnAction(e -> changeFleetMission());
+
+        // 建造舰船
+        buildShipButton.setOnAction(e -> showBuildShipDialog());
+
+        // 移除拆解舰船和转移舰船功能
+        // scrapShipButton.setOnAction(e -> scrapSelectedShip());
+        // transferShipButton.setOnAction(e -> showTransferShipDialog());
+    }
+
+    // 移除更改任务功能
+    // private void changeFleetMission() {
+    //     if (selectedFleet == null || missionComboBox.getValue() == null) return;
+    // 
+    //     FleetMission newMission = missionComboBox.getValue();
+    //     selectedFleet.setMission(newMission, null);
+    // 
+    //     showAlert("任务更改", selectedFleet.getName() + " 的任务已更改为 " + newMission.getDisplayName());
+    //     updateFleetDetails();
+    // }
+
+    // 任务选择
     private ComboBox<FleetMission> missionComboBox;
+
+    // 任务控制
+    private VBox createMissionControlPanel() {
+        // 移除了任务控制面板，因为用户不需要此功能
+        return new VBox();
+    }
 
     // 地图视图集成
     private HexMapView hexMapView;
@@ -84,22 +184,44 @@ public class FleetManagerUI extends BorderPane {
 
         initializeUI();
         setupEventHandlers();
+        
+        // 添加对FleetSelectedEvent事件的监听
+        this.addEventHandler(FleetSelectedEvent.FLEET_SELECTED, event -> {
+            System.out.println("FleetSelectedEvent triggered for fleet: " + event.getSelectedFleet().getName());
+            Fleet selectedFleet = event.getSelectedFleet();
+            if (selectedFleet != null) {
+                // 设置选中的舰队
+                this.selectedFleet = selectedFleet;
+                
+                // 更新舰队详情显示
+                updateFleetDetails();
+                
+                // 更新舰船列表
+                updateShipList();
+                
+                // 在舰队列表中选择该舰队
+                int index = fleets.indexOf(selectedFleet);
+                if (index >= 0) {
+                    fleetListView.getSelectionModel().select(index);
+                }
+                
+                // 确保舰队管理界面可见（如果它被隐藏或覆盖）
+                // 这里需要根据实际的UI架构来实现
+                // 例如，如果有一个主窗口管理器，可能需要调用类似 showFleetManager() 的方法
+                // 或者将舰队管理界面设置为前景
+            }
+        });
     }
 
     private void loadFleets() {
-        // 这里应该从游戏引擎加载舰队数据
-        // 暂时创建一些示例舰队
+        // 从游戏引擎加载舰队数据
         fleets.clear();
-
-        // 示例舰队
-        Hex startHex = new Hex(new CubeCoord(0, 0, 0));
-        Fleet fleet1 = new Fleet("第一舰队", playerFaction, startHex);
-        fleet1.setName("探索舰队");
-
-        Fleet fleet2 = new Fleet("第二舰队", playerFaction, startHex);
-        fleet2.setName("防御舰队");
-
-        fleets.addAll(fleet1, fleet2);
+        
+        // 获取玩家派系的舰队列表
+        if (playerFaction != null) {
+            List<Fleet> playerFleets = playerFaction.getFleets();
+            fleets.addAll(playerFleets);
+        }
     }
 
     private void loadShipyards() {
@@ -287,11 +409,10 @@ public class FleetManagerUI extends BorderPane {
 
         addFleetInfoRow(infoGrid, 0, "名称:", fleetNameLabel = new Label());
         addFleetInfoRow(infoGrid, 1, "位置:", fleetLocationLabel = new Label());
-        addFleetInfoRow(infoGrid, 2, "任务:", fleetMissionLabel = new Label());
-        addFleetInfoRow(infoGrid, 3, "战斗力:", fleetCombatPowerLabel = new Label());
-        addFleetInfoRow(infoGrid, 4, "舰船数量:", fleetShipCountLabel = new Label());
-        addFleetInfoRow(infoGrid, 5, "船员总数:", fleetCrewLabel = new Label());
-        addFleetInfoRow(infoGrid, 6, "补给效率:", fleetSupplyLabel = new Label());
+        addFleetInfoRow(infoGrid, 2, "战斗力:", fleetCombatPowerLabel = new Label());
+        addFleetInfoRow(infoGrid, 3, "舰船数量:", fleetShipCountLabel = new Label());
+        addFleetInfoRow(infoGrid, 4, "船员总数:", fleetCrewLabel = new Label());
+        addFleetInfoRow(infoGrid, 5, "补给效率:", fleetSupplyLabel = new Label());
 
         // 舰船组成图表
         VBox compositionBox = createCompositionChart();
@@ -393,29 +514,6 @@ public class FleetManagerUI extends BorderPane {
         container.getChildren().add(row);
     }
 
-    private VBox createRightPanel() {
-        VBox panel = new VBox(10);
-        panel.setPrefWidth(250);
-        panel.setPadding(new Insets(10));
-        panel.setStyle("-fx-background-color: #2b2b2b; -fx-background-radius: 5;");
-
-        Label title = new Label("舰队操作");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        title.setTextFill(Color.WHITE);
-
-        // 舰队操作按钮
-        VBox fleetOperations = createFleetOperationsPanel();
-
-        // 舰船操作按钮
-        VBox shipOperations = createShipOperationsPanel();
-
-        // 任务控制
-        VBox missionControl = createMissionControlPanel();
-
-        panel.getChildren().addAll(title, fleetOperations, shipOperations, missionControl);
-        return panel;
-    }
-
     private VBox createFleetOperationsPanel() {
         VBox panel = new VBox(5);
         panel.setPadding(new Insets(10));
@@ -447,127 +545,8 @@ public class FleetManagerUI extends BorderPane {
     }
 
     private VBox createShipOperationsPanel() {
-        VBox panel = new VBox(5);
-        panel.setPadding(new Insets(10));
-        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
-
-        Label title = new Label("舰船操作");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        title.setTextFill(Color.WHITE);
-
-        scrapShipButton = new Button("拆解舰船");
-        transferShipButton = new Button("转移舰船");
-
-        String buttonStyle = "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-min-width: 120;";
-        scrapShipButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-min-width: 120;");
-        transferShipButton.setStyle(buttonStyle);
-
-        panel.getChildren().addAll(title, scrapShipButton, transferShipButton);
-        return panel;
-    }
-
-    private VBox createMissionControlPanel() {
-        VBox panel = new VBox(5);
-        panel.setPadding(new Insets(10));
-        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
-
-        Label title = new Label("任务控制");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        title.setTextFill(Color.WHITE);
-
-        // 任务选择
-        HBox missionBox = new HBox(5);
-        Label missionLabel = new Label("任务:");
-        missionLabel.setTextFill(Color.LIGHTGRAY);
-
-        missionComboBox = new ComboBox<>();
-        missionComboBox.getItems().addAll(FleetMission.values());
-        missionComboBox.setPrefWidth(150);
-        
-        // 设置任务下拉框显示中文名称
-        missionComboBox.setCellFactory(lv -> new ListCell<FleetMission>() {
-            @Override
-            protected void updateItem(FleetMission item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(item.getDisplayName());
-                }
-            }
-        });
-        
-        missionComboBox.setButtonCell(new ListCell<FleetMission>() {
-            @Override
-            protected void updateItem(FleetMission item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText("选择任务");
-                } else {
-                    setText(item.getDisplayName());
-                }
-            }
-        });
-
-        missionBox.getChildren().addAll(missionLabel, missionComboBox);
-
-        // 任务按钮
-        changeMissionButton = new Button("更改任务");
-        changeMissionButton.setStyle("-fx-background-color: #FF9800; -fx-text-fill: white; -fx-min-width: 120;");
-
-        panel.getChildren().addAll(title, missionBox, changeMissionButton);
-        return panel;
-    }
-
-    private void setupEventHandlers() {
-        // 舰队选择
-        fleetListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldFleet, newFleet) -> {
-                    selectedFleet = newFleet;
-                    updateFleetDetails();
-                    updateShipList();
-                }
-        );
-
-        // 舰船选择
-        shipListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldShip, newShip) -> {
-                    selectedShip = newShip;
-                    updateShipDetails();
-                }
-        );
-
-        // 操作按钮事件
-        setupOperationButtons();
-    }
-
-    private void setupOperationButtons() {
-        // 移动舰队
-        moveFleetButton.setOnAction(e -> showMoveFleetDialog());
-
-        // 拆分舰队
-        splitFleetButton.setOnAction(e -> showSplitFleetDialog());
-
-        // 合并舰队
-        mergeFleetButton.setOnAction(e -> showMergeFleetDialog());
-
-        // 修理舰队
-        repairFleetButton.setOnAction(e -> repairSelectedFleet());
-
-        // 补给舰队
-        resupplyFleetButton.setOnAction(e -> resupplySelectedFleet());
-
-        // 更改任务
-        changeMissionButton.setOnAction(e -> changeFleetMission());
-
-        // 建造舰船
-        buildShipButton.setOnAction(e -> showBuildShipDialog());
-
-        // 拆解舰船
-        scrapShipButton.setOnAction(e -> scrapSelectedShip());
-
-        // 转移舰船
-        transferShipButton.setOnAction(e -> showTransferShipDialog());
+        // 舰船操作功能已移除
+        return new VBox();
     }
 
     private void updateFleetDetails() {
@@ -577,9 +556,26 @@ public class FleetManagerUI extends BorderPane {
         }
 
         fleetNameLabel.setText(selectedFleet.getName());
-        fleetLocationLabel.setText(selectedFleet.getCurrentHex() != null ?
-                selectedFleet.getCurrentHex().getCoord().toString() : "未知");
-        fleetMissionLabel.setText(selectedFleet.getCurrentMission().getDisplayName());
+        
+        // 改进位置显示，显示更详细的位置信息
+        if (selectedFleet.getCurrentHex() != null) {
+            Hex currentHex = selectedFleet.getCurrentHex();
+            CubeCoord coord = currentHex.getCoord();
+            
+            // 尝试获取六边形中的星系信息
+            String locationInfo = coord.toString();
+            
+            // 如果六边形包含星系，显示星系名称
+            if (currentHex.hasStarSystem()) {
+                locationInfo += " (" + currentHex.getStarSystem().getName() + ")";
+            }
+            
+            fleetLocationLabel.setText(locationInfo);
+        } else {
+            fleetLocationLabel.setText("未知");
+        }
+        
+        // fleetMissionLabel.setText(selectedFleet.getCurrentMission().getDisplayName());  // 移除任务显示
         fleetCombatPowerLabel.setText(String.format("%.0f", selectedFleet.getTotalCombatPower()));
         fleetShipCountLabel.setText(String.valueOf(selectedFleet.getShipCount()));
         fleetCrewLabel.setText(String.valueOf(selectedFleet.getTotalCrew()));
@@ -592,7 +588,7 @@ public class FleetManagerUI extends BorderPane {
     private void clearFleetDetails() {
         fleetNameLabel.setText("");
         fleetLocationLabel.setText("");
-        fleetMissionLabel.setText("");
+        // fleetMissionLabel.setText("");  // 移除任务显示
         fleetCombatPowerLabel.setText("");
         fleetShipCountLabel.setText("");
         fleetCrewLabel.setText("");
@@ -714,13 +710,29 @@ public class FleetManagerUI extends BorderPane {
     }
 
     private void refreshData() {
+        // 保存当前选择的舰队信息
+        String selectedFleetName = selectedFleet != null ? selectedFleet.getName() : null;
+        
+        // 重新加载数据
         loadFleets();
         loadShipyards();
+        
+        // 保持UI组件的引用
         fleetListView.setItems(fleets);
 
-        if (!fleets.isEmpty() && selectedFleet != null) {
-            // 重新选择当前舰队
-            fleetListView.getSelectionModel().select(selectedFleet);
+        // 尝试重新选择之前的舰队
+        if (selectedFleetName != null) {
+            Fleet fleetToSelect = fleets.stream()
+                .filter(f -> f.getName().equals(selectedFleetName))
+                .findFirst()
+                .orElse(null);
+                
+            if (fleetToSelect != null) {
+                fleetListView.getSelectionModel().select(fleetToSelect);
+                selectedFleet = fleetToSelect; // 更新引用
+                updateFleetDetails();
+                updateShipList();
+            }
         }
     }
 
@@ -796,6 +808,11 @@ public class FleetManagerUI extends BorderPane {
         });
 
         dialog.showAndWait().ifPresent(newFleet -> {
+            // 确保新舰队在六边形中
+            if (newFleet.getCurrentHex() != null && !newFleet.getCurrentHex().getFleets().contains(newFleet)) {
+                newFleet.getCurrentHex().addEntity(newFleet);
+            }
+            
             updateFleetDetails();
             updateShipList();
             fleetListView.getSelectionModel().select(newFleet);
@@ -830,6 +847,12 @@ public class FleetManagerUI extends BorderPane {
             if (targetFleet != null) {
                 selectedFleet.mergeFleet(targetFleet);
                 fleets.remove(targetFleet);
+                
+                // 确保合并后的舰队在六边形中
+                if (selectedFleet.getCurrentHex() != null && !selectedFleet.getCurrentHex().getFleets().contains(selectedFleet)) {
+                    selectedFleet.getCurrentHex().addEntity(selectedFleet);
+                }
+                
                 updateFleetDetails();
                 updateShipList();
             }
@@ -872,8 +895,6 @@ public class FleetManagerUI extends BorderPane {
     }
 
     private void showBuildShipDialog() {
-        if (selectedFleet == null) return;
-
         // 显示舰船设计器
         ShipDesignerUI designer = new ShipDesignerUI();
 
@@ -895,18 +916,55 @@ public class FleetManagerUI extends BorderPane {
         // 设置列表样式，与主界面风格保持一致
         designList.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
 
-        // 造船厂选择
-        ComboBox<Colony> shipyardCombo = new ComboBox<>(shipyards);
-        shipyardCombo.setPromptText("选择造船厂");
+        // 殖民地选择（代替造船厂）
+        ComboBox<Colony> colonyCombo = new ComboBox<>(FXCollections.observableArrayList(playerFaction.getColonies()));
+        colonyCombo.setPromptText("选择殖民地");
         
         // 设置下拉框样式，与主界面风格保持一致
-        shipyardCombo.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white;");
+        colonyCombo.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white;");
+
+        // 数量选择
+        Spinner<Integer> quantitySpinner = new Spinner<>(1, 100, 1);
+        quantitySpinner.getValueFactory().setValue(1);
+        quantitySpinner.setPrefWidth(100);
+        
+        // 显示资源需求
+        Label resourceLabel = new Label();
+        resourceLabel.setTextFill(Color.WHITE);
+        resourceLabel.setWrapText(true);
+        
+        // 当选择设计时更新资源需求
+        designList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                updateResourceRequirements(newVal, quantitySpinner.getValue(), resourceLabel, colonyCombo.getValue());
+            }
+        });
+        
+        // 当数量变化时更新资源需求
+        quantitySpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
+            ShipDesign selectedDesign = designList.getSelectionModel().getSelectedItem();
+            if (selectedDesign != null) {
+                updateResourceRequirements(selectedDesign, newVal, resourceLabel, colonyCombo.getValue());
+            }
+        });
+        
+        // 当殖民地变化时更新资源需求
+        colonyCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
+            ShipDesign selectedDesign = designList.getSelectionModel().getSelectedItem();
+            if (selectedDesign != null) {
+                updateResourceRequirements(selectedDesign, quantitySpinner.getValue(), resourceLabel, newVal);
+            }
+        });
 
         VBox content = new VBox(10,
                 new Label("选择舰船设计:"),
                 designList,
-                new Label("选择造船厂:"),
-                shipyardCombo
+                new Label("选择殖民地:"),
+                colonyCombo,
+                new Label("建造数量:"),
+                quantitySpinner,
+                new Label("资源需求:"),
+                resourceLabel
         );
         
         // 设置内容面板样式，与主界面风格保持一致
@@ -938,14 +996,14 @@ public class FleetManagerUI extends BorderPane {
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.setStyle("-fx-font-family: 'Arial'; " +
                            "-fx-background-color: #2b2b2b;");
-        dialogPane.setPrefSize(500, 500);
+        dialogPane.setPrefSize(500, 600);
 
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
                 ShipDesign selectedDesign = designList.getSelectionModel().getSelectedItem();
-                Colony selectedShipyard = shipyardCombo.getValue();
+                Colony selectedColony = colonyCombo.getValue();
 
-                if (selectedDesign != null && selectedShipyard != null) {
+                if (selectedDesign != null && selectedColony != null) {
                     return selectedDesign;
                 }
             }
@@ -956,80 +1014,115 @@ public class FleetManagerUI extends BorderPane {
         Optional<ShipDesign> result = dialog.showAndWait();
         if (result.isPresent()) {
             ShipDesign design = result.get();
-            Colony selectedShipyard = shipyardCombo.getValue();
+            Colony selectedColony = colonyCombo.getValue();
+            int quantity = quantitySpinner.getValue();
             
-            if (design != null && selectedShipyard != null) {
-                // 执行建造逻辑
-                // 创建新舰船实例
-                String shipName = selectedFleet.generateUniqueShipName(design);
-                Ship newShip = new Ship(shipName, design, selectedFleet.getFaction());
-                
-                // 将新舰船添加到选定的舰队中
-                selectedFleet.addShip(newShip);
-                
-                // 更新UI
-                updateFleetDetails();
-                updateShipList();
-                
-                showAlert("建造完成", design.getFullName() + " 已建造并加入 " + selectedFleet.getName() + "。");
+            if (design != null && selectedColony != null) {
+                // 检查资源是否足够
+                String insufficientResources = getInsufficientResources(selectedColony.getFaction(), design, quantity);
+                if (insufficientResources.isEmpty()) {
+                    // 创建新舰队，舰队位置在所选殖民地所在的六边形
+                    Planet colonyPlanet = selectedColony.getPlanet();
+                    StarSystem starSystem = colonyPlanet.getStarSystem();
+                    
+                    // 检查星系和星系的六边形是否存在
+                    Hex colonyHex = null;
+                    if (playerFaction.getGalaxy() != null && starSystem != null) {
+                        colonyHex = playerFaction.getGalaxy().getHexForStarSystem(starSystem);
+                    }
+                    
+                    // 如果无法获取六边形，使用默认六边形或抛出错误
+                    if (colonyHex == null) {
+                        showAlert("建造失败", "无法确定殖民地所在六边形，无法建造舰队。");
+                        return;
+                    }
+                    
+                    String newFleetName = selectedColony.getName() + " 舰队";
+                    Fleet newFleet = new Fleet(newFleetName, selectedColony.getFaction(), colonyHex);
+                    
+                    // 执行建造逻辑 - 为新舰队添加舰船
+                    for (int i = 0; i < quantity; i++) {
+                        // 创建新舰船实例
+                        String shipName = newFleet.generateUniqueShipName(design);
+                        Ship newShip = new Ship(shipName, design, selectedColony.getFaction());
+                        
+                        // 将新舰船添加到新创建的舰队中
+                        newFleet.addShip(newShip);
+                        
+                        // 消耗资源
+                        consumeResources(selectedColony.getFaction(), design);
+                    }
+                    
+                    // 将新舰队添加到UI列表中
+                    fleets.add(newFleet);
+                    
+                    // 更新UI
+                    updateFleetDetails();
+                    updateShipList();
+                    
+                    // 选择新创建的舰队
+                    fleetListView.getSelectionModel().select(newFleet);
+                    selectedFleet = newFleet;
+                    
+                    showAlert("建造完成", quantity + "艘 " + design.getFullName() + " 已建造并加入新舰队 " + newFleet.getName() + "。");
+                } else {
+                    showAlert("资源不足", "派系资源不足以建造指定数量的舰船。\n\n缺少的资源:\n" + insufficientResources);
+                }
             } else {
-                showAlert("建造失败", "请选择一个舰船设计和造船厂。");
+                showAlert("建造失败", "请选择一个舰船设计和殖民地。");
             }
         }
     }
 
-    private void scrapSelectedShip() {
-        if (selectedShip == null) return;
-
-        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmDialog.setTitle("拆解舰船");
-        confirmDialog.setHeaderText("确定要拆解 " + selectedShip.getName() + " 吗？");
-        confirmDialog.setContentText("将返还部分建造资源。");
-
-        confirmDialog.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                if (selectedFleet != null) {
-                    selectedFleet.removeShip(selectedShip);
-                    updateFleetDetails();
-                    updateShipList();
-                    showAlert("拆解完成", selectedShip.getName() + " 已拆解。");
-                }
-            }
-        });
+    private void updateResourceRequirements(ShipDesign design, int quantity, Label resourceLabel, Colony colony) {
+        if (design == null) return;
+        
+        StringBuilder resourceText = new StringBuilder("\n");
+        Map<ResourceType, Float> costs = design.getConstructionCost();
+        
+        // 计算总资源需求
+        for (Map.Entry<ResourceType, Float> entry : costs.entrySet()) {
+            resourceText.append(entry.getKey().getDisplayName())
+                       .append(": ")
+                       .append(String.format("%.2f", entry.getValue() * quantity))
+                       .append(" (库存: ")
+                       .append(String.format("%.2f", playerFaction != null ? playerFaction.getResourceStockpile().getResource(entry.getKey()) : 0))
+                       .append(")\n");
+        }
+        
+        resourceLabel.setText(resourceText.toString());
     }
 
-    private void showTransferShipDialog() {
-        if (selectedShip == null || fleets.size() < 2) return;
-
-        Dialog<Fleet> dialog = new Dialog<>();
-        dialog.setTitle("转移舰船");
-        dialog.setHeaderText("选择目标舰队");
-
-        // 创建舰队选择列表（排除当前舰队）
-        ListView<Fleet> fleetSelectionList = new ListView<>(
-                fleets.filtered(fleet -> !fleet.equals(selectedFleet))
-        );
-        fleetSelectionList.setPrefHeight(200);
-        fleetSelectionList.setCellFactory(lv -> new FleetListCell());
-
-        dialog.getDialogPane().setContent(fleetSelectionList);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == ButtonType.OK) {
-                return fleetSelectionList.getSelectionModel().getSelectedItem();
+    private String getInsufficientResources(Faction faction, ShipDesign design, int quantity) {
+        Map<ResourceType, Float> costs = design.getConstructionCost();
+        ResourceStockpile stockpile = playerFaction.getResourceStockpile();
+        
+        StringBuilder missingResources = new StringBuilder();
+        
+        for (Map.Entry<ResourceType, Float> entry : costs.entrySet()) {
+            float required = entry.getValue() * quantity;
+            float available = stockpile.getResource(entry.getKey());
+            
+            if (available < required) {
+                if (missingResources.length() > 0) {
+                    missingResources.append("\n");
+                }
+                missingResources.append(entry.getKey().getDisplayName())
+                    .append(": 需要 ").append(String.format("%.2f", required))
+                    .append(", 拥有 ").append(String.format("%.2f", available));
             }
-            return null;
-        });
+        }
+        
+        return missingResources.toString();
+    }
 
-        dialog.showAndWait().ifPresent(targetFleet -> {
-            if (targetFleet != null && selectedFleet != null) {
-                selectedFleet.transferShip(selectedShip, targetFleet);
-                updateFleetDetails();
-                updateShipList();
-                showAlert("转移完成", selectedShip.getName() + " 已转移到 " + targetFleet.getName());
-            }
-        });
+    private void consumeResources(Faction faction, ShipDesign design) {
+        Map<ResourceType, Float> costs = design.getConstructionCost();
+        ResourceStockpile stockpile = playerFaction.getResourceStockpile();
+        
+        for (Map.Entry<ResourceType, Float> entry : costs.entrySet()) {
+            stockpile.consumeResource(entry.getKey(), entry.getValue());
+        }
     }
 
     private void showAlert(String title, String message) {
@@ -1063,7 +1156,10 @@ public class FleetManagerUI extends BorderPane {
         }
         
         // 设置标题样式
-        dialogPane.lookup(".alert-title").setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        Node titleNode = dialogPane.lookup(".alert-title");
+        if (titleNode != null) {
+            titleNode.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        }
         
         alert.showAndWait();
     }

@@ -59,6 +59,7 @@ public class GameEngine {
         // 注意：这里应该把玩家派系添加到factions列表中
         factions.add(playerFaction);
         galaxy.addFaction(playerFaction);
+        playerFaction.setGalaxy(galaxy);
         
         // 初始化宇宙资源市场
         this.universalResourceMarket = new UniversalResourceMarket(playerFaction);
@@ -92,20 +93,41 @@ public class GameEngine {
                 if (planet.getType() == com.stellarcolonizer.model.galaxy.enums.PlanetType.TERRA && planet.getColony() == null && planet.getHabitability() >= 0.8f) {
                     playerStartHex = galaxy.getHexForStarSystem(system);
                     if (playerStartHex != null) {
-                        // 在起始位置创建一个殖民地
-                        Colony colony = new Colony(planet, playerFaction);
-                        playerFaction.addColony(colony);
-                        planet.setColony(colony);
-                        
-                        // 设置该星系的控制派系
-                        system.setControllingFaction(playerFaction);
-                        
-                        // 给予玩家初始资源
-                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
-                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
-                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
-                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
-                        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+                        // 确保行星已添加到星系中
+                        if (system.getPlanets().contains(planet)) {
+                            // 在起始位置创建一个殖民地
+                            Colony colony = new Colony(planet, playerFaction);
+                            playerFaction.addColony(colony);
+                            planet.setColony(colony);
+                            
+                            // 设置该星系的控制派系
+                            system.setControllingFaction(playerFaction);
+                            
+                            // 给予玩家初始资源
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+                        } else {
+                            // 如果行星不在星系中，先将其添加到星系
+                            system.addPlanet(planet);
+                            
+                            // 在起始位置创建一个殖民地
+                            Colony colony = new Colony(planet, playerFaction);
+                            playerFaction.addColony(colony);
+                            planet.setColony(colony);
+                            
+                            // 设置该星系的控制派系
+                            system.setControllingFaction(playerFaction);
+                            
+                            // 给予玩家初始资源
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+                            playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+                        }
 
                         return;
                     }
@@ -222,6 +244,8 @@ public class GameEngine {
             aiFaction.setColor(colors[i]);
             aiFaction.setAIController(new com.stellarcolonizer.model.service.ai.AIController(aiFaction));
             factions.add(aiFaction);
+            galaxy.addFaction(aiFaction);
+            aiFaction.setGalaxy(galaxy);
             
             // 为AI派系分配一个星系
             assignSystemToFaction(aiFaction);

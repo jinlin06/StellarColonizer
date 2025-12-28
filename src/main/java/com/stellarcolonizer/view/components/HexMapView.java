@@ -2,6 +2,7 @@
 package com.stellarcolonizer.view.components;
 
 import com.stellarcolonizer.model.faction.Faction;
+import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.galaxy.*;
 import com.stellarcolonizer.model.galaxy.enums.PlanetType;
 import javafx.animation.AnimationTimer;
@@ -17,6 +18,9 @@ import javafx.scene.text.Text;
 import javafx.geometry.Point2D;
 
 import java.util.*;
+
+// 添加对FleetSelectedEvent的导入
+import com.stellarcolonizer.view.components.FleetSelectedEvent;
 
 public class HexMapView extends Pane {
 
@@ -38,6 +42,7 @@ public class HexMapView extends Pane {
 
     // 选择状态
     private Hex selectedHex;
+    private Fleet selectedFleet; // 当前选中的舰队
     private Map<Hex, Color> highlightedHexes = new HashMap<>();
 
     // 交互状态
@@ -150,6 +155,126 @@ public class HexMapView extends Pane {
         this.selectedHex = hex;
         draw();
     }
+    
+    public void setSelectedFleet(Fleet fleet) {
+        this.selectedFleet = fleet;
+        if (fleet != null) {
+            // 高亮显示可移动的六边形
+            highlightMovableHexes(fleet);
+        } else {
+            // 清除高亮
+            clearHighlights();
+        }
+        draw();
+    }
+    
+    public Fleet getSelectedFleet() {
+        return selectedFleet;
+    }
+    
+    /**
+     * 高亮显示可移动的六边形
+     */
+    private void highlightMovableHexes(Fleet fleet) {
+        clearHighlights();
+        
+        if (fleet == null || fleet.getCurrentHex() == null) {
+            return;
+        }
+        
+        Hex currentHex = fleet.getCurrentHex();
+        int moveRange = calculateFleetMoveRange(fleet);
+        
+        // 计算在移动范围内的所有六边形
+        List<Hex> movableHexes = getReachableHexes(currentHex, moveRange);
+        
+        // 高亮可移动的六边形
+        for (Hex hex : movableHexes) {
+            highlightedHexes.put(hex, Color.LIGHTBLUE);
+        }
+        
+        // 特别高亮当前六边形
+        highlightedHexes.put(currentHex, Color.YELLOW);
+    }
+    
+    /**
+     * 计算舰队的移动范围
+     * 低级舰船(1-3级)可移动2格，高级舰船(4-6级)只能移动1格
+     */
+    private int calculateFleetMoveRange(Fleet fleet) {
+        if (fleet == null || fleet.getShips().isEmpty()) {
+            return 1; // 默认移动范围
+        }
+        
+        // 计算舰队中最高等级舰船的等级
+        int highestTechLevel = fleet.getShips().stream()
+            .mapToInt(ship -> ship.getDesign().getShipClass().getTechLevel())
+            .max()
+            .orElse(1);
+        
+        // 根据舰船等级确定移动范围
+        if (highestTechLevel <= 3) {
+            return 2; // 低级舰船可移动2格
+        } else {
+            return 1; // 高级舰船只能移动1格
+        }
+    }
+    
+    /**
+     * 获取在指定范围内可到达的六边形
+     * 只有有路径连接的六边形才能到达
+     */
+    private List<Hex> getReachableHexes(Hex startHex, int range) {
+        List<Hex> reachableHexes = new ArrayList<>();
+        
+        // 使用广度优先搜索(BFS)找到范围内所有可到达的六边形
+        Queue<Hex> queue = new LinkedList<>();
+        Set<Hex> visited = new HashSet<>();
+        Map<Hex, Integer> distances = new HashMap<>();
+        
+        queue.offer(startHex);
+        visited.add(startHex);
+        distances.put(startHex, 0);
+        reachableHexes.add(startHex);
+        
+        while (!queue.isEmpty()) {
+            Hex current = queue.poll();
+            int currentDistance = distances.get(current);
+            
+            if (currentDistance >= range) {
+                continue; // 如果已达到最大距离，不再扩展
+            }
+            
+            // 检查所有邻居六边形
+            List<Hex> neighbors = hexGrid.getNeighbors(current);
+            for (Hex neighbor : neighbors) {
+                // 检查银河系中是否有连接
+                if (galaxy != null && !galaxy.getHexConnections().isEmpty()) {
+                    Set<Hex> connectedHexes = galaxy.getHexConnections().get(current);
+                    // 检查连接是否双向存在（确保两个六边形之间确实有连接）
+                    Set<Hex> neighborConnections = galaxy.getHexConnections().get(neighbor);
+                    boolean hasConnection = connectedHexes != null && connectedHexes.contains(neighbor);
+                    
+                    if (hasConnection && !visited.contains(neighbor)) {
+                        visited.add(neighbor);
+                        distances.put(neighbor, currentDistance + 1);
+                        reachableHexes.add(neighbor);
+                        queue.offer(neighbor);
+                    }
+                } else {
+                    // 如果没有连接信息，假设所有邻居都可到达
+                    if (!visited.contains(neighbor)) {
+                        visited.add(neighbor);
+                        distances.put(neighbor, currentDistance + 1);
+                        reachableHexes.add(neighbor);
+                        queue.offer(neighbor);
+                    }
+                }
+            }
+        }
+        
+        return reachableHexes;
+    }
 
     public void highlightHex(Hex hex, Color color) {
         highlightedHexes.put(hex, color);
@@ -247,12 +372,45 @@ public class HexMapView extends Pane {
         Hex clickedHex = hexGrid.getHex(coord);
 
         if (clickedHex != null) {
+            // 检查是否有选中的舰队需要移动
+            if (selectedFleet != null && selectedFleet.getCurrentHex() != null) {
+                // 检查点击的六边形是否在可移动范围内
+                int moveRange = calculateFleetMoveRange(selectedFleet);
+                List<Hex> reachableHexes = getReachableHexes(selectedFleet.getCurrentHex(), moveRange);
+                
+                if (reachableHexes.contains(clickedHex) && !clickedHex.equals(selectedFleet.getCurrentHex())) {
+                    // 移动舰队到点击的六边形
+                    boolean moveSuccessful = selectedFleet.moveTo(clickedHex);
+                    
+                    if (moveSuccessful) {
+                        // 显示移动成功消息
+                        System.out.println("舰队 " + selectedFleet.getName() + " 已移动到 " + clickedHex.getCoord());
+                        
+                        // 清除选中的舰队和高亮
+                        setSelectedFleet(null);
+                        
+                        // 触发选择事件
+                        HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
+                        fireEvent(hexEvent);
+                    }
+                    
+                    return; // 处理完移动后返回，不再触发其他选择事件
+                }
+            }
+            
             selectedHex = clickedHex;
             draw();
 
             // 触发选择事件
             HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
             fireEvent(hexEvent);
+            
+            // 如果六边形中有舰队，触发显示舰队信息的事件
+            if (!clickedHex.getEntities().isEmpty()) {
+                // 创建舰队选择事件
+                FleetSelectedEvent fleetEvent = new FleetSelectedEvent(FleetSelectedEvent.FLEET_SELECTED, clickedHex.getEntities().get(0));
+                fireEvent(fleetEvent);
+            }
         }
     }
 
@@ -616,6 +774,21 @@ public class HexMapView extends Pane {
             gc.setFont(Font.font(10));
             String coordText = String.format("(%d,%d,%d)", coord.q, coord.r, coord.s);
             gc.fillText(coordText, screenX - 15, screenY + 5);
+        }
+        
+        // 绘制舰船图标（如果六边形中有舰船）
+        if (!hex.getEntities().isEmpty()) {
+            // 使用简单的图标表示舰船
+            gc.setFill(Color.RED);
+            gc.fillRect(screenX - 5, screenY - 5, 10, 10);
+            
+            // 如果缩放足够大，显示舰船数量
+            if (scale > 1.0) {
+                gc.setFill(Color.WHITE);
+                gc.setFont(Font.font(8));
+                String shipCount = String.valueOf(hex.getEntities().size());
+                gc.fillText(shipCount, screenX - 3, screenY + 3);
+            }
         }
         
         // 绘制控制派系名称

@@ -26,7 +26,7 @@ public class EngineModule extends ShipModule {
     protected void initializeCosts() {
         constructionCost.put(ResourceType.METAL, 200F);
         constructionCost.put(ResourceType.ENERGY, 100F);
-        constructionCost.put(ResourceType.EXOTIC_MATTER, 10F);
+        // 基础引擎只使用普通资源，不使用稀有资源
 
         maintenanceCost.put(ResourceType.ENERGY, 10F);
     }
