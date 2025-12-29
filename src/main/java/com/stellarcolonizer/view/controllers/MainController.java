@@ -16,6 +16,7 @@ import com.stellarcolonizer.view.components.*;
 import com.stellarcolonizer.view.components.StarSystemInfoView; // 添加导入
 import com.stellarcolonizer.view.components.DiplomacyView; // 添加外交界面导入
 import com.stellarcolonizer.view.controllers.UniversalResourceMarketController; // 添加市场控制器导入
+import com.stellarcolonizer.view.components.FleetListSelectedEvent; // 添加舰队列表选择事件导入
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
@@ -38,6 +39,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.layout.HBox;
 
 import java.util.EnumMap;
+import java.util.List; // 添加List导入
 import java.util.Map;
 
 public class MainController {
@@ -102,6 +104,13 @@ public class MainController {
         // 设置六边形选择监听（提前设置，避免事件丢失）
         hexMapView.addEventHandler(HexSelectedEvent.HEX_SELECTED, event -> {
             Hex selectedHex = event.getSelectedHex();
+            
+            // 如果点击的是其他六边形且当前有选中的舰队，清除选中状态
+            if (hexMapView.getSelectedFleet() != null && 
+                !event.getSelectedHex().equals(hexMapView.getSelectedFleet().getCurrentHex())) {
+                hexMapView.setSelectedFleet(null);
+            }
+            
             onHexSelected(selectedHex);
         });
         
@@ -111,13 +120,9 @@ public class MainController {
             onFleetSelected(selectedFleet);
         });
         
-        // 添加点击地图时清除选中舰队的监听器
-        hexMapView.addEventHandler(HexSelectedEvent.HEX_SELECTED, event -> {
-            // 如果点击的是其他六边形且当前有选中的舰队，清除选中状态
-            if (hexMapView.getSelectedFleet() != null && 
-                !event.getSelectedHex().equals(hexMapView.getSelectedFleet().getCurrentHex())) {
-                hexMapView.setSelectedFleet(null);
-            }
+        // 设置舰队列表选择监听
+        hexMapView.addEventHandler(FleetListSelectedEvent.FLEET_LIST_SELECTED, event -> {
+            onFleetListSelected(event.getFleetList());
         });
     }
 
@@ -146,22 +151,77 @@ public class MainController {
         // 显示选中单元格信息的弹窗
         if (hex.hasStarSystem()) {
             StarSystem system = hex.getStarSystem();
-            showStarSystemInfo(system);
+            // 如果六边形中有舰队，将舰队信息传递给星系详情窗口
+            if (!hex.getEntities().isEmpty()) {
+                showStarSystemInfoWithFleets(system, hex.getEntities());
+            } else {
+                showStarSystemInfo(system);
+            }
         } else {
-            showHexInfo(hex);
+            // 如果六边形中没有星系但有舰队，显示六边形详情和舰队信息
+            if (!hex.getEntities().isEmpty()) {
+                showHexInfoWithFleets(hex, hex.getEntities());
+            } else {
+                showHexInfo(hex);
+            }
         }
     }
     
     private void onFleetSelected(Fleet fleet) {
-        // 显示选中的舰队信息
-        if (fleet != null) {
-            showFleetInfo(fleet);
-            
-            // 设置地图视图中的选中舰队，以高亮显示可移动范围
-            if (hexMapView != null) {
-                hexMapView.setSelectedFleet(fleet);
+        // 设置地图视图中的选中舰队，以高亮显示可移动范围
+        // 这个方法现在只在用户明确点击移动按钮后调用
+        if (hexMapView != null) {
+            hexMapView.setSelectedFleet(fleet);
+        }
+    }
+    
+    private void onFleetListSelected(List<Fleet> fleetList) {
+        // 当六边形中有多个舰队时，将舰队列表传递给星系详情窗口
+        if (fleetList != null && !fleetList.isEmpty() && hexMapView != null && hexMapView.getSelectedHex() != null) {
+            Hex selectedHex = hexMapView.getSelectedHex();
+            if (selectedHex.hasStarSystem()) {
+                showStarSystemInfoWithFleets(selectedHex.getStarSystem(), fleetList);
+            } else {
+                // 如果没有星系，创建一个只显示舰队的界面
+                showFleetListInfo(fleetList);
             }
         }
+    }
+    
+    private void showStarSystemInfoWithFleets(StarSystem system, List<Fleet> fleetList) {
+        // 使用新的星系信息展示窗口，包含舰队信息
+        StarSystemInfoView.showSystemInfoWithFleets(system, gameEngine.getPlayerFaction(), fleetList, 
+            fleet -> {
+                // 回调函数：当在星系详情窗口中选择舰队时，通知HexMapView选中该舰队以高亮可移动范围
+                if (hexMapView != null) {
+                    hexMapView.setSelectedFleet(fleet);
+                }
+            });
+    }
+    
+    private void showFleetListInfo(List<Fleet> fleetList) {
+        // 显示六边形中舰队列表的信息
+        String info = "六边形中的舰队:\n\n";
+        for (int i = 0; i < fleetList.size(); i++) {
+            Fleet fleet = fleetList.get(i);
+            info += (i + 1) + ". " + fleet.getName() + "\n" +
+                   "   舰船数量: " + fleet.getShipCount() + "\n" +
+                   "   战斗力: " + String.format("%.0f", fleet.getTotalCombatPower()) + "\n" +
+                   "   任务: " + fleet.getCurrentMission().getDisplayName() + "\n\n";
+        }
+        
+        showInfoDialog("舰队列表", info);
+    }
+    
+    private void showHexInfoWithFleets(Hex hex, List<Fleet> fleetList) {
+        // 使用新的六边形信息展示窗口，包含舰队信息
+        StarSystemInfoView.showHexInfoWithFleets(hex, gameEngine.getPlayerFaction(), fleetList, 
+            fleet -> {
+                // 回调函数：当在六边形详情窗口中选择舰队时，通知HexMapView选中该舰队以高亮可移动范围
+                if (hexMapView != null) {
+                    hexMapView.setSelectedFleet(fleet);
+                }
+            });
     }
 
     private void showStarSystemInfo(StarSystem system) {
@@ -178,25 +238,24 @@ public class MainController {
     }
     
     private void showFleetInfo(Fleet fleet) {
-        // 显示舰队信息和操作选项
+        // 显示选中的舰队信息
         if (fleet != null) {
-            showFleetOperations(fleet);
+            // 不再显示独立的舰队信息弹窗
+            // 直接设置地图视图中的选中舰队，以高亮显示可移动范围
+            if (hexMapView != null) {
+                hexMapView.setSelectedFleet(fleet);
+            }
         }
     }
     
     private void showFleetOperations(Fleet fleet) {
-        String info = "舰队: " + fleet.getName() + "\n" +
-                "舰船数量: " + fleet.getShipCount() + "\n" +
-                "战斗力: " + String.format("%.0f", fleet.getTotalCombatPower()) + "\n" +
-                "任务: " + fleet.getCurrentMission().getDisplayName() + "\n" +
-                "位置: " + fleet.getCurrentHex().getCoord();
-        
-        // 在地图上高亮显示舰队信息，不弹出独立窗口
-        showInfoDialog("舰队信息", info);
-        
-        // 设置地图视图中的选中舰队，以高亮显示可移动范围
-        if (hexMapView != null) {
-            hexMapView.setSelectedFleet(fleet);
+        // 显示舰队信息和操作选项
+        if (fleet != null) {
+            // 不再显示独立弹窗，而是通过星系详情窗口显示舰队信息
+            // 设置地图视图中的选中舰队，以高亮显示可移动范围
+            if (hexMapView != null) {
+                hexMapView.setSelectedFleet(fleet);
+            }
         }
     }
     
@@ -408,6 +467,7 @@ public class MainController {
             }
             
             FleetManagerUI fleetManagerUI = new FleetManagerUI(gameEngine.getPlayerFaction());
+            fleetManagerUI.setHexMapView(hexMapView); // 连接HexMapView以支持移动功能
             showComponentInWindow(fleetManagerUI, "舰队管理器");
         } catch (Exception e) {
             e.printStackTrace();

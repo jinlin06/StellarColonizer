@@ -19,8 +19,9 @@ import javafx.geometry.Point2D;
 
 import java.util.*;
 
-// 添加对FleetSelectedEvent的导入
+// 添加对FleetSelectedEvent和FleetListSelectedEvent的导入
 import com.stellarcolonizer.view.components.FleetSelectedEvent;
+import com.stellarcolonizer.view.components.FleetListSelectedEvent;
 
 public class HexMapView extends Pane {
 
@@ -182,6 +183,13 @@ public class HexMapView extends Pane {
             return;
         }
         
+        // 如果舰队本回合已移动过，则不显示移动范围
+        if (fleet.hasMovedThisTurn()) {
+            // 只高亮当前六边形，不显示移动范围
+            highlightedHexes.put(fleet.getCurrentHex(), Color.YELLOW);
+            return;
+        }
+        
         Hex currentHex = fleet.getCurrentHex();
         int moveRange = calculateFleetMoveRange(fleet);
         
@@ -318,16 +326,16 @@ public class HexMapView extends Pane {
     }
 
     private void setupMouseEvents() {
-        // 点击选择
-        this.setOnMouseClicked(this::handleMouseClick);
-        this.canvas.setOnMouseClicked(this::handleMouseClick); // 同时在画布上注册点击事件
+        // 左键点击仅在画布上处理，避免 Pane 和 Canvas 同时触发导致重复
+        this.setOnMouseClicked(null); // 取消 Pane 自身的点击处理
+        this.canvas.setOnMouseClicked(this::handleMouseClick);
 
-        // 拖动地图
+        // 鼠标按下/拖拽/释放：用于右键拖拽地图
         this.setOnMousePressed(this::handleMousePressed);
-        this.canvas.setOnMousePressed(this::handleMousePressed); // 同时在画布上注册按下事件
+        this.canvas.setOnMousePressed(this::handleMousePressed);
         this.setOnMouseDragged(this::handleMouseDragged);
         this.setOnMouseReleased(this::handleMouseReleased);
-        this.canvas.setOnMouseReleased(this::handleMouseReleased); // 同时在画布上注册释放事件
+        this.canvas.setOnMouseReleased(this::handleMouseReleased);
 
         // 鼠标悬停
         this.setOnMouseMoved(this::handleMouseMoved);
@@ -356,6 +364,11 @@ public class HexMapView extends Pane {
     }
 
     private void handleMouseClick(MouseEvent event) {
+        // 只处理左键点击
+        if (event.getButton() != javafx.scene.input.MouseButton.PRIMARY) {
+            return;
+        }
+        
         if (hexGrid == null) {
             return;
         }
@@ -372,55 +385,77 @@ public class HexMapView extends Pane {
         Hex clickedHex = hexGrid.getHex(coord);
 
         if (clickedHex != null) {
-            // 检查是否有选中的舰队需要移动
+            // 如果存在选中的舰队并且该舰队有当前位置，则优先处理移动逻辑
             if (selectedFleet != null && selectedFleet.getCurrentHex() != null) {
-                // 检查点击的六边形是否在可移动范围内
-                int moveRange = calculateFleetMoveRange(selectedFleet);
-                List<Hex> reachableHexes = getReachableHexes(selectedFleet.getCurrentHex(), moveRange);
-                
-                if (reachableHexes.contains(clickedHex) && !clickedHex.equals(selectedFleet.getCurrentHex())) {
-                    // 移动舰队到点击的六边形
-                    boolean moveSuccessful = selectedFleet.moveTo(clickedHex);
-                    
-                    if (moveSuccessful) {
-                        // 显示移动成功消息
-                        System.out.println("舰队 " + selectedFleet.getName() + " 已移动到 " + clickedHex.getCoord());
-                        
-                        // 清除选中的舰队和高亮
+                if (selectedFleet.hasMovedThisTurn()) {
+                    // 本回合已移动，点击当前格则取消选择
+                    if (clickedHex.equals(selectedFleet.getCurrentHex())) {
                         setSelectedFleet(null);
-                        
-                        // 触发选择事件
-                        HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
-                        fireEvent(hexEvent);
+                        clearHighlights();
+                        draw();
                     }
-                    
-                    return; // 处理完移动后返回，不再触发其他选择事件
-                }
-            }
-            
-            selectedHex = clickedHex;
-            draw();
+                    showAlert("移动限制", "该舰队本回合已移动过，无法再次移动");
+                } else {
+                    int moveRange = calculateFleetMoveRange(selectedFleet);
+                    List<Hex> reachableHexes = getReachableHexes(selectedFleet.getCurrentHex(), moveRange);
 
-            // 触发选择事件
-            HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
-            fireEvent(hexEvent);
-            
-            // 如果六边形中有舰队，触发显示舰队信息的事件
-            if (!clickedHex.getEntities().isEmpty()) {
-                // 创建舰队选择事件
-                FleetSelectedEvent fleetEvent = new FleetSelectedEvent(FleetSelectedEvent.FLEET_SELECTED, clickedHex.getEntities().get(0));
-                fireEvent(fleetEvent);
+                    if (reachableHexes.contains(clickedHex) && !clickedHex.equals(selectedFleet.getCurrentHex())) {
+                        boolean moveSuccessful = selectedFleet.moveTo(clickedHex);
+
+                        if (moveSuccessful) {
+                            System.out.println("舰队 " + selectedFleet.getName() + " 已移动到 " + clickedHex.getCoord());
+
+                            setSelectedFleet(null);
+                            clearHighlights();
+                            draw();
+
+                            // 触发选择事件，由 MainController 根据 hex 内容决定弹出哪个详情窗口
+                            HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
+                            fireEvent(hexEvent);
+                        }
+                    } else if (reachableHexes.contains(clickedHex)) {
+                        // 点击的是当前六边形，取消选择
+                        setSelectedFleet(null);
+                        clearHighlights();
+                        draw();
+                    } else {
+                        showAlert("无法移动", "该六边形不可到达，舰队移动范围不足。");
+                    }
+                }
+            } else {
+                // 没有选中的舰队，仅处理六边形选择
+                selectedHex = clickedHex;
+                draw();
+
+                // 触发选择事件，由 MainController 统一处理弹窗逻辑
+                HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
+                fireEvent(hexEvent);
             }
         }
+
+        // 消费事件，防止继续冒泡触发其他 MouseClicked 处理器
+        event.consume();
     }
 
     private void handleMousePressed(MouseEvent event) {
-        isDragging = true;
-        dragStartX = event.getX();
-        dragStartY = event.getY();
-        dragStartOffsetX = offsetX;
-        dragStartOffsetY = offsetY;
-        event.consume(); // 消费事件防止传播
+        // 仅处理右键按下用于拖拽地图，左键按下交由 handleMouseClick 处理
+        if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
+            isDragging = true;
+            dragStartX = event.getX();
+            dragStartY = event.getY();
+            dragStartOffsetX = offsetX;
+            dragStartOffsetY = offsetY;
+        }
+        event.consume();
+    }
+    
+    // 显示警告对话框
+    private void showAlert(String title, String message) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.WARNING);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     private void handleMouseDragged(MouseEvent event) {
@@ -620,7 +655,6 @@ public class HexMapView extends Pane {
         // 计算控制点，使曲线向外弯曲
         double midX = (fromX + toX) / 2;
         double midY = (fromY + toY) / 2;
-        
         // 计算垂直向量并偏移作为控制点
         double dx = toX - fromX;
         double dy = toY - fromY;

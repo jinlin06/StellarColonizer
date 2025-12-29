@@ -31,6 +31,9 @@ public class Fleet {
     private final BooleanProperty isMoving;
     private final ObjectProperty<FleetMission> currentMission;
     private final ObjectProperty<Hex> destination;
+    
+    // 回合移动限制
+    private boolean movedThisTurn = false; // 每回合是否已经移动过
 
     // 指挥官
     private final ObjectProperty<FleetCommander> commander;
@@ -165,6 +168,9 @@ public class Fleet {
     }
 
     public void processTurn() {
+        // 重置回合移动标志
+        movedThisTurn = false;
+        
         // 处理所有舰船
         for (Ship ship : ships) {
             ship.processTurn();
@@ -176,11 +182,6 @@ public class Fleet {
         // 检查任务状态
         checkMission();
         
-        // 处理移动 - 如果在移动且燃料充足，尝试移动到目的地
-        if (isMoving.get() && canMove()) {
-            moveTowardsDestination();
-        }
-
         // 自动补给
         autoResupply();
 
@@ -426,6 +427,12 @@ public class Fleet {
 
     public boolean moveTo(Hex destination) {
         if (destination == null || destination.equals(currentHex.get())) return false;
+        
+        // 检查是否已经在此回合移动过
+        if (movedThisTurn) {
+            System.out.println("舰队 " + name.get() + " 本回合已移动过，无法再次移动");
+            return false;
+        }
 
         // 从当前六边形中移除舰队
         if (currentHex.get() != null) {
@@ -433,11 +440,20 @@ public class Fleet {
         }
         
         this.destination.set(destination);
-        isMoving.set(true);
-        currentMission.set(FleetMission.MOVE);
         
-        // 到达目的地后，将舰队添加到目标六边形
-        // 这部分逻辑在processTurn中处理
+        // 立即更新舰队位置
+        currentHex.set(destination);
+        
+        // 确保舰队被添加到新的六边形中
+        if (destination != null) {
+            destination.addEntity(this);
+        }
+        
+        isMoving.set(false);
+        currentMission.set(FleetMission.STANDBY);
+        
+        // 标记为已移动
+        movedThisTurn = true;
         
         return true;
     }
@@ -571,6 +587,8 @@ public class Fleet {
     public String getName() { return name.get(); }
     public void setName(String name) { this.name.set(name); }
     public StringProperty nameProperty() { return name; }
+    
+    public boolean hasMovedThisTurn() { return movedThisTurn; }
 
     public Faction getFaction() { return faction.get(); }
     public ObjectProperty<Faction> factionProperty() { return faction; }
@@ -616,7 +634,7 @@ public class Fleet {
         return ships.stream().mapToInt(Ship::getCurrentCrew).sum();
     }
     
-    private void moveTowardsDestination() {
+    public void moveTowardsDestination() {
         if (destination.get() != null && !currentHex.get().equals(destination.get())) {
             // 从当前六边形中移除舰队
             if (currentHex.get() != null) {

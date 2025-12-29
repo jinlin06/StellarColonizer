@@ -132,16 +132,14 @@ public class ColonyManagerView extends VBox {
         Tab buildingsTab = new Tab("建筑", createBuildingsTab());
         Tab populationTab = new Tab("人口", createPopulationTab());
         Tab resourcesTab = new Tab("资源", createResourcesTab());
-        Tab governorTab = new Tab("管理者", createGovernorTab());
-
+        
         // 设置选项卡不可关闭
         overviewTab.setClosable(false);
         buildingsTab.setClosable(false);
         populationTab.setClosable(false);
         resourcesTab.setClosable(false);
-        governorTab.setClosable(false);
 
-        colonyDetailPane.getTabs().addAll(overviewTab, buildingsTab, populationTab, resourcesTab, governorTab);
+        colonyDetailPane.getTabs().addAll(overviewTab, buildingsTab, populationTab, resourcesTab);
 
         panel.getChildren().addAll(infoPanel, colonyDetailPane);
         return panel;
@@ -424,92 +422,6 @@ public class ColonyManagerView extends VBox {
         chart.setPrefHeight(300);
 
         return chart;
-    }
-
-    private VBox createGovernorTab() {
-        VBox tabContent = new VBox(10);
-        tabContent.setPadding(new Insets(10));
-
-        // 管理者信息面板
-        VBox governorInfo = createGovernorInfoPanel();
-
-        // 管理者列表（可选）
-        ListView<ColonyGovernor> governorListView = createGovernorListView();
-
-        // 成长重点选择
-        VBox focusPanel = new VBox(5);
-        focusPanel.setStyle("-fx-background-color: #333333; -fx-padding: 10; -fx-background-radius: 5;");
-        
-        Label focusLabel = new Label("成长重点:");
-        focusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
-        
-        ComboBox<GrowthFocus> focusCombo = new ComboBox<>();
-        focusCombo.getItems().addAll(GrowthFocus.values());
-        focusCombo.setPromptText("选择成长重点");
-        // 设置显示成长重点的中文名称
-        focusCombo.setCellFactory(lv -> new ListCell<GrowthFocus>() {
-            @Override
-            protected void updateItem(GrowthFocus item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(item.getDisplayName());
-                }
-            }
-        });
-        focusCombo.setButtonCell(new ListCell<GrowthFocus>() {
-            @Override
-            protected void updateItem(GrowthFocus item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText("选择成长重点");
-                } else {
-                    setText(item.getDisplayName());
-                }
-            }
-        });
-        
-        Button setFocusButton = new Button("设定成长重点");
-        setFocusButton.setStyle("-fx-background-color: #FF9800; -fx-text-fill: white;");
-        setFocusButton.setOnAction(e -> {
-            if (focusCombo.getValue() != null) {
-                setGrowthFocus(focusCombo.getValue());
-            }
-        });
-        
-        focusPanel.getChildren().addAll(focusLabel, focusCombo, setFocusButton);
-
-        // 分配按钮
-        Button assignButton = new Button("分配管理者");
-        assignButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
-        assignButton.setOnAction(e -> assignGovernor());
-
-        tabContent.getChildren().addAll(governorInfo, governorListView, focusPanel, assignButton);
-        return tabContent;
-    }
-
-    private VBox createGovernorInfoPanel() {
-        VBox panel = new VBox(5);
-        panel.setStyle("-fx-background-color: #333333; -fx-padding: 10; -fx-background-radius: 5;");
-
-        // 这里会显示当前管理者的信息
-        Label title = new Label("当前管理者");
-        title.setStyle("-fx-font-size: 16; -fx-text-fill: white; -fx-font-weight: bold;");
-
-        panel.getChildren().add(title);
-        return panel;
-    }
-
-    private ListView<ColonyGovernor> createGovernorListView() {
-        // 这里应该从游戏引擎获取管理者列表
-        ObservableList<ColonyGovernor> governors = FXCollections.observableArrayList();
-
-        ListView<ColonyGovernor> listView = new ListView<>(governors);
-        listView.setPrefHeight(200);
-        listView.setCellFactory(lv -> new GovernorListCell());
-
-        return listView;
     }
 
     private void setupEventHandlers() {
@@ -884,11 +796,6 @@ public class ColonyManagerView extends VBox {
 
         selectedColony.setGrowthFocus(focus);
         updateColonyDetails();
-    }
-
-    private void assignGovernor() {
-        // 实现分配管理者的逻辑
-        System.out.println("分配管理者");
     }
 
     // 自定义列表单元格

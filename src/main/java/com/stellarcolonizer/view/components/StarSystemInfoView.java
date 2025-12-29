@@ -6,8 +6,10 @@ import com.stellarcolonizer.model.colony.Colony;
 import com.stellarcolonizer.model.colony.ResourceRequirement;
 import com.stellarcolonizer.model.colony.enums.BuildingType;
 import com.stellarcolonizer.model.faction.Faction;
+import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.galaxy.StarSystem;
+import com.stellarcolonizer.model.galaxy.Hex;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -17,6 +19,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.util.List;
+import java.util.Optional;
 
 public class StarSystemInfoView extends VBox {
     
@@ -24,13 +28,64 @@ public class StarSystemInfoView extends VBox {
     private ListView<Planet> planetListView;
     private VBox planetDetailsContainer;
     private Faction playerFaction; // 添加玩家派系引用
+    private List<Fleet> fleetList; // 添加舰队列表字段
+    private FleetSelectionCallback fleetSelectionCallback; // 添加舰队选择回调
+    private Hex hex; // 添加六边形引用，用于显示坐标信息
     
     public StarSystemInfoView(StarSystem starSystem, Faction playerFaction) {
         this.starSystem = starSystem;
         this.playerFaction = playerFaction;
+        this.fleetList = null; // 初始化为null
+        this.fleetSelectionCallback = null; // 初始化为null
         initializeUI();
         setupEventHandlers();
         populatePlanetList();
+    }
+    
+    // 重载构造函数，接受舰队列表
+    public StarSystemInfoView(StarSystem starSystem, Faction playerFaction, List<Fleet> fleetList) {
+        this.starSystem = starSystem;
+        this.playerFaction = playerFaction;
+        this.fleetList = fleetList;
+        this.fleetSelectionCallback = null; // 初始化为null
+        initializeUI();
+        setupEventHandlers();
+        populatePlanetList();
+    }
+    
+    // 重载构造函数，接受舰队列表和回调
+    public StarSystemInfoView(StarSystem starSystem, Faction playerFaction, List<Fleet> fleetList, FleetSelectionCallback fleetSelectionCallback) {
+        this.starSystem = starSystem;
+        this.playerFaction = playerFaction;
+        this.fleetList = fleetList;
+        this.fleetSelectionCallback = fleetSelectionCallback;
+        initializeUI();
+        setupEventHandlers();
+        populatePlanetList();
+    }
+    
+    // 重载构造函数，接受六边形参数（用于显示空域坐标信息）
+    public StarSystemInfoView(Hex hex, Faction playerFaction, List<Fleet> fleetList, FleetSelectionCallback fleetSelectionCallback) {
+        this.starSystem = null; // 没有星系
+        this.hex = hex; // 设置六边形
+        this.playerFaction = playerFaction;
+        this.fleetList = fleetList;
+        this.fleetSelectionCallback = fleetSelectionCallback;
+        initializeUI();
+        setupEventHandlers();
+        // 空域没有行星，所以不需要populatePlanetList()
+    }
+    
+    // 重载构造函数，仅接受六边形参数（用于显示空域坐标信息，无舰队）
+    public StarSystemInfoView(Hex hex, Faction playerFaction) {
+        this.starSystem = null; // 没有星系
+        this.hex = hex; // 设置六边形
+        this.playerFaction = playerFaction;
+        this.fleetList = null; // 无舰队
+        this.fleetSelectionCallback = null; // 无回调
+        initializeUI();
+        setupEventHandlers();
+        // 空域没有行星，所以不需要populatePlanetList()
     }
     
     private void initializeUI() {
@@ -39,7 +94,14 @@ public class StarSystemInfoView extends VBox {
         this.setStyle("-fx-background-color: #2b2b2b;");
         
         // 标题
-        Label titleLabel = new Label("星系信息: " + starSystem.getName());
+        Label titleLabel;
+        if (starSystem != null) {
+            titleLabel = new Label("星系信息: " + starSystem.getName());
+        } else if (hex != null) {
+            titleLabel = new Label("六边形详情: " + hex.getCoord());
+        } else {
+            titleLabel = new Label("舰队详情");
+        }
         titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
         
         // 星系基本信息
@@ -47,100 +109,235 @@ public class StarSystemInfoView extends VBox {
         systemInfoBox.setPadding(new Insets(10));
         systemInfoBox.setStyle("-fx-background-color: #3c3c3c; -fx-background-radius: 5;");
         
-        Label starTypeLabel = new Label("恒星类型: " + starSystem.getStarType().getDisplayName());
-        starTypeLabel.setStyle("-fx-text-fill: white;");
-        
-        Label planetCountLabel = new Label("行星数量: " + starSystem.getPlanets().size());
-        planetCountLabel.setStyle("-fx-text-fill: white;");
-        
-        // 显示控制该星系的派系
-        Label controllingFactionLabel;
-        if (starSystem.getControllingFaction() != null) {
-            String controllingFactionText = "控制派系: " + starSystem.getControllingFaction().getName();
+        if (starSystem != null) {
+            Label starTypeLabel = new Label("恒星类型: " + starSystem.getStarType().getDisplayName());
+            starTypeLabel.setStyle("-fx-text-fill: white;");
             
-            // 根据派系颜色设置标签颜色
-            javafx.scene.paint.Color factionColor = starSystem.getControllingFaction().getColor();
-            if (factionColor != null) {
-                // 将JavaFX颜色转换为CSS颜色字符串
-                String hexColor = String.format("#%02X%02X%02X",
-                    (int)(factionColor.getRed() * 255),
-                    (int)(factionColor.getGreen() * 255),
-                    (int)(factionColor.getBlue() * 255));
-                controllingFactionLabel = new Label(controllingFactionText);
-                controllingFactionLabel.setStyle("-fx-text-fill: " + hexColor + ";");
+            Label planetCountLabel = new Label("行星数量: " + starSystem.getPlanets().size());
+            planetCountLabel.setStyle("-fx-text-fill: white;");
+            
+            // 显示控制该星系的派系
+            Label controllingFactionLabel;
+            if (starSystem.getControllingFaction() != null) {
+                String controllingFactionText = "控制派系: " + starSystem.getControllingFaction().getName();
+                
+                // 根据派系颜色设置标签颜色
+                javafx.scene.paint.Color factionColor = starSystem.getControllingFaction().getColor();
+                if (factionColor != null) {
+                    // 将JavaFX颜色转换为CSS颜色字符串
+                    String hexColor = String.format("#%02X%02X%02X",
+                        (int)(factionColor.getRed() * 255),
+                        (int)(factionColor.getGreen() * 255),
+                        (int)(factionColor.getBlue() * 255));
+                    controllingFactionLabel = new Label(controllingFactionText);
+                    controllingFactionLabel.setStyle("-fx-text-fill: " + hexColor + ";");
+                } else {
+                    controllingFactionLabel = new Label(controllingFactionText);
+                    controllingFactionLabel.setStyle("-fx-text-fill: white;");
+                }
             } else {
-                controllingFactionLabel = new Label(controllingFactionText);
+                controllingFactionLabel = new Label("控制派系: 无");
                 controllingFactionLabel.setStyle("-fx-text-fill: white;");
             }
+            
+            systemInfoBox.getChildren().addAll(starTypeLabel, planetCountLabel, controllingFactionLabel);
+        } else if (hex != null) {
+            // 显示六边形坐标信息
+            Label coordLabel = new Label("坐标: " + hex.getCoord());
+            coordLabel.setStyle("-fx-text-fill: white;");
+            
+            Label typeLabel = new Label("类型: " + hex.getType().getDisplayName());
+            typeLabel.setStyle("-fx-text-fill: white;");
+            
+            Label visibilityLabel = new Label("可见度: " + String.format("%.1f%%", hex.getVisibility() * 100));
+            visibilityLabel.setStyle("-fx-text-fill: white;");
+            
+            systemInfoBox.getChildren().addAll(coordLabel, typeLabel, visibilityLabel);
         } else {
-            controllingFactionLabel = new Label("控制派系: 无");
-            controllingFactionLabel.setStyle("-fx-text-fill: white;");
+            Label noSystemLabel = new Label("位置: 深空");
+            noSystemLabel.setStyle("-fx-text-fill: white;");
+            systemInfoBox.getChildren().add(noSystemLabel);
         }
         
-        systemInfoBox.getChildren().addAll(starTypeLabel, planetCountLabel, controllingFactionLabel);
+        // 舰队信息区域 - 如果有舰队列表则显示
+        VBox fleetInfoBox = null;
+        if (fleetList != null && !fleetList.isEmpty()) {
+            fleetInfoBox = new VBox(5);
+            fleetInfoBox.setPadding(new Insets(10));
+            fleetInfoBox.setStyle("-fx-background-color: #3c3c3c; -fx-background-radius: 5;");
+            
+            Label fleetHeaderLabel = new Label("舰队信息:");
+            fleetHeaderLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+            
+            ListView<Fleet> fleetListView = new ListView<>();
+            fleetListView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+            fleetListView.getItems().addAll(fleetList);
+            
+            // 设置单元格工厂以显示舰队信息
+            fleetListView.setCellFactory(param -> new ListCell<Fleet>() {
+                @Override
+                protected void updateItem(Fleet item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        setText(item.getName() + " (舰船: " + item.getShipCount() + 
+                               ", 战斗力: " + String.format("%.0f", item.getTotalCombatPower()) + 
+                               ", 任务: " + item.getCurrentMission().getDisplayName() + ")");
+                        setStyle("-fx-text-fill: white;");
+                    }
+                }
+            });
+            
+            // 添加选择监听器，当选择舰队时高亮显示可移动范围
+            fleetListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null && fleetSelectionCallback != null) {
+                    // 通过回调通知HexMapView选中舰队
+                    // 但注意：现在只有在点击移动按钮时才应该高亮可移动范围
+                    // 因此我们不在此处调用回调
+                    // fleetSelectionCallback.onFleetSelected(newVal);
+                }
+            });
+            
+            // 添加移动按钮，允许玩家移动选中的舰队
+            Button moveFleetButton = new Button("移动选中舰队");
+            moveFleetButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+            moveFleetButton.setOnAction(e -> {
+                Fleet selectedFleet = fleetListView.getSelectionModel().getSelectedItem();
+                if (selectedFleet != null) {
+                    // 检查舰队是否本回合已移动
+                    if (selectedFleet.hasMovedThisTurn()) {
+                        showAlert("移动限制", "该舰队本回合已移动过，无法再次移动");
+                        return;
+                    }
+                    
+                    // 通过回调通知HexMapView选中舰队以高亮可移动范围
+                    if (fleetSelectionCallback != null) {
+                        fleetSelectionCallback.onFleetSelected(selectedFleet);
+                        
+                        // 显示提示信息
+                        showAlert("移动准备", "已高亮显示可移动范围，请点击目标六边形进行移动");
+                    } else {
+                        System.out.println("准备高亮显示舰队: " + selectedFleet.getName() + " 的可移动范围");
+                    }
+                } else {
+                    showAlert("选择错误", "请先选择一个舰队");
+                }
+            });
+            
+            fleetInfoBox.getChildren().addAll(fleetHeaderLabel, fleetListView, moveFleetButton);
+        }
         
         // 行星列表和详情区域
         HBox mainContent = new HBox(10);
         mainContent.setPrefHeight(400);
         
-        // 左侧：行星列表
-        VBox planetListBox = new VBox(5);
-        planetListBox.setPrefWidth(200);
+        if (starSystem != null) {
+            // 左侧：行星列表
+            VBox planetListBox = new VBox(5);
+            planetListBox.setPrefWidth(200);
+            
+            Label planetListLabel = new Label("行星列表:");
+            planetListLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+            
+            planetListView = new ListView<>();
+            planetListView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+            
+            planetListBox.getChildren().addAll(planetListLabel, planetListView);
+            
+            // 右侧：行星详情
+            VBox planetDetailsBox = new VBox(10);
+            planetDetailsBox.setPrefWidth(400);
+            
+            Label detailsLabel = new Label("行星详情:");
+            detailsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+            
+            planetDetailsContainer = new VBox(5);
+            planetDetailsContainer.setPadding(new Insets(10));
+            planetDetailsContainer.setStyle("-fx-background-color: #3c3c3c; -fx-background-radius: 5;");
+            planetDetailsContainer.setAlignment(Pos.TOP_LEFT);
+            
+            ScrollPane detailsScrollPane = new ScrollPane(planetDetailsContainer);
+            detailsScrollPane.setFitToWidth(true);
+            detailsScrollPane.setPrefHeight(350);
+            detailsScrollPane.setStyle("-fx-background: #2d2d2d; -fx-border-color: #555555;");
+            
+            planetDetailsBox.getChildren().addAll(detailsLabel, detailsScrollPane);
+            
+            mainContent.getChildren().addAll(planetListBox, planetDetailsBox);
+        } else {
+            // 如果没有星系，只显示舰队信息或六边形信息
+            if (hex != null) {
+                // 显示六边形的额外信息
+                VBox hexInfoBox = new VBox(5);
+                hexInfoBox.setPadding(new Insets(10));
+                hexInfoBox.setStyle("-fx-background-color: #3c3c3c; -fx-background-radius: 5;");
+                
+                Label hexInfoLabel = new Label("六边形信息:");
+                hexInfoLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+                
+                // 根据六边形类型显示不同信息
+                if (hex.getType().toString().equals("EMPTY")) {
+                    Label hexTypeLabel = new Label("这是一个空域六边形");
+                    hexTypeLabel.setStyle("-fx-text-fill: white;");
+                    
+                    Label hexDescription = new Label("空域可以自由移动舰队，但不提供任何资源或战略优势");
+                    hexDescription.setStyle("-fx-text-fill: #aaaaaa; -fx-wrap-text: true;");
+                    
+                    hexInfoBox.getChildren().addAll(hexInfoLabel, hexTypeLabel, hexDescription);
+                } else {
+                    Label hexTypeLabel = new Label("六边形类型: " + hex.getType().getDisplayName());
+                    hexTypeLabel.setStyle("-fx-text-fill: white;");
+                    hexInfoBox.getChildren().addAll(hexInfoLabel, hexTypeLabel);
+                }
+                
+                mainContent.getChildren().add(hexInfoBox);
+            } else {
+                Label noSystemLabel = new Label("此位置没有星系，只有舰队");
+                noSystemLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+                mainContent.getChildren().add(noSystemLabel);
+            }
+        }
         
-        Label planetListLabel = new Label("行星列表:");
-        planetListLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+        // 添加所有组件到主容器
+        this.getChildren().addAll(titleLabel, systemInfoBox);
         
-        planetListView = new ListView<>();
-        planetListView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+        // 如果有舰队信息，添加舰队信息框
+        if (fleetInfoBox != null) {
+            this.getChildren().add(fleetInfoBox);
+        }
         
-        planetListBox.getChildren().addAll(planetListLabel, planetListView);
-        
-        // 右侧：行星详情
-        VBox planetDetailsBox = new VBox(10);
-        planetDetailsBox.setPrefWidth(400);
-        
-        Label detailsLabel = new Label("行星详情:");
-        detailsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
-        
-        planetDetailsContainer = new VBox(5);
-        planetDetailsContainer.setPadding(new Insets(10));
-        planetDetailsContainer.setStyle("-fx-background-color: #3c3c3c; -fx-background-radius: 5;");
-        planetDetailsContainer.setAlignment(Pos.TOP_LEFT);
-        
-        ScrollPane detailsScrollPane = new ScrollPane(planetDetailsContainer);
-        detailsScrollPane.setFitToWidth(true);
-        detailsScrollPane.setPrefHeight(350);
-        detailsScrollPane.setStyle("-fx-background: #2d2d2d; -fx-border-color: #555555;");
-        
-        planetDetailsBox.getChildren().addAll(detailsLabel, detailsScrollPane);
-        
-        mainContent.getChildren().addAll(planetListBox, planetDetailsBox);
-        
-        this.getChildren().addAll(titleLabel, systemInfoBox, mainContent);
+        if (starSystem != null) {
+            this.getChildren().add(mainContent);
+        }
     }
     
     private void setupEventHandlers() {
-        planetListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
-                showPlanetDetails(newVal);
-            }
-        });
+        if (starSystem != null) {
+            planetListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null) {
+                    showPlanetDetails(newVal);
+                }
+            });
+        }
     }
     
     private void populatePlanetList() {
-        planetListView.getItems().addAll(starSystem.getPlanets());
-        planetListView.setCellFactory(param -> new ListCell<Planet>() {
-            @Override
-            protected void updateItem(Planet item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText((getIndex() + 1) + ". " + item.getName() + " (" + item.getType().getDisplayName() + ")");
-                    setStyle("-fx-text-fill: white;");
+        if (starSystem != null) {
+            planetListView.getItems().addAll(starSystem.getPlanets());
+            planetListView.setCellFactory(param -> new ListCell<Planet>() {
+                @Override
+                protected void updateItem(Planet item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        setText((getIndex() + 1) + ". " + item.getName() + " (" + item.getType().getDisplayName() + ")");
+                        setStyle("-fx-text-fill: white;");
+                    }
                 }
-            }
-        });
+            });
+        }
     }
     
     private void showPlanetDetails(Planet planet) {
@@ -547,6 +744,82 @@ public class StarSystemInfoView extends VBox {
         StarSystemInfoView view = new StarSystemInfoView(system, playerFaction);
         
         Scene scene = new Scene(view, 650, 500);
+        scene.getStylesheets().add(StarSystemInfoView.class.getResource("/css/main.css").toExternalForm());
+        dialog.setScene(scene);
+        dialog.show();
+    }
+    
+    public static void showSystemInfoWithFleets(StarSystem system, Faction playerFaction, List<Fleet> fleetList) {
+        showSystemInfoWithFleets(system, playerFaction, fleetList, null);
+    }
+    
+    public static void showSystemInfoWithFleets(StarSystem system, Faction playerFaction, List<Fleet> fleetList, FleetSelectionCallback fleetSelectionCallback) {
+        Stage dialog = new Stage();
+        String title = system != null ? "星系详情 - " + system.getName() + " (包含舰队信息)" : "舰队详情";
+        dialog.setTitle(title);
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.setResizable(true);
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                StarSystemInfoView.class.getResourceAsStream("/images/icon.png"));
+            dialog.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
+        StarSystemInfoView view = new StarSystemInfoView(system, playerFaction, fleetList, fleetSelectionCallback);
+        
+        Scene scene = new Scene(view, 700, 600); // 增加窗口大小以适应舰队信息
+        scene.getStylesheets().add(StarSystemInfoView.class.getResource("/css/main.css").toExternalForm());
+        dialog.setScene(scene);
+        dialog.show();
+    }
+    
+    public static void showHexInfoWithFleets(Hex hex, Faction playerFaction, List<Fleet> fleetList, FleetSelectionCallback fleetSelectionCallback) {
+        Stage dialog = new Stage();
+        String title = "六边形详情 - " + hex.getCoord() + " (包含舰队信息)";
+        dialog.setTitle(title);
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.setResizable(true);
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                StarSystemInfoView.class.getResourceAsStream("/images/icon.png"));
+            dialog.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
+        StarSystemInfoView view = new StarSystemInfoView(hex, playerFaction, fleetList, fleetSelectionCallback);
+        
+        Scene scene = new Scene(view, 700, 600); // 增加窗口大小以适应舰队信息
+        scene.getStylesheets().add(StarSystemInfoView.class.getResource("/css/main.css").toExternalForm());
+        dialog.setScene(scene);
+        dialog.show();
+    }
+    
+    public static void showHexInfo(Hex hex, Faction playerFaction) {
+        Stage dialog = new Stage();
+        String title = "六边形详情 - " + hex.getCoord();
+        dialog.setTitle(title);
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.setResizable(true);
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                StarSystemInfoView.class.getResourceAsStream("/images/icon.png"));
+            dialog.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
+        StarSystemInfoView view = new StarSystemInfoView(hex, playerFaction);
+        
+        Scene scene = new Scene(view, 700, 600); // 增加窗口大小以适应舰队信息
         scene.getStylesheets().add(StarSystemInfoView.class.getResource("/css/main.css").toExternalForm());
         dialog.setScene(scene);
         dialog.show();

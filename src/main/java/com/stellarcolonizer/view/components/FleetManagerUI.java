@@ -108,6 +108,12 @@ public class FleetManagerUI extends BorderPane {
                     selectedFleet = newFleet;
                     updateFleetDetails();
                     updateShipList();
+                    // 不自动触发移动功能，等待用户点击“移动所选舰队”按钮
+                    
+                    // 如果hexMapView存在，取消其选中舰队以避免自动高亮
+                    if (hexMapView != null) {
+                        hexMapView.setSelectedFleet(null);
+                    }
                 }
         );
 
@@ -172,6 +178,10 @@ public class FleetManagerUI extends BorderPane {
 
     // 地图视图集成
     private HexMapView hexMapView;
+    
+    public void setHexMapView(HexMapView hexMapView) {
+        this.hexMapView = hexMapView;
+    }
 
     public FleetManagerUI(Faction playerFaction) {
         this.playerFaction = playerFaction;
@@ -740,30 +750,44 @@ public class FleetManagerUI extends BorderPane {
     private void showMoveFleetDialog() {
         if (selectedFleet == null) return;
 
-        Dialog<Hex> dialog = new Dialog<>();
-        dialog.setTitle("移动舰队");
-        dialog.setHeaderText("选择舰队目的地");
+        // 检查舰队是否本回合已移动
+        if (selectedFleet.hasMovedThisTurn()) {
+            showAlert("移动限制", "该舰队本回合已移动过，无法再次移动");
+            return;
+        }
+        
+        // 高亮可移动范围，等待用户在地图上点击目标六边形
+        if (hexMapView != null) {
+            hexMapView.setSelectedFleet(selectedFleet);
+            
+            showAlert("移动准备", "已高亮显示可移动范围，请点击目标六边形进行移动\n" +
+                      "(点击当前六边形可取消移动模式)");
+        } else {
+            Dialog<Hex> dialog = new Dialog<>();
+            dialog.setTitle("移动舰队");
+            dialog.setHeaderText("选择舰队目的地");
 
-        // 创建地图选择界面
-        // 这里可以集成HexMapView
-        Label mapLabel = new Label("地图选择界面");
-        mapLabel.setPrefSize(400, 300);
+            // 创建地图选择界面
+            // 这里可以集成HexMapView
+            Label mapLabel = new Label("地图选择界面");
+            mapLabel.setPrefSize(400, 300);
 
-        dialog.getDialogPane().setContent(mapLabel);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+            dialog.getDialogPane().setContent(mapLabel);
+            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == ButtonType.OK) {
-                // 返回选择的Hex
-                return selectedFleet.getCurrentHex(); // 简化实现
-            }
-            return null;
-        });
+            dialog.setResultConverter(buttonType -> {
+                if (buttonType == ButtonType.OK) {
+                    // 返回选择的Hex
+                    return selectedFleet.getCurrentHex(); // 简化实现
+                }
+                return null;
+            });
 
-        dialog.showAndWait().ifPresent(hex -> {
-            selectedFleet.moveTo(hex);
-            updateFleetDetails();
-        });
+            dialog.showAndWait().ifPresent(hex -> {
+                selectedFleet.moveTo(hex);
+                updateFleetDetails();
+            });
+        }
     }
 
     private void showSplitFleetDialog() {
@@ -927,23 +951,28 @@ public class FleetManagerUI extends BorderPane {
         Spinner<Integer> quantitySpinner = new Spinner<>(1, 100, 1);
         quantitySpinner.getValueFactory().setValue(1);
         quantitySpinner.setPrefWidth(100);
-        
-        // 显示资源需求
-        Label resourceLabel = new Label();
-        resourceLabel.setTextFill(Color.WHITE);
+
+        TextArea resourceLabel = new TextArea();
+        resourceLabel.setEditable(false);
         resourceLabel.setWrapText(true);
-        
+        resourceLabel.setStyle("-fx-background-color: #2b2b2b; -fx-text-fill: black; -fx-font-family: 'Arial'; -fx-font-size: 14;");
+        resourceLabel.setPrefHeight(100); // 设置默认高度
+        resourceLabel.setMaxHeight(Double.MAX_VALUE);
+        resourceLabel.setText("请先选择舰船设计和殖民地。");
+
         // 当选择设计时更新资源需求
         designList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
+            if (newVal != null && colonyCombo.getValue() != null) {
                 updateResourceRequirements(newVal, quantitySpinner.getValue(), resourceLabel, colonyCombo.getValue());
+            } else {
+                resourceLabel.setText("请先选择殖民地。");
             }
         });
         
         // 当数量变化时更新资源需求
         quantitySpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
             ShipDesign selectedDesign = designList.getSelectionModel().getSelectedItem();
-            if (selectedDesign != null) {
+            if (selectedDesign != null && colonyCombo.getValue() != null) {
                 updateResourceRequirements(selectedDesign, newVal, resourceLabel, colonyCombo.getValue());
             }
         });
@@ -951,10 +980,14 @@ public class FleetManagerUI extends BorderPane {
         // 当殖民地变化时更新资源需求
         colonyCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
             ShipDesign selectedDesign = designList.getSelectionModel().getSelectedItem();
-            if (selectedDesign != null) {
+            if (selectedDesign != null && newVal != null) {
                 updateResourceRequirements(selectedDesign, quantitySpinner.getValue(), resourceLabel, newVal);
+            } else if (selectedDesign != null) {
+                resourceLabel.setText("请先选择殖民地。");
             }
         });
+
+        // 移除了舰队名称输入功能
 
         VBox content = new VBox(10,
                 new Label("选择舰船设计:"),
@@ -963,14 +996,18 @@ public class FleetManagerUI extends BorderPane {
                 colonyCombo,
                 new Label("建造数量:"),
                 quantitySpinner,
+                // 移除了舰队名称输入功能
                 new Label("资源需求:"),
                 resourceLabel
         );
         
+        // 设置VBox的优先级，允许资源标签扩展
+        VBox.setVgrow(resourceLabel, Priority.ALWAYS);
+
         // 设置内容面板样式，与主界面风格保持一致
         content.setPadding(new Insets(10));
         content.setStyle("-fx-font-family: 'Arial'; -fx-background-color: #2b2b2b;");
-        
+
         // 设置标签样式
         for (javafx.scene.Node node : content.getChildren()) {
             if (node instanceof Label) {
@@ -991,12 +1028,12 @@ public class FleetManagerUI extends BorderPane {
         } catch (Exception e) {
             System.err.println("无法加载窗口图标: " + e.getMessage());
         }
-        
+
         // 设置弹窗样式，与主界面风格保持一致
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.setStyle("-fx-font-family: 'Arial'; " +
                            "-fx-background-color: #2b2b2b;");
-        dialogPane.setPrefSize(500, 600);
+        dialogPane.setPrefSize(600, 800); // 进一步增大对话框高度以容纳更多资源需求信息
 
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
@@ -1016,7 +1053,9 @@ public class FleetManagerUI extends BorderPane {
             ShipDesign design = result.get();
             Colony selectedColony = colonyCombo.getValue();
             int quantity = quantitySpinner.getValue();
-            
+            // 移除了舰队命名功能，使用默认名称
+            String fleetName = selectedColony.getName() + " 舰队";
+
             if (design != null && selectedColony != null) {
                 // 检查资源是否足够
                 String insufficientResources = getInsufficientResources(selectedColony.getFaction(), design, quantity);
@@ -1024,46 +1063,45 @@ public class FleetManagerUI extends BorderPane {
                     // 创建新舰队，舰队位置在所选殖民地所在的六边形
                     Planet colonyPlanet = selectedColony.getPlanet();
                     StarSystem starSystem = colonyPlanet.getStarSystem();
-                    
+
                     // 检查星系和星系的六边形是否存在
                     Hex colonyHex = null;
                     if (playerFaction.getGalaxy() != null && starSystem != null) {
                         colonyHex = playerFaction.getGalaxy().getHexForStarSystem(starSystem);
                     }
-                    
+
                     // 如果无法获取六边形，使用默认六边形或抛出错误
                     if (colonyHex == null) {
                         showAlert("建造失败", "无法确定殖民地所在六边形，无法建造舰队。");
                         return;
                     }
-                    
-                    String newFleetName = selectedColony.getName() + " 舰队";
-                    Fleet newFleet = new Fleet(newFleetName, selectedColony.getFaction(), colonyHex);
-                    
+
+                    Fleet newFleet = new Fleet(fleetName, selectedColony.getFaction(), colonyHex);
+
                     // 执行建造逻辑 - 为新舰队添加舰船
                     for (int i = 0; i < quantity; i++) {
                         // 创建新舰船实例
                         String shipName = newFleet.generateUniqueShipName(design);
                         Ship newShip = new Ship(shipName, design, selectedColony.getFaction());
-                        
+
                         // 将新舰船添加到新创建的舰队中
                         newFleet.addShip(newShip);
-                        
+
                         // 消耗资源
                         consumeResources(selectedColony.getFaction(), design);
                     }
-                    
+
                     // 将新舰队添加到UI列表中
                     fleets.add(newFleet);
-                    
+
                     // 更新UI
                     updateFleetDetails();
                     updateShipList();
-                    
+
                     // 选择新创建的舰队
                     fleetListView.getSelectionModel().select(newFleet);
                     selectedFleet = newFleet;
-                    
+
                     showAlert("建造完成", quantity + "艘 " + design.getFullName() + " 已建造并加入新舰队 " + newFleet.getName() + "。");
                 } else {
                     showAlert("资源不足", "派系资源不足以建造指定数量的舰船。\n\n缺少的资源:\n" + insufficientResources);
@@ -1074,35 +1112,57 @@ public class FleetManagerUI extends BorderPane {
         }
     }
 
-    private void updateResourceRequirements(ShipDesign design, int quantity, Label resourceLabel, Colony colony) {
-        if (design == null) return;
-        
+    private void updateResourceRequirements(ShipDesign design, int quantity, TextArea resourceLabel, Colony colony) {
+        if (design == null || quantity <= 0) {
+            resourceLabel.setText("请选择舰船设计并输入大于0的建造数量。");
+            return;
+        }
+
         StringBuilder resourceText = new StringBuilder("\n");
         Map<ResourceType, Float> costs = design.getConstructionCost();
-        
-        // 计算总资源需求
+
+        boolean hasRequirements = false;
         for (Map.Entry<ResourceType, Float> entry : costs.entrySet()) {
-            resourceText.append(entry.getKey().getDisplayName())
-                       .append(": ")
-                       .append(String.format("%.2f", entry.getValue() * quantity))
-                       .append(" (库存: ")
-                       .append(String.format("%.2f", playerFaction != null ? playerFaction.getResourceStockpile().getResource(entry.getKey()) : 0))
-                       .append(")\n");
+            float totalCost = entry.getValue() * quantity;
+            if (totalCost > 0) {
+                float available = playerFaction != null
+                        ? playerFaction.getResourceStockpile().getResource(entry.getKey())
+                        : 0f;
+
+                boolean enough = available >= totalCost;
+
+                resourceText.append(entry.getKey().getDisplayName())
+                           .append(": ")
+                           .append(String.format("%.2f", totalCost))
+                           .append(" (库存: ")
+                           .append(String.format("%.2f", available))
+                           .append(")");
+
+                if (!enough) {
+                    resourceText.append("  << 不足");
+                }
+                resourceText.append("\n");
+                hasRequirements = true;
+            }
         }
-        
+
+        if (!hasRequirements) {
+            resourceText.append("无特殊资源需求\n");
+        }
+
         resourceLabel.setText(resourceText.toString());
     }
 
     private String getInsufficientResources(Faction faction, ShipDesign design, int quantity) {
         Map<ResourceType, Float> costs = design.getConstructionCost();
         ResourceStockpile stockpile = playerFaction.getResourceStockpile();
-        
+
         StringBuilder missingResources = new StringBuilder();
-        
+
         for (Map.Entry<ResourceType, Float> entry : costs.entrySet()) {
             float required = entry.getValue() * quantity;
             float available = stockpile.getResource(entry.getKey());
-            
+
             if (available < required) {
                 if (missingResources.length() > 0) {
                     missingResources.append("\n");
@@ -1112,14 +1172,14 @@ public class FleetManagerUI extends BorderPane {
                     .append(", 拥有 ").append(String.format("%.2f", available));
             }
         }
-        
+
         return missingResources.toString();
     }
 
     private void consumeResources(Faction faction, ShipDesign design) {
         Map<ResourceType, Float> costs = design.getConstructionCost();
         ResourceStockpile stockpile = playerFaction.getResourceStockpile();
-        
+
         for (Map.Entry<ResourceType, Float> entry : costs.entrySet()) {
             stockpile.consumeResource(entry.getKey(), entry.getValue());
         }
@@ -1130,7 +1190,7 @@ public class FleetManagerUI extends BorderPane {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
-        
+
         // 设置窗口图标
         try {
             javafx.scene.image.Image icon = new javafx.scene.image.Image(
@@ -1140,7 +1200,7 @@ public class FleetManagerUI extends BorderPane {
         } catch (Exception e) {
             System.err.println("无法加载窗口图标: " + e.getMessage());
         }
-        
+
         // 设置弹窗样式，与主界面风格保持一致
         DialogPane dialogPane = alert.getDialogPane();
         dialogPane.setStyle("-fx-font-family: 'Arial'; " +
@@ -1148,19 +1208,19 @@ public class FleetManagerUI extends BorderPane {
         dialogPane.setPrefSize(450, 350);
         dialogPane.setMinSize(450, 350);
         dialogPane.setMaxSize(450, 350);
-        
+
         // 设置内容标签样式
         Label contentLabel = (Label) dialogPane.lookup(".content.label");
         if (contentLabel != null) {
             contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
         }
-        
+
         // 设置标题样式
         Node titleNode = dialogPane.lookup(".alert-title");
         if (titleNode != null) {
             titleNode.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
         }
-        
+
         alert.showAndWait();
     }
 
@@ -1269,3 +1329,4 @@ public class FleetManagerUI extends BorderPane {
         }
     }
 }
+

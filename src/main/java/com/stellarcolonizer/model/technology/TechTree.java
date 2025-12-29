@@ -364,14 +364,13 @@ public class TechTree {
                 "高级武器理论研究，用于解锁后续科技", TechCategory.WEAPONS_SCIENCE, 300);
         advancedWeapons.addPrerequisite("ENERGY_WEAPONS"); // 改为依赖新增的能量武器
 
-        // 高级防御科技 - 350科研값（仅保留，但不用于解锁模块）
         Technology advancedDefenses = new Technology("ADVANCED_DEFENSES", "高级防御系统",
                 "高级防御理论研究，用于解锁后续科技", TechCategory.WEAPONS_SCIENCE, 350);
         advancedDefenses.addPrerequisite("ADAPTIVE_SHIELDS"); // 改为依赖新增的自适应护盾
 
         // 终极科技 - 终极武器
         Technology ultimateWeapon = new Technology("ULTIMATE_WEAPON", "终极武器",
-                "一种能够摧毁整个星系的超级武器", TechCategory.PHYSICS, 1500); // 设置科技值为1500
+                "一种能够摧毁整个星系的超级武器", TechCategory.PHYSICS, 1500);
         // 添加所有顶级科技作为前置条件
         ultimateWeapon.addPrerequisite("UNIFIED_FIELD_THEORY"); // 物理学最高级
         ultimateWeapon.addPrerequisite("SYNTHETIC_CHEMISTRY"); // 化学最高级
