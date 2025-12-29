@@ -10,10 +10,9 @@ public class DiplomaticRelationship {
     private String relationshipDetails; // 关系详情
 
     public enum RelationshipStatus {
-        HOSTILE("敌对", -1),
+        HOSTILE("交恶", -1),
         NEUTRAL("中立", 0),
-        FRIENDLY("友好", 1),
-        ALLIED("同盟", 2);
+        PEACEFUL("和平", 1);
 
         private final String displayName;
         private final int value;
@@ -32,8 +31,7 @@ public class DiplomaticRelationship {
         this.targetFaction = target;
         this.status = initialStatus;
         this.relationshipValue = initialStatus == RelationshipStatus.NEUTRAL ? 0 : 
-                                initialStatus == RelationshipStatus.FRIENDLY ? 25 : 
-                                initialStatus == RelationshipStatus.ALLIED ? 50 : -25;
+                                initialStatus == RelationshipStatus.PEACEFUL ? 50 : -50;
     }
 
     public Faction getSourceFaction() { return sourceFaction; }
@@ -53,10 +51,8 @@ public class DiplomaticRelationship {
     }
 
     private void updateStatusFromValue() {
-        if (relationshipValue >= 75) {
-            status = RelationshipStatus.ALLIED;
-        } else if (relationshipValue >= 25) {
-            status = RelationshipStatus.FRIENDLY;
+        if (relationshipValue >= 25) {
+            status = RelationshipStatus.PEACEFUL;
         } else if (relationshipValue >= -25) {
             status = RelationshipStatus.NEUTRAL;
         } else {

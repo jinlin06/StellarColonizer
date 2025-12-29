@@ -90,6 +90,9 @@ public class GameEngine {
         // 初始化胜利条件管理器
         victoryConditionManager = new VictoryConditionManager(galaxy);
         
+        // 初始化外交关系 - 所有派系初始时处于中立状态
+        initializeDiplomaticRelations();
+        
         System.out.println("游戏引擎初始化完成，派系数量: " + factions.size());
     }
     
@@ -511,6 +514,20 @@ public class GameEngine {
     public void initializeUniversalResourceMarket() {
         if (this.universalResourceMarket == null && playerFaction != null) {
             this.universalResourceMarket = new UniversalResourceMarket(playerFaction);
+        }
+    }
+    
+    private void initializeDiplomaticRelations() {
+        // 初始化所有派系之间的外交关系，初始状态为中立
+        for (int i = 0; i < factions.size(); i++) {
+            for (int j = i + 1; j < factions.size(); j++) {
+                Faction faction1 = factions.get(i);
+                Faction faction2 = factions.get(j);
+                
+                // 设置两个派系之间的外交关系为中立
+                faction1.getDiplomacyManager().setRelationship(faction1, faction2, 
+                    com.stellarcolonizer.model.diplomacy.DiplomaticRelationship.RelationshipStatus.NEUTRAL);
+            }
         }
     }
 }

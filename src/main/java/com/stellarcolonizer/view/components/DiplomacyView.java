@@ -36,27 +36,45 @@ public class DiplomacyView {
         
         // 按钮面板
         HBox buttonPanel = new HBox(10);
+        Button establishDiplomaticRelationButton = new Button("建交");
         Button declareWarButton = new Button("宣战");
         Button makePeaceButton = new Button("议和");
-        Button tradeAgreementButton = new Button("贸易协定");
         Button cancelButton = new Button("关闭");
         
         // 按钮样式
+        establishDiplomaticRelationButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
         declareWarButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
         makePeaceButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
-        tradeAgreementButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
         cancelButton.setStyle("-fx-background-color: #9E9E9E; -fx-text-fill: white;");
         
-        buttonPanel.getChildren().addAll(declareWarButton, makePeaceButton, tradeAgreementButton, cancelButton);
+        // 初始隐藏议和按钮，只有在战争状态下才显示
+        makePeaceButton.setVisible(false);
+        buttonPanel.getChildren().addAll(establishDiplomaticRelationButton, declareWarButton, makePeaceButton, cancelButton);
         
         // 按钮事件
+        establishDiplomaticRelationButton.setOnAction(e -> {
+            DiplomaticRelationship selected = relationshipTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                Faction targetFaction = selected.getTargetFaction().equals(playerFaction) ? 
+                                       selected.getSourceFaction() : selected.getTargetFaction();
+                // 建交操作：使用外交管理器建立外交关系
+                playerFaction.getDiplomacyManager().establishDiplomaticRelation(playerFaction, targetFaction);
+                refreshRelationshipTable(relationshipTable, galaxy, playerFaction);
+                updateButtonVisibility(relationshipTable, makePeaceButton, declareWarButton, establishDiplomaticRelationButton);
+                showAlert("建交", "已与 " + targetFaction.getName() + " 建立外交关系！");
+            } else {
+                showAlert("错误", "请选择一个派系进行操作。");
+            }
+        });
+        
         declareWarButton.setOnAction(e -> {
             DiplomaticRelationship selected = relationshipTable.getSelectionModel().getSelectedItem();
             if (selected != null) {
                 Faction targetFaction = selected.getTargetFaction().equals(playerFaction) ? 
                                        selected.getSourceFaction() : selected.getTargetFaction();
                 playerFaction.declareWarOn(targetFaction);
-                relationshipTable.refresh();
+                refreshRelationshipTable(relationshipTable, galaxy, playerFaction);
+                updateButtonVisibility(relationshipTable, makePeaceButton, declareWarButton, establishDiplomaticRelationButton);
                 showAlert("宣战", "已向 " + targetFaction.getName() + " 宣战！");
             } else {
                 showAlert("错误", "请选择一个派系进行操作。");
@@ -69,25 +87,21 @@ public class DiplomacyView {
                 Faction targetFaction = selected.getTargetFaction().equals(playerFaction) ? 
                                        selected.getSourceFaction() : selected.getTargetFaction();
                 playerFaction.makePeaceWith(targetFaction);
-                relationshipTable.refresh();
+                refreshRelationshipTable(relationshipTable, galaxy, playerFaction);
+                updateButtonVisibility(relationshipTable, makePeaceButton, declareWarButton, establishDiplomaticRelationButton);
                 showAlert("议和", "已与 " + targetFaction.getName() + " 议和！");
             } else {
                 showAlert("错误", "请选择一个派系进行操作。");
             }
         });
         
-        tradeAgreementButton.setOnAction(e -> {
-            DiplomaticRelationship selected = relationshipTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                Faction targetFaction = selected.getTargetFaction().equals(playerFaction) ? 
-                                       selected.getSourceFaction() : selected.getTargetFaction();
-                playerFaction.establishTradeAgreementWith(targetFaction);
-                relationshipTable.refresh();
-                showAlert("贸易协定", "已与 " + targetFaction.getName() + " 签署贸易协定！");
-            } else {
-                showAlert("错误", "请选择一个派系进行操作。");
-            }
+        // 监听表格选择变化，更新按钮可见性
+        relationshipTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            updateButtonVisibility(relationshipTable, makePeaceButton, declareWarButton, establishDiplomaticRelationButton);
         });
+        
+        // 初始更新按钮可见性
+        updateButtonVisibility(relationshipTable, makePeaceButton, declareWarButton, establishDiplomaticRelationButton);
         
         cancelButton.setOnAction(e -> diplomacyStage.close());
         
@@ -115,15 +129,9 @@ public class DiplomacyView {
             return new javafx.beans.property.SimpleStringProperty(status);
         });
         
-        TableColumn<DiplomaticRelationship, Integer> valueColumn = new TableColumn<>("关系值");
-        valueColumn.setCellValueFactory(cellData -> {
-            DiplomaticRelationship rel = cellData.getValue();
-            return new javafx.beans.property.SimpleIntegerProperty(rel.getRelationshipValue()).asObject();
-        });
-        
         // 创建表格
         TableView<DiplomaticRelationship> table = new TableView<>();
-        table.getColumns().addAll(factionColumn, statusColumn, valueColumn);
+        table.getColumns().addAll(factionColumn, statusColumn);
         
         // 填充数据
         List<Faction> allFactions = galaxy.getFactions();
@@ -149,5 +157,52 @@ public class DiplomacyView {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+    
+    private static void refreshRelationshipTable(TableView<DiplomaticRelationship> table, Galaxy galaxy, Faction playerFaction) {
+        // 重新填充表格数据以确保显示更新
+        table.getItems().clear();
+        List<Faction> allFactions = galaxy.getFactions();
+        for (Faction faction : allFactions) {
+            if (!faction.equals(playerFaction)) {
+                DiplomaticRelationship relationship = playerFaction.getRelationshipWith(faction);
+                if (relationship == null) {
+                    // 如果没有关系，创建一个中立关系
+                    relationship = new DiplomaticRelationship(playerFaction, faction, 
+                        DiplomaticRelationship.RelationshipStatus.NEUTRAL);
+                }
+                table.getItems().add(relationship);
+            }
+        }
+    }
+    
+    private static void updateButtonVisibility(TableView<DiplomaticRelationship> table, Button makePeaceButton, Button declareWarButton, Button establishDiplomaticRelationButton) {
+        DiplomaticRelationship selected = table.getSelectionModel().getSelectedItem();
+        
+        if (selected != null) {
+            // 根据当前关系状态决定按钮可见性
+            switch (selected.getStatus()) {
+                case HOSTILE: // 交恶
+                    makePeaceButton.setVisible(true); // 只能议和
+                    declareWarButton.setVisible(false); // 不能再宣战
+                    establishDiplomaticRelationButton.setVisible(false); // 不能直接建交
+                    break;
+                case NEUTRAL: // 中立
+                    makePeaceButton.setVisible(false); // 中立状态不需要议和
+                    declareWarButton.setVisible(true); // 可以宣战
+                    establishDiplomaticRelationButton.setVisible(true); // 可以建交
+                    break;
+                case PEACEFUL: // 和平
+                    makePeaceButton.setVisible(false); // 和平状态不需要议和
+                    declareWarButton.setVisible(true); // 可以宣战
+                    establishDiplomaticRelationButton.setVisible(false); // 已经和平，不需要建交
+                    break;
+            }
+        } else {
+            // 没有选择任何关系时，隐藏操作按钮
+            makePeaceButton.setVisible(false);
+            declareWarButton.setVisible(false);
+            establishDiplomaticRelationButton.setVisible(false);
+        }
     }
 }

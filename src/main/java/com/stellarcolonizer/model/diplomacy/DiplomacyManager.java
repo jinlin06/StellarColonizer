@@ -49,10 +49,8 @@ public class DiplomacyManager {
             int value = relationship.getRelationshipValue();
             DiplomaticRelationship.RelationshipStatus newStatus;
             
-            if (value >= 75) {
-                newStatus = DiplomaticRelationship.RelationshipStatus.ALLIED;
-            } else if (value >= 25) {
-                newStatus = DiplomaticRelationship.RelationshipStatus.FRIENDLY;
+            if (value >= 25) {
+                newStatus = DiplomaticRelationship.RelationshipStatus.PEACEFUL;
             } else if (value >= -25) {
                 newStatus = DiplomaticRelationship.RelationshipStatus.NEUTRAL;
             } else {
@@ -64,19 +62,39 @@ public class DiplomacyManager {
     }
 
     public void declareWar(Faction faction1, Faction faction2) {
-        adjustRelationship(faction1, faction2, -50); // 设置为敌对关系
+        // 宣战操作：将关系值调整到敌对状态
+        DiplomaticRelationship relationship = getRelationship(faction1, faction2);
+        if (relationship != null) {
+            // 将关系值设置为敌对值
+            relationship.setRelationshipValue(-50); // 设置为敌对值
+            updateRelationshipStatus(faction1, faction2); // 更新状态
+        } else {
+            // 如果没有关系，创建一个敌对关系
+            setRelationship(faction1, faction2, DiplomaticRelationship.RelationshipStatus.HOSTILE);
+        }
     }
 
     public void makePeace(Faction faction1, Faction faction2) {
-        adjustRelationship(faction1, faction2, 20); // 改善关系
+        // 议和操作：将关系值调整到中立状态（从敌对状态改善）
+        DiplomaticRelationship relationship = getRelationship(faction1, faction2);
+        if (relationship != null) {
+            // 如果当前是敌对状态，议和后变为中立
+            if (relationship.getStatus() == DiplomaticRelationship.RelationshipStatus.HOSTILE) {
+                relationship.setRelationshipValue(0); // 设置为中立值
+                updateRelationshipStatus(faction1, faction2); // 更新状态
+            }
+        } else {
+            // 如果没有关系，创建一个中立关系
+            setRelationship(faction1, faction2, DiplomaticRelationship.RelationshipStatus.NEUTRAL);
+        }
     }
 
     public void establishTradeAgreement(Faction faction1, Faction faction2) {
-        adjustRelationship(faction1, faction2, 15); // 改善关系
+        adjustRelationship(faction1, faction2, 30); // 改善关系到和平状态
     }
 
     public void terminateTradeAgreement(Faction faction1, Faction faction2) {
-        adjustRelationship(faction1, faction2, -10); // 恶化关系
+        adjustRelationship(faction1, faction2, -30); // 恶化关系
     }
 
     public List<Faction> getHostileFactions(Faction faction) {
@@ -93,20 +111,18 @@ public class DiplomacyManager {
         return hostileFactions;
     }
 
-    public List<Faction> getFriendlyFactions(Faction faction) {
-        List<Faction> friendlyFactions = new ArrayList<>();
+    public List<Faction> getPeacefulFactions(Faction faction) {
+        List<Faction> peacefulFactions = new ArrayList<>();
         for (DiplomaticRelationship relationship : relationships.values()) {
             if (relationship.getSourceFaction().equals(faction) && 
-                (relationship.getStatus() == DiplomaticRelationship.RelationshipStatus.FRIENDLY ||
-                 relationship.getStatus() == DiplomaticRelationship.RelationshipStatus.ALLIED)) {
-                friendlyFactions.add(relationship.getTargetFaction());
+                relationship.getStatus() == DiplomaticRelationship.RelationshipStatus.PEACEFUL) {
+                peacefulFactions.add(relationship.getTargetFaction());
             } else if (relationship.getTargetFaction().equals(faction) && 
-                       (relationship.getStatus() == DiplomaticRelationship.RelationshipStatus.FRIENDLY ||
-                        relationship.getStatus() == DiplomaticRelationship.RelationshipStatus.ALLIED)) {
-                friendlyFactions.add(relationship.getSourceFaction());
+                       relationship.getStatus() == DiplomaticRelationship.RelationshipStatus.PEACEFUL) {
+                peacefulFactions.add(relationship.getSourceFaction());
             }
         }
-        return friendlyFactions;
+        return peacefulFactions;
     }
 
     public List<Faction> getNeutralFactions(Faction faction) {
@@ -134,6 +150,19 @@ public class DiplomacyManager {
         }
     }
 
+    public void establishDiplomaticRelation(Faction faction1, Faction faction2) {
+        // 建交操作：将关系设置为和平状态
+        DiplomaticRelationship relationship = getRelationship(faction1, faction2);
+        if (relationship != null) {
+            // 将关系值设置为和平值
+            relationship.setRelationshipValue(50); // 设置为和平值
+            updateRelationshipStatus(faction1, faction2); // 更新状态
+        } else {
+            // 如果没有关系，创建一个和平关系
+            setRelationship(faction1, faction2, DiplomaticRelationship.RelationshipStatus.PEACEFUL);
+        }
+    }
+    
     public void nextTurn() {
         // 在每个回合结束时，关系可能会自然变化
         for (DiplomaticRelationship relationship : relationships.values()) {

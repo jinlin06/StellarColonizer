@@ -247,7 +247,7 @@ public class Faction {
     }
     
     public List<Faction> getFriendlyFactions() {
-        return diplomacyManager.getFriendlyFactions(this);
+        return diplomacyManager.getPeacefulFactions(this);
     }
     
     public List<Faction> getNeutralFactions() {
