@@ -70,6 +70,9 @@ public class Faction {
         researchedTechnologies.add("BASIC_CONSTRUCTION");
         researchedTechnologies.add("BASIC_FARMING");
         researchedTechnologies.add("BASIC_POWER");
+        // 添加基础殖民科技，允许玩家开始殖民星球
+        researchedTechnologies.add("BASIC_COLONIZATION");
+        researchedTechnologies.add("TERRAFORMING_BASIC");
     }
 
     /**

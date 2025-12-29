@@ -49,6 +49,54 @@ public class TechTree {
         Technology basicPhysics = new Technology("BASIC_PHYSICS", "基础物理学",
                 "掌握基本物理原理", TechCategory.PHYSICS, 100);
 
+        // 殖民科技分支 - 基础殖民技术
+        Technology basicColonization = new Technology("BASIC_COLONIZATION", "基础殖民技术",
+                "掌握基础的殖民技术，允许在宜居行星上建立殖民地", TechCategory.BIOLOGY, 100);
+
+        Technology terraformingBasic = new Technology("TERRAFORMING_BASIC", "基础改造技术",
+                "基础行星改造技术，允许殖民类地行星", TechCategory.BIOLOGY, 150);
+        terraformingBasic.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology desertAdaptation = new Technology("DESERT_ADAPTATION", "沙漠适应技术",
+                "适应沙漠环境的殖民技术，允许殖民沙漠行星", TechCategory.BIOLOGY, 175);
+        desertAdaptation.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology aridAdaptation = new Technology("ARID_ADAPTATION", "干旱适应技术",
+                "适应干旱环境的殖民技术，允许殖民干旱行星", TechCategory.BIOLOGY, 175);
+        aridAdaptation.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology coldAdaptation = new Technology("COLD_ADAPTATION", "寒带适应技术",
+                "适应寒冷环境的殖民技术，允许殖民冻土行星", TechCategory.BIOLOGY, 175);
+        coldAdaptation.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology cryonicTech = new Technology("CRYONIC_TECH", "低温技术",
+                "低温环境生存技术，允许殖民冰封行星", TechCategory.BIOLOGY, 200);
+        cryonicTech.addPrerequisite("COLD_ADAPTATION");
+
+        Technology aquaticHabitation = new Technology("AQUATIC_HABITATION", "水生栖息技术",
+                "在海洋行星上建立栖息地的技术，允许殖民海洋行星", TechCategory.BIOLOGY, 200);
+        aquaticHabitation.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology jungleAdaptation = new Technology("JUNGLE_ADAPTATION", "丛林适应技术",
+                "适应丛林环境的殖民技术，允许殖民丛林行星", TechCategory.BIOLOGY, 200);
+        jungleAdaptation.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology heatResistance = new Technology("HEAT_RESISTANCE", "高温防护技术",
+                "高温环境生存技术，允许殖民熔岩行星", TechCategory.BIOLOGY, 200);
+        heatResistance.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology gasGiantHarvesting = new Technology("GAS_GIANT_HARVESTING", "气态巨行星开采技术",
+                "开采气态巨行星资源的技术，允许在气态巨行星建立设施", TechCategory.CHEMISTRY, 250);
+        gasGiantHarvesting.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology asteroidMining = new Technology("ASTEROID_MINING", "小行星采矿技术",
+                "在小行星上建立采矿设施的技术，允许在小行星建立基地", TechCategory.CHEMISTRY, 150);
+        asteroidMining.addPrerequisite("BASIC_COLONIZATION");
+
+        Technology terraformingAdvanced = new Technology("TERRAFORMING_ADVANCED", "高级改造技术",
+                "高级行星改造技术，允许殖民贫瘠行星", TechCategory.BIOLOGY, 300);
+        terraformingAdvanced.addPrerequisite("TERRAFORMING_BASIC");
+
         Technology mechanics = new Technology("MECHANICS", "力学",
                 "理解和应用力的作用", TechCategory.PHYSICS, 150);
         mechanics.addPrerequisite("BASIC_PHYSICS");
@@ -333,6 +381,19 @@ public class TechTree {
 
         // 先将所有科技添加到映射中，但暂不添加到列表
         Map<String, Technology> tempTechMap = new HashMap<>();
+        // 殖民科技
+        tempTechMap.put("BASIC_COLONIZATION", basicColonization);
+        tempTechMap.put("TERRAFORMING_BASIC", terraformingBasic);
+        tempTechMap.put("DESERT_ADAPTATION", desertAdaptation);
+        tempTechMap.put("ARID_ADAPTATION", aridAdaptation);
+        tempTechMap.put("COLD_ADAPTATION", coldAdaptation);
+        tempTechMap.put("CRYONIC_TECH", cryonicTech);
+        tempTechMap.put("AQUATIC_HABITATION", aquaticHabitation);
+        tempTechMap.put("JUNGLE_ADAPTATION", jungleAdaptation);
+        tempTechMap.put("HEAT_RESISTANCE", heatResistance);
+        tempTechMap.put("GAS_GIANT_HARVESTING", gasGiantHarvesting);
+        tempTechMap.put("ASTEROID_MINING", asteroidMining);
+        tempTechMap.put("TERRAFORMING_ADVANCED", terraformingAdvanced);
         tempTechMap.put("BASIC_PHYSICS", basicPhysics);
         tempTechMap.put("MECHANICS", mechanics);
         tempTechMap.put("THERMODYNAMICS", thermodynamics);
@@ -410,6 +471,20 @@ public class TechTree {
         }
 
         // 添加所有科技
+        // 殖民科技分支
+        addTechnology(basicColonization);
+        addTechnology(terraformingBasic);
+        addTechnology(desertAdaptation);
+        addTechnology(aridAdaptation);
+        addTechnology(coldAdaptation);
+        addTechnology(cryonicTech);
+        addTechnology(aquaticHabitation);
+        addTechnology(jungleAdaptation);
+        addTechnology(heatResistance);
+        addTechnology(gasGiantHarvesting);
+        addTechnology(asteroidMining);
+        addTechnology(terraformingAdvanced);
+        
         addTechnology(basicPhysics);
         addTechnology(mechanics);
         addTechnology(thermodynamics);
