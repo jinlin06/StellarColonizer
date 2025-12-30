@@ -773,6 +773,30 @@ public class HexMapView extends Pane {
                 }
             }
         }
+        
+        // 如果六边形中没有星系控制派系但有舰队，则显示舰队所属派系名称
+        List<Fleet> fleets = hex.getFleets();
+        if (!hex.hasStarSystem() || (hex.hasStarSystem() && hex.getStarSystem().getControllingFaction() == null)) {
+            if (!fleets.isEmpty()) {
+                // 显示第一个舰队的派系名称
+                Fleet firstFleet = fleets.get(0);
+                String factionName = firstFleet.getFaction().getName();
+                if (factionName != null && !factionName.isEmpty()) {
+                    // 根据六边形大小调整字体大小
+                    double fontSize = Math.max(8, screenSize * 0.15);
+                    gc.setFont(Font.font(fontSize));
+
+                    // 计算文本宽度以居中显示
+                    Text text = new Text(factionName);
+                    text.setFont(gc.getFont());
+                    double textWidth = text.getBoundsInLocal().getWidth();
+
+                    // 将派系名称显示在六边形的下方
+                    gc.setFill(Color.WHITE);
+                    gc.fillText(factionName, screenX - textWidth / 2, screenY + screenSize * 0.7);
+                }
+            }
+        }
     }
 
 /*    private Color getFleetColor(Fleet fleet) {
@@ -824,6 +848,28 @@ public class HexMapView extends Pane {
                     
                     return Color.rgb(r, g, b, 0.5); // 进一步提高透明度以使颜色更亮
                 }
+            }
+        }
+        
+        // 如果六边形没有被任何派系控制，但是有舰队存在，则显示舰队所属派系的颜色
+        // 这是为了确保所有AI派系在地图上的活动都可以被观察到
+        List<Fleet> fleets = hex.getFleets();
+        if (!fleets.isEmpty()) {
+            // 获取第一个舰队的派系颜色作为参考
+            Fleet firstFleet = fleets.get(0);
+            Color factionColor = firstFleet.getFaction().getColor();
+            if (factionColor != null) {
+                // 将JavaFX颜色转换为Canvas颜色，大幅增加亮度
+                int r = (int)(factionColor.getRed() * 255);
+                int g = (int)(factionColor.getGreen() * 255);
+                int b = (int)(factionColor.getBlue() * 255);
+                
+                // 大幅提高亮度
+                r = Math.min(255, (int)(r * 1.5)); // 增加50%亮度
+                g = Math.min(255, (int)(g * 1.5)); // 增加50%亮度
+                b = Math.min(255, (int)(b * 1.5)); // 增加50%亮度
+                
+                return Color.rgb(r, g, b, 0.3); // 更低的透明度以显示舰队的存在
             }
         }
         

@@ -10,10 +10,8 @@ import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.service.event.EventBus;
 import com.stellarcolonizer.model.service.event.GameEvent;
 import com.stellarcolonizer.model.service.event.GameEventListener;
-import com.stellarcolonizer.model.technology.TechTree;
 import com.stellarcolonizer.model.victory.VictoryConditionManager;
 import com.stellarcolonizer.util.io.SaveManager;
-import javafx.animation.AnimationTimer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,22 +28,19 @@ public class GameEngine {
     // 玩家起始位置
     private Hex playerStartHex;
 
-    private AnimationTimer gameLoop;
     private boolean isPaused = false;
-    private long lastUpdateTime;
 
     private EventBus eventBus;
     private List<GameEventListener> listeners;
     private VictoryConditionManager victoryConditionManager;
-    
-    // 宇宙资源市场
+
     private UniversalResourceMarket universalResourceMarket;
 
     public GameEngine() {
         this.eventBus = new EventBus();
         this.listeners = new CopyOnWriteArrayList<>();
         this.factions = new ArrayList<>();
-        this.universalResourceMarket = null; // 初始化为null，将在initialize方法中创建
+        this.universalResourceMarket = null;
     }
 
     public void initialize() {
@@ -53,11 +48,11 @@ public class GameEngine {
         
         // 创建新的星系
         GalaxyGenerator generator = new GalaxyGenerator();
-        galaxy = generator.generateGalaxy(50); // 生成50个星系
+        galaxy = generator.generateGalaxy(50);
         
         // 创建玩家阵营
         playerFaction = new PlayerFaction("玩家");
-        // 注意：这里应该把玩家派系添加到factions列表中
+
         factions.add(playerFaction);
         galaxy.addFaction(playerFaction);
         playerFaction.setGalaxy(galaxy);
@@ -73,29 +68,25 @@ public class GameEngine {
         playerFaction.getResourceStockpile().addResource(ResourceType.MONEY, 300);
         playerFaction.getResourceStockpile().addResource(ResourceType.SCIENCE, 500); // 初始科技值
         
-        // 设置玩家起始位置
-        setupPlayerStartLocation();
-        
         // 创建AI派系
         createAIFactions();
         
-        // 为所有派系分配初始殖民地（仅对还没有殖民地的派系）
+        // 设置玩家起始位置
+        setupPlayerStartLocation();
+
         setupInitialColonies();
         
         // 生成星系之间的连接
         galaxy.generateStarSystemConnections();
-        
-        // 初始化游戏状态
+
         gameState = new GameState();
         gameState.setCurrentTurn(1);
         
         // 初始化胜利条件管理器
         victoryConditionManager = new VictoryConditionManager(galaxy);
-        
-        // 初始化外交关系 - 所有派系初始时处于中立状态
+
         initializeDiplomaticRelations();
-        
-        // 同步所有派系的科技值到科技树
+
         syncAllFactionsScienceToTechTree();
         
         System.out.println("游戏引擎初始化完成，派系数量: " + factions.size());
@@ -117,8 +108,7 @@ public class GameEngine {
                             
                             // 设置该星系的控制派系
                             system.setControllingFaction(playerFaction);
-                            
-                            // 不再在这里添加资源，因为资源由派系统一管理
+
                             return;
                         } else {
                             // 如果行星不在星系中，先将其添加到星系
@@ -154,8 +144,7 @@ public class GameEngine {
                             
                             // 设置该星系的控制派系
                             system.setControllingFaction(playerFaction);
-                            
-                            // 不再在这里添加资源，因为资源由派系统一管理
+
                             return;
                         }
                     }
@@ -177,8 +166,7 @@ public class GameEngine {
                             
                             // 设置该星系的控制派系
                             system.setControllingFaction(playerFaction);
-                            
-                            // 不再在这里添加资源，因为资源由派系统一管理
+
                             return;
                         }
                     }
@@ -208,13 +196,11 @@ public class GameEngine {
                 }
             }
         }
-        
-        // 如果还是没找到可殖民的行星，使用第一个星系
+
         if (playerStartHex == null && !galaxy.getStarSystems().isEmpty()) {
             StarSystem firstSystem = galaxy.getStarSystems().get(0);
             playerStartHex = galaxy.getHexForStarSystem(firstSystem);
-            
-            // 即使没有可殖民的行星，也设置该星系的控制派系为玩家
+
             firstSystem.setControllingFaction(playerFaction);
         }
     }
@@ -248,6 +234,14 @@ public class GameEngine {
             galaxy.addFaction(aiFaction);
             aiFaction.setGalaxy(galaxy);
             
+            // 为AI派系分配初始资源
+            aiFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
+            aiFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
+            aiFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
+            aiFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
+            aiFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+            aiFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.SCIENCE, 500);
+            
             // 为AI派系分配一个星系
             assignSystemToFaction(aiFaction);
         }
@@ -265,8 +259,7 @@ public class GameEngine {
                         break; // 找到一个宜居度80%以上的行星就足够
                     }
                 }
-                
-                // 如果没找到宜居度80%以上的行星，再寻找其他可殖民的行星
+
                 if (suitablePlanet == null) {
                     for (Planet planet : system.getPlanets()) {
                         if (planet.canColonize(faction) && planet.getColony() == null) {
@@ -277,14 +270,20 @@ public class GameEngine {
                 }
                 
                 if (suitablePlanet != null) {
+                    // 在该行星上建立殖民地
                     Colony colony = new Colony(suitablePlanet, faction);
                     faction.addColony(colony);
                     suitablePlanet.setColony(colony);
-                    return;
+                    
+                    // 设置该星系的控制派系
+                    system.setControllingFaction(faction);
+
+                    return; // 只为每个派系分配一个星系
                 }
             }
         }
 
+        // 如果没找到可殖民的行星，尝试在任何行星上建立殖民地（即使不可殖民）
         for (StarSystem system : galaxy.getStarSystems()) {
             if (system.getControllingFaction() == null) {
                 // 尝试在系统中的任何行星上建立殖民地
@@ -297,17 +296,8 @@ public class GameEngine {
                         
                         // 设置该星系的控制派系
                         system.setControllingFaction(faction);
-                        
-                        // 给予初始资源
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
-                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.SCIENCE, 500);
-                        
-                        System.out.println(faction.getName() + " 在星系 " + system.getName() + " 的行星 " + planet.getName() + " 上建立了殖民地（强制殖民）");
-                        return; // 只为每个派系分配一个星系
+
+                       return; // 只为每个派系分配一个星系
                     }
                 }
             }
@@ -317,7 +307,7 @@ public class GameEngine {
         for (StarSystem system : galaxy.getStarSystems()) {
             if (system.getControllingFaction() == null) {
                 system.setControllingFaction(faction);
-                System.out.println(faction.getName() + " 控制了星系 " + system.getName());
+                System.out.println(faction.getName() + " 控制了星系 " + system.getName() + "（无殖民地）");
                 return; // 只为每个派系分配一个星系
             }
         }
@@ -330,30 +320,22 @@ public class GameEngine {
             if (faction.getColonies().isEmpty()) {
                 Planet homeworld = findSuitableHomeworld(faction);
                 if (homeworld != null) {
-                    Colony colony = new Colony(homeworld, faction);
-                    faction.addColony(colony);
-                    homeworld.setColony(colony);
-                    
-                    // 设置该行星所属星系的控制派系
-                    StarSystem system = homeworld.getStarSystem();
-                    if (system != null) {
-                        system.setControllingFaction(faction);
+                    if (homeworld.getColony() == null) {
+                        Colony colony = new Colony(homeworld, faction);
+                        faction.addColony(colony);
+                        homeworld.setColony(colony);
+
+                        // 设置该行星所属星系的控制派系
+                        StarSystem system = homeworld.getStarSystem();
+                        if (system != null) {
+                            system.setControllingFaction(faction);
+                        }
+
                     }
-
-                    // 给予初始资源
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.SCIENCE, 1000); // 初始科技值
-
-                    eventBus.publish(new GameEvent("COLONY_ESTABLISHED", faction.getName() + " 在 " + homeworld.getName() + " 建立了殖民地"));
                 }
             }
         }
-        
-        // 为所有派系的殖民地行星确保最低宜居度
+
         ensureColonizedPlanetsMinimumHabitability();
     }
     
@@ -381,8 +363,7 @@ public class GameEngine {
                 }
             }
         }
-        
-        // 如果没找到TERRA行星，则寻找其他宜居度至少80%的行星
+
         for (StarSystem system : galaxy.getStarSystems()) {
             for (Planet planet : system.getPlanets()) {
                 if (planet.canColonize(faction) && planet.getColony() == null && planet.getHabitability() >= 0.8f) {
@@ -390,8 +371,7 @@ public class GameEngine {
                 }
             }
         }
-        
-        // 如果没找到宜居度80%以上的行星，则寻找其他可殖民的行星
+
         for (StarSystem system : galaxy.getStarSystems()) {
             for (Planet planet : system.getPlanets()) {
                 if (planet.canColonize(faction) && planet.getColony() == null) {
@@ -399,8 +379,7 @@ public class GameEngine {
                 }
             }
         }
-        
-        // 如果没找到可殖民的行星，尝试任何没有殖民地的行星
+
         for (StarSystem system : galaxy.getStarSystems()) {
             for (Planet planet : system.getPlanets()) {
                 if (planet.getColony() == null) {
@@ -408,38 +387,17 @@ public class GameEngine {
                 }
             }
         }
-        
-        return null;
-    }
 
-    private void startGameLoop() {
-        lastUpdateTime = System.nanoTime();
-
-        gameLoop = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                if (!isPaused) {
-                    double deltaTime = (now - lastUpdateTime) / 1_000_000_000.0;
-                    update(deltaTime);
-                    lastUpdateTime = now;
+        for (StarSystem system : galaxy.getStarSystems()) {
+            if (system.getControllingFaction() == null) {
+                // 返回该星系中的第一个行星
+                if (!system.getPlanets().isEmpty()) {
+                    return system.getPlanets().get(0);
                 }
             }
-        };
-        gameLoop.start();
-    }
-
-    private void update(double deltaTime) {
-        gameState.update(deltaTime);
-
-        for (Faction faction : factions) {
-            // faction.update(deltaTime); // TODO: 实现Faction的update方法
-
-            if (faction.isAI() && faction.getAIController() != null) {
-                faction.getAIController().makeDecision(gameState);
-            }
         }
-
-        checkVictoryConditions();
+        
+        return null;
     }
 
     public void nextTurn() {
@@ -447,11 +405,6 @@ public class GameEngine {
 
         eventBus.publish(new GameEvent("TURN_START", "回合 " + gameState.getCurrentTurn()));
 
-        System.out.println("处理派系数量: " + factions.size());
-        for (Faction faction : factions) {
-            System.out.println("处理派系: " + faction.getName());
-            faction.processTurn();
-        }
 
         gameState.nextTurn();
 
@@ -459,26 +412,6 @@ public class GameEngine {
             SaveManager.getInstance().autoSave(this);
         }
         System.out.println("回合处理完成");
-    }
-
-    private void checkVictoryConditions() {
-        // 检查每个派系是否满足完全胜利条件
-        for (Faction faction : factions) {
-            if (faction.isAI()) {
-                // AI派系不能获胜
-                continue;
-            }
-            
-            // 获取派系的科技树
-            TechTree techTree = faction.getTechTree();
-            
-            // 检查是否满足完全胜利条件
-            if (victoryConditionManager.checkCompleteVictory(faction, techTree)) {
-                // 宣布胜利并结束游戏
-                gameState.endGame(faction, "完全胜利");
-                return;
-            }
-        }
     }
 
     // Getter方法
@@ -518,8 +451,7 @@ public class GameEngine {
             for (int j = i + 1; j < factions.size(); j++) {
                 Faction faction1 = factions.get(i);
                 Faction faction2 = factions.get(j);
-                
-                // 设置两个派系之间的外交关系为中立
+
                 faction1.getDiplomacyManager().setRelationship(faction1, faction2, 
                     com.stellarcolonizer.model.diplomacy.DiplomaticRelationship.RelationshipStatus.NEUTRAL);
             }
@@ -527,7 +459,6 @@ public class GameEngine {
     }
     
     private void syncAllFactionsScienceToTechTree() {
-        // 确保所有派系的科技值都同步到科技树
         for (Faction faction : factions) {
             faction.getTechTree().initializeBaseResearchPoints((int) faction.getResourceStockpile().getResource(ResourceType.SCIENCE));
         }
