@@ -73,7 +73,6 @@ public class DefenseModule extends ShipModule {
                 // 高级ECM使用稀有资源
                 constructionCost.put(ResourceType.EXOTIC_MATTER, 15F);
                 maintenanceCost.put(ResourceType.ENERGY, 3F);
-                maintenanceCost.put(ResourceType.SCIENCE, 1F);
                 break;
         }
     }

@@ -71,6 +71,7 @@ public class GameEngine {
         playerFaction.getResourceStockpile().addResource(ResourceType.FUEL, 300);
         playerFaction.getResourceStockpile().addResource(ResourceType.FOOD, 300);
         playerFaction.getResourceStockpile().addResource(ResourceType.MONEY, 300);
+        playerFaction.getResourceStockpile().addResource(ResourceType.SCIENCE, 500); // 初始科技值
         
         // 设置玩家起始位置
         setupPlayerStartLocation();
@@ -93,6 +94,9 @@ public class GameEngine {
         
         // 初始化外交关系 - 所有派系初始时处于中立状态
         initializeDiplomaticRelations();
+        
+        // 同步所有派系的科技值到科技树
+        syncAllFactionsScienceToTechTree();
         
         System.out.println("游戏引擎初始化完成，派系数量: " + factions.size());
     }
@@ -300,6 +304,7 @@ public class GameEngine {
                         faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
                         faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
                         faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+                        faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.SCIENCE, 500);
                         
                         System.out.println(faction.getName() + " 在星系 " + system.getName() + " 的行星 " + planet.getName() + " 上建立了殖民地（强制殖民）");
                         return; // 只为每个派系分配一个星系
@@ -341,6 +346,7 @@ public class GameEngine {
                     faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
                     faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
                     faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.SCIENCE, 1000); // 初始科技值
 
                     eventBus.publish(new GameEvent("COLONY_ESTABLISHED", faction.getName() + " 在 " + homeworld.getName() + " 建立了殖民地"));
                 }
@@ -517,6 +523,13 @@ public class GameEngine {
                 faction1.getDiplomacyManager().setRelationship(faction1, faction2, 
                     com.stellarcolonizer.model.diplomacy.DiplomaticRelationship.RelationshipStatus.NEUTRAL);
             }
+        }
+    }
+    
+    private void syncAllFactionsScienceToTechTree() {
+        // 确保所有派系的科技值都同步到科技树
+        for (Faction faction : factions) {
+            faction.getTechTree().initializeBaseResearchPoints((int) faction.getResourceStockpile().getResource(ResourceType.SCIENCE));
         }
     }
 }

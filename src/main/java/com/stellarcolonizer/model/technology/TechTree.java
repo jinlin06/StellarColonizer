@@ -487,7 +487,7 @@ public class TechTree {
         addTechnology(basicPhysics);
         addTechnology(mechanics);
         addTechnology(thermodynamics);
-        addTechnology(classicalPhysics);
+        addTechnology(classicalPhysics); // 添加新的中间科技
         addTechnology(modernPhysics);
         addTechnology(quantumMechanics);
         addTechnology(nuclearPhysics);

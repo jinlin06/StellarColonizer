@@ -48,7 +48,6 @@ public class UtilityModule extends ShipModule {
             case SENSOR:
                 // 基础传感器只使用普通资源
                 maintenanceCost.put(ResourceType.ENERGY, 3F);
-                maintenanceCost.put(ResourceType.SCIENCE, 0.5f);
                 break;
             case CLOAKING:
                 // 高级隐形使用稀有资源
@@ -69,7 +68,6 @@ public class UtilityModule extends ShipModule {
                 // 基础研究实验室只使用普通资源
                 constructionCost.put(ResourceType.SCIENCE, 50F);
                 maintenanceCost.put(ResourceType.ENERGY, 5F);
-                maintenanceCost.put(ResourceType.SCIENCE, 2F);
                 break;
             case MEDICAL_BAY:
                 // 高级医疗舱使用稀有资源

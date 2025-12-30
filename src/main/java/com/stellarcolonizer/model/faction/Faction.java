@@ -11,6 +11,7 @@ import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.service.ai.AIController;
+import com.stellarcolonizer.model.colony.Building;
 import com.stellarcolonizer.model.technology.Technology;
 import com.stellarcolonizer.model.technology.TechTree;
 import com.stellarcolonizer.model.fleet.Fleet;
@@ -60,9 +61,13 @@ public class Faction {
         this.diplomacyManager = new DiplomacyManager();
 
         initializeTechnologies();
+
         
         // 初始化时立即计算基础科研产出
         updateBaseResearchPoints();
+        
+        // 同步初始科技值到科技树
+        syncScienceToTechTree();
     }
 
     private void initializeTechnologies() {
@@ -70,18 +75,27 @@ public class Faction {
         researchedTechnologies.add("TERRAFORMING_BASIC");
     }
 
+    
+    private void syncScienceToTechTree() {
+        // 将资源库存中的科技值同步到科技树
+        techTree.initializeBaseResearchPoints((int) resourceStockpile.getResource(ResourceType.SCIENCE));
+    }
+
     public void updateBaseResearchPoints() {
-        // 计算科研点数
-        float totalResearchPoints = colonies.stream()
-                .map(c -> c.getProductionStats().get(ResourceType.SCIENCE))
-                .reduce(0f, Float::sum);
+        // 计算科研点数 - 从所有殖民地的建筑产出中获得
+        float totalResearchPoints = 0f;
         
-        // 添加各殖民地的临时科研奖励
-        float temporaryScienceBonus = (float) colonies.stream()
-                .mapToDouble(c -> c.getAndResetTemporaryScienceBonus())
-                .sum();
-        
-        totalResearchPoints += temporaryScienceBonus;
+        // 遍历所有殖民地，计算它们的建筑产生的科研点数
+        for (Colony colony : colonies) {
+            // 获取殖民地所有建筑的科研产出
+            for (Building building : colony.getBuildings()) {
+                Map<ResourceType, Float> bonuses = building.getProductionBonuses();
+                Float scienceBonus = bonuses.get(ResourceType.SCIENCE);
+                if (scienceBonus != null) {
+                    totalResearchPoints += scienceBonus;
+                }
+            }
+        }
         
         // 更新科技树的基础科研产出
         techTree.processResearch((int) totalResearchPoints);
@@ -107,17 +121,20 @@ public class Faction {
             colony.processTurn();
         }
 
-        // 计算科研点数
-        float totalResearchPoints = colonies.stream()
-                .map(c -> c.getProductionStats().get(ResourceType.SCIENCE))
-                .reduce(0f, Float::sum);
-
-        // 添加各殖民地的临时科研奖励
-        float temporaryScienceBonus = (float) colonies.stream()
-                .mapToDouble(c -> c.getAndResetTemporaryScienceBonus())
-                .sum();
-
-        totalResearchPoints += temporaryScienceBonus;
+        // 计算科研点数 - 从所有殖民地的建筑产出中获得
+        float totalResearchPoints = 0f;
+        
+        // 遍历所有殖民地，计算它们的建筑产生的科研点数
+        for (Colony colony : colonies) {
+            // 获取殖民地所有建筑的科研产出
+            for (Building building : colony.getBuildings()) {
+                Map<ResourceType, Float> bonuses = building.getProductionBonuses();
+                Float scienceBonus = bonuses.get(ResourceType.SCIENCE);
+                if (scienceBonus != null) {
+                    totalResearchPoints += scienceBonus;
+                }
+            }
+        }
 
         // 处理科技研发
         techTree.processResearch((int) totalResearchPoints);
@@ -153,9 +170,16 @@ public class Faction {
                 .reduce(0f, Float::sum);
 
         // 更新总科研
-        totalResearch = (float) colonies.stream()
-                .mapToDouble(c -> c.getProductionStats().get(ResourceType.SCIENCE))
-                .sum();
+        totalResearch = 0f;
+        for (Colony colony : colonies) {
+            for (Building building : colony.getBuildings()) {
+                Map<ResourceType, Float> bonuses = building.getProductionBonuses();
+                Float scienceBonus = bonuses.get(ResourceType.SCIENCE);
+                if (scienceBonus != null) {
+                    totalResearch += scienceBonus;
+                }
+            }
+        }
     }
 
     public boolean hasTechnology(String techId) {

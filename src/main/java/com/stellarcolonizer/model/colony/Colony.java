@@ -5,7 +5,7 @@ import com.stellarcolonizer.model.colony.enums.GrowthFocus;
 import com.stellarcolonizer.model.colony.enums.PopType;
 import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.faction.Faction;
-import com.stellarcolonizer.model.faction.PlayerFaction; // 导入PlayerFaction类
+
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.galaxy.enums.PlanetTrait;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
@@ -43,15 +43,12 @@ public class Colony {
     private final IntegerProperty defenseStrength;
     private final IntegerProperty garrisonSize;
     
-    // 临时科研奖励（用于随机事件等一次性奖励）
-    private float temporaryScienceBonus = 0.0f;
+
+
 
     public Colony(Planet planet, Faction faction) {
         this.planet = planet;
         this.faction = faction;
-        
-        // 殖民地不再维护独立的资源库存，所有资源都由派系统一管理
-        // this.resourceStockpile = new ResourceStockpile();
 
         String defaultName = faction.getName() + "殖民地-" + planet.getName();
         this.name = new SimpleStringProperty(defaultName);
@@ -122,14 +119,14 @@ public class Colony {
         float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.15f;
         float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.1125f;
         float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.09f;
-        float scienceProduction = 500.0f; // 固定初始科技值
+
         float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.03f;
         float moneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.015f;
 
         productionRates.get(ResourceType.ENERGY).set(energyProduction);
         productionRates.get(ResourceType.METAL).set(metalProduction);
         productionRates.get(ResourceType.FOOD).set(foodProduction);
-        productionRates.get(ResourceType.SCIENCE).set(scienceProduction);
+
         productionRates.get(ResourceType.FUEL).set(fuelProduction);
         productionRates.get(ResourceType.MONEY).set(moneyProduction);
     }
@@ -272,7 +269,7 @@ public class Colony {
         float baseFoodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * farmerEfficiency;
         float baseEnergyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * workerEfficiency;
         float baseMetalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * minerEfficiency;
-        float baseScienceProduction = 500.0f; // 固定基础科研产出
+
         float baseFuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * artisanEfficiency;
         float baseMoneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.1f; // 金钱产出从0.05进一步上调到0.1
 
@@ -280,7 +277,6 @@ public class Colony {
         float traitFoodMultiplier = 1.0f;
         float traitEnergyMultiplier = 1.0f;
         float traitMetalMultiplier = 1.0f;
-        float traitScienceMultiplier = 1.0f;
         float traitFuelMultiplier = 1.0f;
         float traitMoneyMultiplier = 1.0f;
 
@@ -288,7 +284,7 @@ public class Colony {
             traitFoodMultiplier *= trait.getResourceMultiplier(ResourceType.FOOD);
             traitEnergyMultiplier *= trait.getResourceMultiplier(ResourceType.ENERGY);
             traitMetalMultiplier *= trait.getResourceMultiplier(ResourceType.METAL);
-            traitScienceMultiplier *= trait.getResourceMultiplier(ResourceType.SCIENCE);
+
             traitFuelMultiplier *= trait.getResourceMultiplier(ResourceType.FUEL);
             traitMoneyMultiplier *= trait.getResourceMultiplier(ResourceType.MONEY);
         }
@@ -297,7 +293,7 @@ public class Colony {
         productionRates.get(ResourceType.FOOD).set(baseFoodProduction * traitFoodMultiplier);
         productionRates.get(ResourceType.ENERGY).set(baseEnergyProduction * traitEnergyMultiplier);
         productionRates.get(ResourceType.METAL).set(baseMetalProduction * traitMetalMultiplier);
-        productionRates.get(ResourceType.SCIENCE).set(baseScienceProduction * traitScienceMultiplier);
+
         productionRates.get(ResourceType.FUEL).set(baseFuelProduction * traitFuelMultiplier);
         productionRates.get(ResourceType.MONEY).set(baseMoneyProduction * traitMoneyMultiplier);
 
@@ -324,7 +320,6 @@ public class Colony {
         System.out.println("[" + name.get() + "] 计算生产: 食物=" + productionRates.get(ResourceType.FOOD).get() + 
                           ", 能量=" + productionRates.get(ResourceType.ENERGY).get() + 
                           ", 金属=" + productionRates.get(ResourceType.METAL).get() + 
-                          ", 科研=" + productionRates.get(ResourceType.SCIENCE).get() +
                           ", 燃料=" + productionRates.get(ResourceType.FUEL).get() +
                           ", 金钱=" + productionRates.get(ResourceType.MONEY).get());
 
@@ -346,7 +341,6 @@ public class Colony {
         System.out.println("[" + name.get() + "] 最终生产率: 食物=" + productionRates.get(ResourceType.FOOD).get() + 
                           ", 能量=" + productionRates.get(ResourceType.ENERGY).get() + 
                           ", 金属=" + productionRates.get(ResourceType.METAL).get() + 
-                          ", 科研=" + productionRates.get(ResourceType.SCIENCE).get() +
                           ", 燃料=" + productionRates.get(ResourceType.FUEL).get() +
                           ", 金钱=" + productionRates.get(ResourceType.MONEY).get());
                           
@@ -413,21 +407,17 @@ public class Colony {
             float production = productionRates.get(type).get();
             float consumption = consumptionRates.get(type).get();
             
-            // 对生产率应用能量惩罚（除了科研资源）
-            if (type != ResourceType.SCIENCE) {
-                production = production * energyPenaltyFactor;
-            }
+            production = production * energyPenaltyFactor;
             
             float net = production - consumption;
 
-            // 不再直接添加科研资源，因为科研现在用于研发科技
-            if (type != ResourceType.SCIENCE) {
+            {
                 // 所有资源产出和消耗现在都统一到派系层面
                 faction.getResourceStockpile().addResource(type, net);
             }
             
             // 调试信息
-            if (net != 0 && type != ResourceType.SCIENCE) {
+            if (net != 0) {
                 System.out.println("[" + name.get() + "] " + type.getDisplayName() + 
                     " 产量: " + String.format("%.2f", production) + 
                     ", 消耗: " + String.format("%.2f", consumption) + 
@@ -439,7 +429,6 @@ public class Colony {
         // 应用能量惩罚到生产率（这会影响下一回合的计算）
         if (energyPenaltyFactor < 1.0f) {
             for (ResourceType type : ResourceType.values()) {
-                if (type != ResourceType.SCIENCE) {
                     FloatProperty rate = productionRates.get(type);
                     if (rate != null) {
                         rate.set(rate.get() * energyPenaltyFactor);
@@ -454,7 +443,6 @@ public class Colony {
                 }
             }
         }
-    }
 
     private void checkResourceShortages() {
         float foodAmount = faction.getResourceStockpile().getResource(ResourceType.FOOD);
@@ -610,11 +598,7 @@ public class Colony {
                 break;
 
             case 3:
-                // 科研突破事件，但不直接添加到资源库存，而是用于研发科技
-                float scienceBonus = 50 + random.nextFloat() * 150;
-                // 保留我们之前的修改，将随机事件的科研奖励存储在临时变量中
-                temporaryScienceBonus += scienceBonus;
-                addColonyLog("科研突破！获得" + (int)scienceBonus + "研发点数");
+                        addColonyLog("科研突破！但科研产出现在由派系统一管理");
                 break;
 
             case 4:
@@ -629,11 +613,7 @@ public class Colony {
         System.out.println("[" + name.get() + "] " + message);
     }
 
-    public float getAndResetTemporaryScienceBonus() {
-        float bonus = temporaryScienceBonus;
-        temporaryScienceBonus = 0.0f; // 重置临时科研奖励
-        return bonus;
-    }
+
 
     public boolean canBuild(Building building) {
         if (usedBuildingSlots.get() >= maxBuildingSlots.get()) {
@@ -888,10 +868,6 @@ public class Colony {
             stats.put(entry.getKey(), entry.getValue().get());
         }
         
-        // 为科研添加临时奖励（如果有的话）
-        float currentScience = stats.get(ResourceType.SCIENCE);
-        stats.put(ResourceType.SCIENCE, currentScience + temporaryScienceBonus);
-        
         return stats;
     }
 
@@ -920,11 +896,6 @@ public class Colony {
             }
             
             float netValue = production - consumption;
-            
-            // 对于科研资源，加上临时奖励
-            if (type == ResourceType.SCIENCE) {
-                netValue += temporaryScienceBonus;
-            }
             
             net.put(type, netValue);
         }
