@@ -66,18 +66,10 @@ public class Faction {
     }
 
     private void initializeTechnologies() {
-        // 初始化科技
-        researchedTechnologies.add("BASIC_CONSTRUCTION");
-        researchedTechnologies.add("BASIC_FARMING");
-        researchedTechnologies.add("BASIC_POWER");
-        // 添加基础殖民科技，允许玩家开始殖民星球
         researchedTechnologies.add("BASIC_COLONIZATION");
         researchedTechnologies.add("TERRAFORMING_BASIC");
     }
 
-    /**
-     * 更新基础科研产出，基于当前所有殖民地的科研产出
-     */
     public void updateBaseResearchPoints() {
         // 计算科研点数
         float totalResearchPoints = colonies.stream()
@@ -119,14 +111,14 @@ public class Faction {
         float totalResearchPoints = colonies.stream()
                 .map(c -> c.getProductionStats().get(ResourceType.SCIENCE))
                 .reduce(0f, Float::sum);
-        
+
         // 添加各殖民地的临时科研奖励
         float temporaryScienceBonus = (float) colonies.stream()
                 .mapToDouble(c -> c.getAndResetTemporaryScienceBonus())
                 .sum();
-        
+
         totalResearchPoints += temporaryScienceBonus;
-        
+
         // 处理科技研发
         techTree.processResearch((int) totalResearchPoints);
 
@@ -138,12 +130,12 @@ public class Faction {
         for (Fleet fleet : fleets) {
             fleet.processTurn();
         }
-        
+
         // AI决策
         if (isAI && aiController != null) {
             aiController.makeDecision();
         }
-        
+
         System.out.println("[" + name + "] 派系处理回合结束");
     }
 

@@ -19,9 +19,6 @@ import javafx.geometry.Point2D;
 
 import java.util.*;
 
-// 添加对FleetSelectedEvent和FleetListSelectedEvent的导入
-import com.stellarcolonizer.view.components.FleetSelectedEvent;
-import com.stellarcolonizer.view.components.FleetListSelectedEvent;
 
 public class HexMapView extends Pane {
 
@@ -107,17 +104,10 @@ public class HexMapView extends Pane {
                 });
             }
         });
-        
-        // 添加一个事件处理器，专门用于调试
-        /*
-        this.addEventHandler(HexSelectedEvent.HEX_SELECTED, event -> {
-            System.out.println("HexMapView: Internal HexSelectedEvent handler triggered for hex: " + event.getSelectedHex().getCoord());
-        });
-        */
     }
 
+
     public void setHexGrid(HexGrid hexGrid) {
-        System.out.println("HexMapView: Setting hexGrid: " + hexGrid);
         this.hexGrid = hexGrid;
         if (hexGrid != null) {
             this.hexSize = hexGrid.getHexSize();
@@ -303,8 +293,7 @@ public class HexMapView extends Pane {
         Point2D center = hexGrid.cubeToPixel(hex.getCoord());
         offsetX = getWidth() / 2 - center.getX() * scale;
         offsetY = getHeight() / 2 - center.getY() * scale;
-        
-        // 直接触发重绘而不是调用 draw() 方法
+
         paint();
     }
 
@@ -326,7 +315,7 @@ public class HexMapView extends Pane {
     }
 
     private void setupMouseEvents() {
-        // 左键点击仅在画布上处理，避免 Pane 和 Canvas 同时触发导致重复
+
         this.setOnMouseClicked(null); // 取消 Pane 自身的点击处理
         this.canvas.setOnMouseClicked(this::handleMouseClick);
 
@@ -409,7 +398,6 @@ public class HexMapView extends Pane {
                             clearHighlights();
                             draw();
 
-                            // 触发选择事件，由 MainController 根据 hex 内容决定弹出哪个详情窗口
                             HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
                             fireEvent(hexEvent);
                         }
@@ -628,88 +616,8 @@ public class HexMapView extends Pane {
             }
         }
     }
-    
-    /**
-     * 绘制两个点之间的连接曲线（已废弃，现在全部使用直线连接）
-     */
-    private void drawConnectionCurve(double fromX, double fromY, double toX, double toY) {
-        // 绘制直线连接
-        gc.strokeLine(fromX, fromY, toX, toY);
-    }
-    
-    /**
-     * 绘制带箭头的直线连接
-     */
-    private void drawDirectedLine(double fromX, double fromY, double toX, double toY) {
-        // 绘制直线
-        gc.strokeLine(fromX, fromY, toX, toY);
-        
-        // 绘制箭头
-        drawArrowHead(fromX, fromY, toX, toY);
-    }
-    
-    /**
-     * 绘制带箭头的曲线连接
-     */
-    private void drawDirectedConnectionCurve(double fromX, double fromY, double toX, double toY) {
-        // 计算控制点，使曲线向外弯曲
-        double midX = (fromX + toX) / 2;
-        double midY = (fromY + toY) / 2;
-        // 计算垂直向量并偏移作为控制点
-        double dx = toX - fromX;
-        double dy = toY - fromY;
-        double length = Math.sqrt(dx * dx + dy * dy);
-        
-        // 归一化并向外偏移
-        double ndx = -dy / length;
-        double ndy = dx / length;
-        
-        // 控制点偏移量随着距离增加
-        double offset = Math.min(80, length / 2.5);
-        double controlX = midX + ndx * offset;
-        double controlY = midY + ndy * offset;
-        
-        // 绘制二次贝塞尔曲线
-        gc.beginPath();
-        gc.moveTo(fromX, fromY);
-        gc.quadraticCurveTo(controlX, controlY, toX, toY);
-        gc.stroke();
-        
-        // 绘制箭头
-        drawArrowHead(controlX, controlY, toX, toY);
-    }
-    
-    /**
-     * 绘制在路径末端的箭头
-     */
-    private void drawArrowHead(double fromX, double fromY, double toX, double toY) {
-        // 计算箭头角度
-        double angle = Math.atan2(toY - fromY, toX - fromX);
-        double arrowLength = 10;
-        
-        // 计算箭头两边的点
-        double x1 = toX - arrowLength * Math.cos(angle - Math.PI/6);
-        double y1 = toY - arrowLength * Math.sin(angle - Math.PI/6);
-        double x2 = toX - arrowLength * Math.cos(angle + Math.PI/6);
-        double y2 = toY - arrowLength * Math.sin(angle + Math.PI/6);
-        
-        // 绘制箭头
-        gc.beginPath();
-        gc.moveTo(toX, toY);
-        gc.lineTo(x1, y1);
-        gc.moveTo(toX, toY);
-        gc.lineTo(x2, y2);
-        gc.stroke();
-    }
-    
-    /**
-     * 获取六边形的唯一标识符
-     */
-    private String getHexIdentifier(Hex hex) {
-        CubeCoord coord = hex.getCoord();
-        return coord.q + "," + coord.r + "," + coord.s;
-    }
-    
+
+
     private void draw() {
         if (hexGrid == null || canvas.getWidth() <= 0 || canvas.getHeight() <= 0) {
             return;
@@ -812,19 +720,38 @@ public class HexMapView extends Pane {
         
         // 绘制舰船图标（如果六边形中有舰船）
         if (!hex.getEntities().isEmpty()) {
-            // 使用简单的图标表示舰船
-            gc.setFill(Color.RED);
-            gc.fillRect(screenX - 5, screenY - 5, 10, 10);
+            // 使用不同颜色表示不同外交关系的舰队
+            // 计算六边形中心点
+            double centerX = screenX - 5;
+            double centerY = screenY - 5;
             
-            // 如果缩放足够大，显示舰船数量
-            if (scale > 1.0) {
+            // 为每个舰队绘制图标
+            List<Fleet> fleets = hex.getFleets();
+            for (int i = 0; i < fleets.size(); i++) {
+                Fleet fleet = fleets.get(i);
+                /*Color fleetColor = getFleetColor(fleet);*/
+                
+                // 绘制舰队图标（使用圆角矩形表示舰队）
+                /*gc.setFill(fleetColor);*/
+                gc.fillRoundRect(centerX + (i * 8), centerY, 6, 6, 2, 2); // 小圆角矩形
+                
+                // 如果是选中的舰队，添加边框高亮
+                if (selectedFleet != null && selectedFleet.equals(fleet)) {
+                    gc.setStroke(Color.WHITE);
+                    gc.setLineWidth(1.5);
+                    gc.strokeRoundRect(centerX + (i * 8), centerY, 6, 6, 2, 2);
+                }
+            }
+            
+            // 如果缩放足够大，显示舰队数量
+            if (scale > 1.0 && fleets.size() > 1) {
                 gc.setFill(Color.WHITE);
                 gc.setFont(Font.font(8));
-                String shipCount = String.valueOf(hex.getEntities().size());
-                gc.fillText(shipCount, screenX - 3, screenY + 3);
+                String fleetCount = String.valueOf(fleets.size());
+                gc.fillText(fleetCount, screenX - 3, screenY + 3);
             }
         }
-        
+
         // 绘制控制派系名称
         if (hex.hasStarSystem()) {
             StarSystem system = hex.getStarSystem();
@@ -834,12 +761,12 @@ public class HexMapView extends Pane {
                     // 根据六边形大小调整字体大小
                     double fontSize = Math.max(8, screenSize * 0.15);
                     gc.setFont(Font.font(fontSize));
-                    
+
                     // 计算文本宽度以居中显示
                     Text text = new Text(factionName);
                     text.setFont(gc.getFont());
                     double textWidth = text.getBoundsInLocal().getWidth();
-                    
+
                     // 将派系名称显示在六边形的下方
                     gc.setFill(Color.WHITE);
                     gc.fillText(factionName, screenX - textWidth / 2, screenY + screenSize * 0.7);
@@ -848,6 +775,36 @@ public class HexMapView extends Pane {
         }
     }
 
+/*    private Color getFleetColor(Fleet fleet) {
+        if (playerFaction == null) {
+            // 如果没有玩家派系，使用默认颜色
+            return Color.RED;
+        }
+        
+        // 检查是否为我方单位
+        if (fleet.getFaction().equals(playerFaction)) {
+            return Color.BLUE; // 蓝色表示我方单位
+        }
+        
+        // 获取外交关系状态
+        if (playerFaction.getDiplomacyManager() != null) {
+            var relationship = playerFaction.getRelationshipWith(fleet.getFaction());
+            if (relationship != null) {
+                var status = relationship.getStatus();
+                switch (status) {
+                    case PEACEFUL:
+                        return Color.GREEN; // 绿色表示友好单位
+                    case NEUTRAL:
+                        return Color.YELLOW; // 黄色表示中立单位
+                    case HOSTILE:
+                        return Color.RED; // 红色表示敌方单位
+                }
+            }
+        }
+        
+        // 如果没有外交关系信息，使用中立颜色
+        return Color.YELLOW;
+    }*/
     private Color getHexColor(Hex hex) {
         // 如果六边形有星系且该星系有控制派系，返回派系颜色
         if (hex.hasStarSystem()) {

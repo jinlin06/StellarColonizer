@@ -19,7 +19,9 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class StarSystemInfoView extends VBox {
@@ -440,26 +442,12 @@ public class StarSystemInfoView extends VBox {
             Label populationLabel = new Label("人口: " + String.format("%,d", planet.getColony().getTotalPopulation()));
             populationLabel.setStyle("-fx-text-fill: white;");
             
-            // 显示人口增长速度信息
-            float growthRate = planet.getColony().getGrowthRate();
-            String growthDescription = "稳定";
-            if (planet.getHabitability() < 0.3) {
-                growthDescription = "快速下降";
-            } else if (planet.getHabitability() < 0.5) {
-                growthDescription = "缓慢下降";
-            } else if (planet.getHabitability() > 0.8) {
-                growthDescription = "快速增长";
-            }
-            
-            Label growthLabel = new Label("人口增长: " + growthDescription);
-            growthLabel.setStyle("-fx-text-fill: " + (growthDescription.contains("下降") ? "#f44336" : "#4CAF50") + ";");
-            
             // 建筑按钮
             Button manageBuildingsButton = new Button("管理建筑");
             manageBuildingsButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
             manageBuildingsButton.setOnAction(e -> showBuildingManagement(planet));
             
-            colonyBox.getChildren().addAll(colonyHeader, colonyStatus, factionLabel, populationLabel, growthLabel, manageBuildingsButton);
+            colonyBox.getChildren().addAll(colonyHeader, colonyStatus, factionLabel, populationLabel, manageBuildingsButton);
         } else if (planet.getType().isColonizable() && playerFaction != null) {
             // 未殖民但可殖民的行星
             Label colonyStatus = new Label("状态: 未殖民");
@@ -540,11 +528,164 @@ public class StarSystemInfoView extends VBox {
             return;
         }
         
-        // 创建殖民地
-        Colony colony = new Colony(planet, playerFaction);
-        planet.setColony(colony);
+        // 计算殖民成本
+        Map<ResourceType, Float> colonizationCost = planet.calculateColonizationCost();
+        int requiredPopulation = planet.calculateRequiredPopulation();
         
-        showAlert("殖民成功", "您已成功殖民 " + planet.getName());
+        // 检查资源是否足够
+        boolean hasEnoughResources = true;
+        StringBuilder insufficientResources = new StringBuilder("资源不足:\n");
+        for (Map.Entry<ResourceType, Float> costEntry : colonizationCost.entrySet()) {
+            float available = playerFaction.getResourceStockpile().getResource(costEntry.getKey());
+            if (available < costEntry.getValue()) {
+                hasEnoughResources = false;
+                insufficientResources.append(costEntry.getKey().getDisplayName())
+                        .append(": 需要 ").append(String.format("%.1f", costEntry.getValue()))
+                        .append(", 拥有 ").append(String.format("%.1f", available))
+                        .append("\n");
+            }
+        }
+        
+        if (!hasEnoughResources) {
+            showAlert("殖民失败", insufficientResources.toString());
+            return;
+        }
+        
+        // 检查是否有足够的殖民地来迁移人口
+        if (playerFaction.getColonies().isEmpty()) {
+            showAlert("殖民失败", "您没有其他殖民地来迁移人口");
+            return;
+        }
+        
+        // 检查是否有足够的总人口来进行迁移
+        int totalPopulationInColonies = playerFaction.getColonies().stream()
+                .mapToInt(Colony::getTotalPopulation)
+                .sum();
+        if (totalPopulationInColonies < requiredPopulation) {
+            showAlert("殖民失败", "您没有足够的总人口来迁移 (" + requiredPopulation + " 需要)");
+            return;
+        }
+        
+        // 弹出对话框选择要迁移人口的殖民地
+        Dialog<Colony> transferDialog = new Dialog<>();
+        transferDialog.setTitle("选择人口来源");
+        transferDialog.setHeaderText("选择要迁移人口的殖民地");
+        
+        VBox dialogContent = new VBox(10);
+        
+        Label descriptionLabel = new Label("需要迁移 " + requiredPopulation + " 人口到新殖民地");
+        descriptionLabel.setWrapText(true);
+        
+        ComboBox<Colony> sourceColonyCombo = new ComboBox<>();
+        sourceColonyCombo.getItems().addAll(playerFaction.getColonies());
+        sourceColonyCombo.setPromptText("选择人口来源殖民地");
+        
+        // 设置下拉框样式
+        sourceColonyCombo.setCellFactory(lv -> new javafx.scene.control.ListCell<Colony>() {
+            @Override
+            protected void updateItem(Colony item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName() + " (人口: " + String.format("%,d", item.getTotalPopulation()) + ")");
+                }
+            }
+        });
+        sourceColonyCombo.setButtonCell(new javafx.scene.control.ListCell<Colony>() {
+            @Override
+            protected void updateItem(Colony item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("选择人口来源殖民地");
+                } else {
+                    setText(item.getName() + " (人口: " + String.format("%,d", item.getTotalPopulation()) + ")");
+                }
+            }
+        });
+        
+        Spinner<Integer> populationSpinner = new Spinner<>(100, requiredPopulation, Math.min(requiredPopulation, 10000), 100);
+        populationSpinner.getValueFactory().setValue(Math.min(requiredPopulation, 1000));
+        populationSpinner.setPrefWidth(150);
+        
+        Label populationLabel = new Label("迁移人口数量:");
+        
+        dialogContent.getChildren().addAll(descriptionLabel, sourceColonyCombo, populationLabel, populationSpinner);
+        transferDialog.getDialogPane().setContent(dialogContent);
+        
+        ButtonType confirmButtonType = new ButtonType("确认", ButtonBar.ButtonData.OK_DONE);
+        transferDialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+        
+        Optional<Colony> result = transferDialog.showAndWait();
+        if (!result.isPresent()) {
+            return; // 用户取消了操作
+        }
+        
+        Colony sourceColony = result.get();
+        int populationToTransfer = populationSpinner.getValue();
+        
+        if (sourceColony == null) {
+            showAlert("错误", "请选择人口来源殖民地");
+            return;
+        }
+        
+        if (populationToTransfer > sourceColony.getTotalPopulation() - 100) { // 确保源殖民地至少保留100人口
+            showAlert("错误", "源殖民地必须保留至少100人口");
+            return;
+        }
+        
+        if (populationToTransfer > requiredPopulation) {
+            showAlert("错误", "迁移人口不能超过所需人口 (" + requiredPopulation + ")");
+            return;
+        }
+        
+        // 扣除资源成本
+        for (Map.Entry<ResourceType, Float> costEntry : colonizationCost.entrySet()) {
+            playerFaction.getResourceStockpile().consumeResource(costEntry.getKey(), costEntry.getValue());
+        }
+        
+        // 从源殖民地迁移人口
+        int farmersToTransfer = (int) (populationToTransfer * 0.4); // 40% 农民
+        int workersToTransfer = (int) (populationToTransfer * 0.3); // 30% 工人
+        int minersToTransfer = (int) (populationToTransfer * 0.15); // 15% 矿工
+        int artisansToTransfer = (int) (populationToTransfer * 0.15); // 15% 工匠
+        
+        // 更新源殖民地的人口
+        Map<com.stellarcolonizer.model.colony.enums.PopType, Integer> sourcePopulation = sourceColony.getPopulationByType();
+        int currentFarmers = sourcePopulation.getOrDefault(com.stellarcolonizer.model.colony.enums.PopType.FARMERS, 0);
+        int currentWorkers = sourcePopulation.getOrDefault(com.stellarcolonizer.model.colony.enums.PopType.WORKERS, 0);
+        int currentMiners = sourcePopulation.getOrDefault(com.stellarcolonizer.model.colony.enums.PopType.MINERS, 0);
+        int currentArtisans = sourcePopulation.getOrDefault(com.stellarcolonizer.model.colony.enums.PopType.ARTISANS, 0);
+        
+        Map<com.stellarcolonizer.model.colony.enums.PopType, Integer> newSourcePopulation = new EnumMap<>(com.stellarcolonizer.model.colony.enums.PopType.class);
+        newSourcePopulation.put(com.stellarcolonizer.model.colony.enums.PopType.FARMERS, Math.max(0, currentFarmers - farmersToTransfer));
+        newSourcePopulation.put(com.stellarcolonizer.model.colony.enums.PopType.WORKERS, Math.max(0, currentWorkers - workersToTransfer));
+        newSourcePopulation.put(com.stellarcolonizer.model.colony.enums.PopType.MINERS, Math.max(0, currentMiners - minersToTransfer));
+        newSourcePopulation.put(com.stellarcolonizer.model.colony.enums.PopType.ARTISANS, Math.max(0, currentArtisans - artisansToTransfer));
+        
+        sourceColony.setPopulationByType(newSourcePopulation);
+        
+        // 更新源殖民地总人口
+        sourceColony.totalPopulationProperty().set(sourceColony.getTotalPopulation() - populationToTransfer);
+        
+        // 创建新殖民地
+        Colony colony = new Colony(planet, playerFaction);
+        
+        // 设置新殖民地的人口（从源殖民地迁移来的人口）
+        Map<com.stellarcolonizer.model.colony.enums.PopType, Integer> newColonyPopulation = new EnumMap<>(com.stellarcolonizer.model.colony.enums.PopType.class);
+        newColonyPopulation.put(com.stellarcolonizer.model.colony.enums.PopType.FARMERS, farmersToTransfer);
+        newColonyPopulation.put(com.stellarcolonizer.model.colony.enums.PopType.WORKERS, workersToTransfer);
+        newColonyPopulation.put(com.stellarcolonizer.model.colony.enums.PopType.MINERS, minersToTransfer);
+        newColonyPopulation.put(com.stellarcolonizer.model.colony.enums.PopType.ARTISANS, artisansToTransfer);
+        
+        colony.setPopulationByType(newColonyPopulation);
+        
+        // 设置行星的殖民地
+        planet.setColony(colony);
+        playerFaction.addColony(colony);
+        
+        showAlert("殖民成功", "您已成功殖民 " + planet.getName() + 
+                  "，迁移了 " + populationToTransfer + " 人口");
         
         // 刷新显示
         Planet selectedPlanet = planetListView.getSelectionModel().getSelectedItem();

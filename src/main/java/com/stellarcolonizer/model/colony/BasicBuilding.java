@@ -30,40 +30,40 @@ public class BasicBuilding extends Building {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 150));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 75));
             constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 40));
-            requiredTechnology = "BASIC_FARMING";
+            requiredTechnology = null;
         } else if (buildingType == ENERGY_PRODUCTION) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 200));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 50));
             constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 50));
-            requiredTechnology = "BASIC_POWER";
+            requiredTechnology =null;
         } else if (buildingType == MINERAL_PRODUCTION) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 250));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 125));
             constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 60));
-            requiredTechnology = "BASIC_MINING";
+            requiredTechnology = null;
         } else if (buildingType == RESEARCH) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 150));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 100));
             constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 50));
-            requiredTechnology = null; // 移除科技前置要求
+            requiredTechnology = null;
         } else if (buildingType == HOUSING) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 100));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 25));
             constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 25));
-            requiredTechnology = "BASIC_CONSTRUCTION";
+            requiredTechnology = null;
         } else if (buildingType == ADMINISTRATION) {
             constructionRequirements.add(new ResourceRequirement(ResourceType.METAL, 300));
             constructionRequirements.add(new ResourceRequirement(ResourceType.ENERGY, 150));
             constructionRequirements.add(new ResourceRequirement(ResourceType.FUEL, 75));
-            requiredTechnology = "BASIC_ADMIN";
+            requiredTechnology = null;
         }
     }
 
     @Override
     protected void initializeMaintenanceCosts() {
-        // 基础维护费 - 降低初始维护成本
-        maintenanceCosts.put(ResourceType.ENERGY, 5.0f * level.get()); // 维护费按等级线性增长
-        maintenanceCosts.put(ResourceType.METAL, 1.0f * level.get()); // 维护费按等级线性增长
+        // 下调维护费 - 降低初始维护成本
+        maintenanceCosts.put(ResourceType.ENERGY, 2.0f * level.get()); // 维护费按等级线性增长，从5下调到2
+        maintenanceCosts.put(ResourceType.METAL, 0.5f * level.get()); // 维护费按等级线性增长，从1下调到0.5
     }
 
     private void initializeBonuses() {
@@ -85,7 +85,7 @@ public class BasicBuilding extends Building {
                 break;
 
             case RESEARCH:
-                // 根据等级提供科技值产出：1级=3点，2级=8点，3级=15点
+
                 float scienceBonus = (float)(Math.pow(level.get(), 2) * 2.0f + level.get()); // 非线性增长
                 productionBonuses.put(ResourceType.SCIENCE, scienceBonus);
                 efficiencyBonuses.put(ResourceType.SCIENCE, 1.1f + (0.05f * level.get())); // 每级增加5%效率

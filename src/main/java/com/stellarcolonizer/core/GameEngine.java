@@ -6,6 +6,7 @@ import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.economy.UniversalResourceMarket;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.faction.PlayerFaction;
+import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.service.event.EventBus;
 import com.stellarcolonizer.model.service.event.GameEvent;
 import com.stellarcolonizer.model.service.event.GameEventListener;
@@ -65,11 +66,11 @@ public class GameEngine {
         this.universalResourceMarket = new UniversalResourceMarket(playerFaction);
         
         // 为玩家派系添加初始资源（根据新资源管理架构）
-        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 300);
-        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 300);
-        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FUEL, 300);
-        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
-        playerFaction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.MONEY, 300);
+        playerFaction.getResourceStockpile().addResource(ResourceType.METAL, 300);
+        playerFaction.getResourceStockpile().addResource(ResourceType.ENERGY, 300);
+        playerFaction.getResourceStockpile().addResource(ResourceType.FUEL, 300);
+        playerFaction.getResourceStockpile().addResource(ResourceType.FOOD, 300);
+        playerFaction.getResourceStockpile().addResource(ResourceType.MONEY, 300);
         
         // 设置玩家起始位置
         setupPlayerStartLocation();
@@ -272,26 +273,14 @@ public class GameEngine {
                 }
                 
                 if (suitablePlanet != null) {
-                    // 在该行星上建立殖民地
                     Colony colony = new Colony(suitablePlanet, faction);
                     faction.addColony(colony);
                     suitablePlanet.setColony(colony);
-                    
-                    // 设置该星系的控制派系
-                    system.setControllingFaction(faction);
-                    
-                    // 给予初始资源
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.ENERGY, 1000);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.METAL, 500);
-                    faction.getResourceStockpile().addResource(com.stellarcolonizer.model.galaxy.enums.ResourceType.FOOD, 300);
-                    
-                    System.out.println(faction.getName() + " 在星系 " + system.getName() + " 建立了殖民地");
-                    return; // 只为每个派系分配一个星系
+                    return;
                 }
             }
         }
-        
-        // 如果没有找到可殖民的行星，尝试在任何行星上建立殖民地（即使不可殖民）
+
         for (StarSystem system : galaxy.getStarSystems()) {
             if (system.getControllingFaction() == null) {
                 // 尝试在系统中的任何行星上建立殖民地

@@ -128,6 +128,66 @@ public class Planet {
         return faction.hasTechnology(type.getRequiredTech());
     }
 
+    // 计算殖民成本
+    public Map<ResourceType, Float> calculateColonizationCost() {
+        Map<ResourceType, Float> cost = new EnumMap<>(ResourceType.class);
+        float baseCost = 50.0f; // 降低基础成本从100到50
+
+        // 根据行星大小调整成本
+        baseCost *= size;
+
+        // 根据宜居度调整成本 - 宜居度越低，殖民越困难，成本越高
+        float habitability = getHabitability();
+        float habitabilityCostFactor = Math.max(0.5f, 1.5f - habitability); // 降低宜居度惩罚，从2.0改为1.5
+        baseCost *= habitabilityCostFactor;
+
+        // 根据行星类型调整成本
+        switch (type) {
+            case TERRA:
+                baseCost *= 1.0f; // 类地行星成本正常
+                break;
+            case DESERT:
+            case ARID:
+                baseCost *= 1.2f; // 沙漠和干旱行星成本稍高
+                break;
+            case TUNDRA:
+            case ICE:
+                baseCost *= 1.4f; // 冻土和冰封行星成本较高（降低从1.5到1.4）
+                break;
+            case OCEAN:
+            case JUNGLE:
+                baseCost *= 1.2f; // 海洋和丛林行星成本较高（降低从1.3到1.2）
+                break;
+            case LAVA:
+                baseCost *= 1.8f; // 熔岩行星成本很高（降低从2.0到1.8）
+                break;
+            case GAS_GIANT:
+            case BARREN:
+            case ASTEROID:
+                baseCost *= 2.0f; // 气态巨行星、贫瘠行星、小行星成本最高（降低从2.5到2.0）
+                break;
+        }
+
+        // 根据行星特性调整成本
+        for (PlanetTrait trait : traits) {
+            baseCost *= trait.getColonizationCostMultiplier(); // 需要添加这个方法到PlanetTrait
+        }
+
+        // 分配到不同资源类型
+        cost.put(ResourceType.METAL, baseCost * 0.3f);      // 30% 金属（降低从40%到30%）
+        cost.put(ResourceType.ENERGY, baseCost * 0.25f);     // 25% 能量（降低从30%到25%）
+        cost.put(ResourceType.FOOD, baseCost * 0.25f);       // 25% 食物（增加从20%到25%）
+        cost.put(ResourceType.FUEL, baseCost * 0.2f);       // 20% 燃料（增加从10%到20%）
+
+        return cost;
+    }
+
+    // 计算需要迁移的人口数量
+    public int calculateRequiredPopulation() {
+        // 固定每个行星的殖民所需人口为1000
+        return 1000;
+    }
+
     // Getter 和 Setter
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

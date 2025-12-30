@@ -44,6 +44,10 @@ public class ColonyManagerView extends VBox {
     private Label happinessLabel;
     private Label stabilityLabel;
     private Label developmentLabel;
+    
+    // 人口增长进度条
+    private ProgressBar populationGrowthProgressBar;
+    private Label populationGrowthProgressLabel;
 
     // 资源显示
     private VBox resourcePanel;
@@ -162,8 +166,17 @@ public class ColonyManagerView extends VBox {
         happinessLabel = createInfoLabel("幸福度", "N/A", Color.GREEN, 14, false);
         stabilityLabel = createInfoLabel("稳定度", "N/A", Color.ORANGE, 14, false);
         developmentLabel = createInfoLabel("发展度", "N/A", Color.YELLOW, 14, false);
+        
+        // 人口增长进度条
+        populationGrowthProgressBar = new ProgressBar(0);
+        populationGrowthProgressBar.setPrefWidth(200);
+        populationGrowthProgressLabel = new Label("人口增长进度: 0/90");
+        populationGrowthProgressLabel.setTextFill(Color.LIGHTGREEN);
 
-        statusInfo.getChildren().addAll(populationLabel, happinessLabel, stabilityLabel, developmentLabel);
+        VBox growthProgressBox = new VBox(2);
+        growthProgressBox.getChildren().addAll(populationGrowthProgressLabel, populationGrowthProgressBar);
+
+        statusInfo.getChildren().addAll(populationLabel, happinessLabel, stabilityLabel, developmentLabel, growthProgressBox);
 
         panel.getChildren().addAll(basicInfo, statusInfo);
         return panel;
@@ -446,6 +459,15 @@ public class ColonyManagerView extends VBox {
         happinessLabel.setText("幸福度: " + String.format("%.0f%%", selectedColony.getHappiness() * 100));
         stabilityLabel.setText("稳定度: " + selectedColony.getStability() + "%");
         developmentLabel.setText("发展度: " + String.format("%.1f%%", selectedColony.getDevelopment() * 100));
+        
+        // 更新人口增长进度条
+        if (populationGrowthProgressBar != null && populationGrowthProgressLabel != null) {
+            float currentPoints = selectedColony.getPopulationGrowthPoints();
+            float requiredPoints = selectedColony.getPopulationGrowthPointsRequired();
+            double progress = requiredPoints > 0 ? currentPoints / requiredPoints : 0;
+            populationGrowthProgressBar.setProgress(Math.min(1.0, progress));
+            populationGrowthProgressLabel.setText(String.format("人口增长进度: %.1f/%.1f", currentPoints, requiredPoints));
+        }
 
         // 更新资源显示
         updateResourceDisplay();

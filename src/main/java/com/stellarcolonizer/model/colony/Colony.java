@@ -24,7 +24,10 @@ public class Colony {
     private final Map<PopType, Integer> populationByType;
     private final FloatProperty growthRate;
     private final FloatProperty happiness;
-
+    
+    // 人口增长点数相关属性
+    private final FloatProperty populationGrowthPoints;
+    private final FloatProperty populationGrowthPointsRequired;
 
     private final Map<ResourceType, FloatProperty> productionRates;
     private final Map<ResourceType, FloatProperty> consumptionRates;
@@ -57,8 +60,12 @@ public class Colony {
         this.populationByType = new EnumMap<>(PopType.class);
         initializePopulation();
 
-        this.growthRate = new SimpleFloatProperty(0.01f);
+        this.growthRate = new SimpleFloatProperty(0.05f); // 提高初始增长率从0.01到0.05
         this.happiness = new SimpleFloatProperty(0.7f);
+        
+        // 初始化人口增长点数系统
+        this.populationGrowthPoints = new SimpleFloatProperty(0.0f);
+        this.populationGrowthPointsRequired = new SimpleFloatProperty(90.0f); // 需要90点增长点数才能增加1000人口
 
         this.productionRates = new EnumMap<>(ResourceType.class);
         this.consumptionRates = new EnumMap<>(ResourceType.class);
@@ -183,35 +190,48 @@ public class Colony {
     }
 
     private void updatePopulation() {
-        // 使用负反馈机制来控制人口增长，防止资源爆仓
-        // 基础增长 = 基础增长率 * 人口比例因子
-        float baseGrowthRate = growthRate.get();
+        // 新的人口增长点数机制
+        // 不同的行星类型每回合产出不同的人口增长点数
+        float growthPointsPerTurn = 0.0f;
         
-        // 引入人口密度因子，随人口增长而递减
-        // 假设行星最大承载能力为100000人口，当人口接近这个值时增长率会显著下降
-        float carryingCapacity = planet.getSize() * 1000.0f; // 根据行星大小调整承载能力
-        float populationDensityFactor = 1.0f - Math.min(0.95f, totalPopulation.get() / carryingCapacity);
-        
-        // 计算调整后的增长率
-        float adjustedGrowth = baseGrowthRate * populationDensityFactor;
-        
-        // 应用其他影响因素
-        adjustedGrowth *= happiness.get();
-        adjustedGrowth *= (1 - crimeRate.get() / 100.0f);
-
-        float foodSufficiency = getFoodSufficiency();
-        if (foodSufficiency < 0.8f) {
-            adjustedGrowth *= foodSufficiency;
+        switch (planet.getType()) {
+            case TERRA: // 类地行星每回合产出6点人口点数
+                growthPointsPerTurn = 6.0f;
+                break;
+            case DESERT: // 沙漠行星每回合产出4点人口点数
+            case ARID:   // 干旱行星每回合产出4点人口点数
+            case JUNGLE: // 丛林行星每回合产出4点人口点数
+            case OCEAN:  // 海洋行星每回合产出4点人口点数
+                growthPointsPerTurn = 4.0f;
+                break;
+            case TUNDRA: // 冻土行星每回合产出3点人口点数
+            case ICE:    // 冰封行星每回合产出3点人口点数
+            case LAVA:   // 熔岩行星每回合产出3点人口点数
+                growthPointsPerTurn = 3.0f;
+                break;
+            default:     // 其他行星每回合产出2点人口点数
+                growthPointsPerTurn = 2.0f;
+                break;
         }
         
-        // 限制单回合最大人口增长，防止在低人口时增长过快
-        float maxGrowth = totalPopulation.get() * 0.05f; // 最大增长不超过当前人口的5%
-        adjustedGrowth = Math.min(adjustedGrowth, maxGrowth);
-
-        int newPopulation = totalPopulation.get() + (int) adjustedGrowth;
-        totalPopulation.set(newPopulation);
-
-        updatePopulationDistribution();
+        // 应用幸福度和稳定度对增长点数的修正
+        growthPointsPerTurn *= happiness.get();
+        growthPointsPerTurn *= (1.0f - crimeRate.get() / 100.0f);
+        
+        // 增加到人口增长点数
+        populationGrowthPoints.set(populationGrowthPoints.get() + growthPointsPerTurn);
+        
+        // 检查是否达到增长阈值（90点）且行星已被殖民（人口>1000）
+        if (populationGrowthPoints.get() >= populationGrowthPointsRequired.get() && totalPopulation.get() > 1000) {
+            // 增加1000人口
+            totalPopulation.set(totalPopulation.get() + 1000);
+            
+            // 减去消耗的增长点数
+            populationGrowthPoints.set(populationGrowthPoints.get() - populationGrowthPointsRequired.get());
+            
+            // 重新分配人口分布
+            updatePopulationDistribution();
+        }
     }
 
     private void updatePopulationDistribution() {
@@ -245,48 +265,71 @@ public class Colony {
             rate.set(0);
         }
 
-        // 基于人口计算基础生产率 (参考群星机制)
-        float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.15f;  // 每个工人生产0.15能量，上调以保证前期正产出
-        float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.1125f;   // 每个矿工生产0.1125金属，上调以保证前期正产出
-        float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.09f;   // 每个农民生产0.09食物，上调以保证前期正产出
-        float scienceProduction = 500.0f; // 固定初始科技值为500，不受人口影响
-        
-        // 燃料生产（基于工匠数量）
-        float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.03f;  // 每个工匠生产0.03燃料，上调以保证前期正产出
-        // 金币生产（基于工匠数量）
-        float moneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.015f;  // 每个工匠生产0.015金币，上调以保证前期正产出
+        // 基于人口计算基础生产率
+        // 上调各类资源的产出效率
+        float farmerEfficiency = 0.1f;  // 每个农民的产出效率（食物）
+        float workerEfficiency = 0.15f; // 每个工人的产出效率（能量），从0.08上调到0.15
+        float minerEfficiency = 0.12f;  // 每个矿工的产出效率（金属），从0.06上调到0.12
+        float artisanEfficiency = 0.08f; // 每个工匠的产出效率（燃料），从0.04上调到0.08
 
-        productionRates.get(ResourceType.ENERGY).set(energyProduction);
-        productionRates.get(ResourceType.METAL).set(metalProduction);
-        productionRates.get(ResourceType.FOOD).set(foodProduction);
-        productionRates.get(ResourceType.SCIENCE).set(scienceProduction);
-        productionRates.get(ResourceType.FUEL).set(fuelProduction);
-        productionRates.get(ResourceType.MONEY).set(moneyProduction);
-        
-        // 只有当星球拥有特定稀有资源时才生产该资源
-        Map<ResourceType, Float> planetResources = planet.getResources();
-        for (Map.Entry<ResourceType, Float> entry : planetResources.entrySet()) {
-            ResourceType resourceType = entry.getKey();
-            float resourceAmount = entry.getValue();
+        float baseFoodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * farmerEfficiency;
+        float baseEnergyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * workerEfficiency;
+        float baseMetalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * minerEfficiency;
+        float baseScienceProduction = 500.0f; // 固定基础科研产出
+        float baseFuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * artisanEfficiency;
+        float baseMoneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.1f; // 金钱产出从0.05进一步上调到0.1
+
+        // 获取行星特质对资源产出的修正
+        float traitFoodMultiplier = 1.0f;
+        float traitEnergyMultiplier = 1.0f;
+        float traitMetalMultiplier = 1.0f;
+        float traitScienceMultiplier = 1.0f;
+        float traitFuelMultiplier = 1.0f;
+        float traitMoneyMultiplier = 1.0f;
+
+        for (PlanetTrait trait : planet.getTraits()) {
+            traitFoodMultiplier *= trait.getResourceMultiplier(ResourceType.FOOD);
+            traitEnergyMultiplier *= trait.getResourceMultiplier(ResourceType.ENERGY);
+            traitMetalMultiplier *= trait.getResourceMultiplier(ResourceType.METAL);
+            traitScienceMultiplier *= trait.getResourceMultiplier(ResourceType.SCIENCE);
+            traitFuelMultiplier *= trait.getResourceMultiplier(ResourceType.FUEL);
+            traitMoneyMultiplier *= trait.getResourceMultiplier(ResourceType.MONEY);
+        }
+
+        // 应用特质修正到基础产出
+        productionRates.get(ResourceType.FOOD).set(baseFoodProduction * traitFoodMultiplier);
+        productionRates.get(ResourceType.ENERGY).set(baseEnergyProduction * traitEnergyMultiplier);
+        productionRates.get(ResourceType.METAL).set(baseMetalProduction * traitMetalMultiplier);
+        productionRates.get(ResourceType.SCIENCE).set(baseScienceProduction * traitScienceMultiplier);
+        productionRates.get(ResourceType.FUEL).set(baseFuelProduction * traitFuelMultiplier);
+        productionRates.get(ResourceType.MONEY).set(baseMoneyProduction * traitMoneyMultiplier);
+
+        // 处理行星的特殊资源（稀有资源）
+        for (Map.Entry<ResourceType, Float> entry : planet.getResources().entrySet()) {
+            ResourceType type = entry.getKey();
+            float baseAmount = entry.getValue();
             
-            // 只处理稀有资源
-            if (isRareResource(resourceType) && resourceAmount > 0) {
-                // 基于星球上的资源储量和矿工数量计算生产率，加入递减因子
-                float baseRate = populationByType.getOrDefault(PopType.MINERS, 0) * 0.001f * (resourceAmount / 100f);
-                // 引入资源枯竭因子，随资源开采递减
-                float depletionFactor = Math.max(0.1f, 1.0f - (faction.getResourceStockpile().getResource(resourceType) / resourceAmount) * 0.5f);
-                float productionRate = baseRate * depletionFactor;
-                productionRates.get(resourceType).set(productionRate);
+            if (isRareResource(type) && baseAmount > 0) {
+                // 基于矿工数量计算稀有资源产出
+                float baseRareResourceProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.001f * (baseAmount / 100f);
+                
+                // 应用特质修正
+                float traitRareMultiplier = 1.0f;
+                for (PlanetTrait trait : planet.getTraits()) {
+                    traitRareMultiplier *= trait.getResourceMultiplier(type);
+                }
+                
+                productionRates.get(type).set(baseRareResourceProduction * traitRareMultiplier);
             }
         }
 
         // 输出调试信息
-        System.out.println("[" + name.get() + "] 计算生产: 能量=" + energyProduction + 
-                          ", 金属=" + metalProduction + 
-                          ", 食物=" + foodProduction + 
-                          ", 科研=" + scienceProduction +
-                          ", 燃料=" + fuelProduction +
-                          ", 金钱=" + moneyProduction);
+        System.out.println("[" + name.get() + "] 计算生产: 食物=" + productionRates.get(ResourceType.FOOD).get() + 
+                          ", 能量=" + productionRates.get(ResourceType.ENERGY).get() + 
+                          ", 金属=" + productionRates.get(ResourceType.METAL).get() + 
+                          ", 科研=" + productionRates.get(ResourceType.SCIENCE).get() +
+                          ", 燃料=" + productionRates.get(ResourceType.FUEL).get() +
+                          ", 金钱=" + productionRates.get(ResourceType.MONEY).get());
 
         // 建筑加成
         for (Building building : buildings) {
@@ -301,29 +344,11 @@ public class Colony {
                 }
             }
         }
-
-        // 行星特征加成 - 不对科研应用特征加成，保持科技值仅由科学家产出
-        for (PlanetTrait trait : planet.getTraits()) {
-            for (ResourceType type : ResourceType.values()) {
-                // 如果是科研资源，不应用特征加成
-                if (type == ResourceType.SCIENCE) {
-                    continue; // 跳过科研资源的特征加成
-                }
-                
-                float multiplier = trait.getResourceMultiplier(type);
-                if (multiplier != 1.0f) {
-                    float current = productionRates.get(type).get();
-                    productionRates.get(type).set(current * multiplier);
-                    System.out.println("[" + name.get() + "] 行星特征加成: " + type.getDisplayName() + 
-                                      " *" + multiplier);
-                }
-            }
-        }
         
         // 输出最终生产率
-        System.out.println("[" + name.get() + "] 最终生产率: 能量=" + productionRates.get(ResourceType.ENERGY).get() + 
+        System.out.println("[" + name.get() + "] 最终生产率: 食物=" + productionRates.get(ResourceType.FOOD).get() + 
+                          ", 能量=" + productionRates.get(ResourceType.ENERGY).get() + 
                           ", 金属=" + productionRates.get(ResourceType.METAL).get() + 
-                          ", 食物=" + productionRates.get(ResourceType.FOOD).get() + 
                           ", 科研=" + productionRates.get(ResourceType.SCIENCE).get() +
                           ", 燃料=" + productionRates.get(ResourceType.FUEL).get() +
                           ", 金钱=" + productionRates.get(ResourceType.MONEY).get());
@@ -488,10 +513,10 @@ public class Colony {
         // 通过计算一个回合的消耗量来更准确地评估食物充足度
         // 防止食物库存过高时出现资源爆仓问题
         float dailyConsumption = foodConsumption; // 每回合消耗量
-        float sufficiency = foodAmount / (dailyConsumption * 10); // 以10回合的储备作为标准
+        float sufficiency = foodAmount / (dailyConsumption * 3); // 降低储备标准从10回合到3回合
         
         // 限制食物充足度在合理范围内，防止过高资源导致的爆仓
-        return Math.min(1.5f, sufficiency); // 最高1.5，防止资源过度积累
+        return Math.min(2.0f, sufficiency); // 最高2.0，防止资源过度积累，同时提供更高的增长潜力
     }
 
     private void updateDevelopment() {
@@ -573,8 +598,10 @@ public class Colony {
 
             case 1:
                 float growthBonus = 0.1f + random.nextFloat() * 0.2f;
-                growthRate.set(growthRate.get() + growthBonus);
-                addColonyLog("生育率激增！人口增长率+" + (int)(growthBonus * 100) + "%");
+                // 由于我们现在使用人口增长点数机制，增长率变化将转换为增长点数奖励
+                float growthPointsBonus = growthBonus * 20; // 将增长率提升转换为增长点数奖励
+                populationGrowthPoints.set(populationGrowthPoints.get() + growthPointsBonus);
+                addColonyLog("生育率激增！获得 " + String.format("%.1f", growthPointsBonus) + " 人口增长点数");
                 break;
 
             case 2:
@@ -939,7 +966,7 @@ public class Colony {
         summary.append("殖民地: ").append(name.get()).append("\n");
         summary.append("行星: ").append(planet.getName()).append(" (").append(planet.getType().getDisplayName()).append(")\n");
         summary.append("人口: ").append(String.format("%,d", totalPopulation.get())).append("\n");
-        summary.append("增长率: ").append(String.format("%.1f%%", growthRate.get() * 100)).append("\n");
+        summary.append("增长点数: ").append(String.format("%.1f/%.1f", populationGrowthPoints.get(), populationGrowthPointsRequired.get())).append("\n");
         summary.append("幸福度: ").append(String.format("%.0f%%", happiness.get() * 100)).append("\n");
         summary.append("稳定度: ").append(stability.get()).append("%\n");
         summary.append("犯罪率: ").append(crimeRate.get()).append("%\n");
@@ -960,10 +987,41 @@ public class Colony {
     public IntegerProperty totalPopulationProperty() { return totalPopulation; }
 
     public Map<PopType, Integer> getPopulationByType() { return new EnumMap<>(populationByType); }
+    
+    // 添加设置人口类型的方法
+    public void setPopulationByType(Map<PopType, Integer> populationByType) {
+        this.populationByType.clear();
+        this.populationByType.putAll(populationByType);
+        
+        // 重新计算总人口
+        int newTotal = populationByType.values().stream().mapToInt(Integer::intValue).sum();
+        totalPopulation.set(newTotal);
+        
+        // 重新计算生产率
+        calculateProduction();
+    }
+    
+    // 添加更新特定人口类型的方法
+    public void updatePopulationType(PopType type, int amount) {
+        populationByType.put(type, amount);
+        
+        // 重新计算总人口
+        int newTotal = populationByType.values().stream().mapToInt(Integer::intValue).sum();
+        totalPopulation.set(newTotal);
+        
+        // 重新计算生产率
+        calculateProduction();
+    }
 
     public float getGrowthRate() { return growthRate.get(); }
     public void setGrowthRate(float rate) { this.growthRate.set(rate); }
     public FloatProperty growthRateProperty() { return growthRate; }
+    
+    // 人口增长点数相关getter方法
+    public float getPopulationGrowthPoints() { return populationGrowthPoints.get(); }
+    public float getPopulationGrowthPointsRequired() { return populationGrowthPointsRequired.get(); }
+    public FloatProperty populationGrowthPointsProperty() { return populationGrowthPoints; }
+    public FloatProperty populationGrowthPointsRequiredProperty() { return populationGrowthPointsRequired; }
 
     public float getHappiness() { return happiness.get(); }
     public void setHappiness(float happiness) { this.happiness.set(happiness); }
