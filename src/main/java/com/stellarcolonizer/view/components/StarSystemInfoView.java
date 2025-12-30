@@ -616,6 +616,14 @@ public class StarSystemInfoView extends VBox {
         ButtonType confirmButtonType = new ButtonType("确认", ButtonBar.ButtonData.OK_DONE);
         transferDialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
         
+        // 设置结果转换器
+        transferDialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                return sourceColonyCombo.getValue(); // 返回选中的殖民地
+            }
+            return null; // 取消按钮或其他情况返回null
+        });
+        
         Optional<Colony> result = transferDialog.showAndWait();
         if (!result.isPresent()) {
             return; // 用户取消了操作
@@ -650,6 +658,9 @@ public class StarSystemInfoView extends VBox {
         int minersToTransfer = (int) (populationToTransfer * 0.15); // 15% 矿工
         int artisansToTransfer = (int) (populationToTransfer * 0.15); // 15% 工匠
         
+        // 获取源殖民地的原始总人口
+        int originalTotalPopulation = sourceColony.getTotalPopulation();
+        
         // 更新源殖民地的人口
         Map<com.stellarcolonizer.model.colony.enums.PopType, Integer> sourcePopulation = sourceColony.getPopulationByType();
         int currentFarmers = sourcePopulation.getOrDefault(com.stellarcolonizer.model.colony.enums.PopType.FARMERS, 0);
@@ -666,7 +677,7 @@ public class StarSystemInfoView extends VBox {
         sourceColony.setPopulationByType(newSourcePopulation);
         
         // 更新源殖民地总人口
-        sourceColony.totalPopulationProperty().set(sourceColony.getTotalPopulation() - populationToTransfer);
+        sourceColony.totalPopulationProperty().set(originalTotalPopulation - populationToTransfer);
         
         // 创建新殖民地
         Colony colony = new Colony(planet, playerFaction);

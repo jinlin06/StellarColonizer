@@ -220,16 +220,13 @@ public class Colony {
         
         // 增加到人口增长点数
         populationGrowthPoints.set(populationGrowthPoints.get() + growthPointsPerTurn);
-        
-        // 检查是否达到增长阈值（90点）且行星已被殖民（人口>1000）
-        if (populationGrowthPoints.get() >= populationGrowthPointsRequired.get() && totalPopulation.get() > 1000) {
+
+        if (populationGrowthPoints.get() >= populationGrowthPointsRequired.get() && totalPopulation.get() >= 1000) {
             // 增加1000人口
             totalPopulation.set(totalPopulation.get() + 1000);
-            
-            // 减去消耗的增长点数
+
             populationGrowthPoints.set(populationGrowthPoints.get() - populationGrowthPointsRequired.get());
-            
-            // 重新分配人口分布
+
             updatePopulationDistribution();
         }
     }
