@@ -16,10 +16,8 @@ public abstract class Building {
     protected final IntegerProperty maxLevel;
     protected final BooleanProperty isActive;
 
-    // 维护成本
     protected final Map<ResourceType, Float> maintenanceCosts;
 
-    // 需求
     protected List<ResourceRequirement> constructionRequirements;
     protected String requiredTechnology;
 
@@ -29,7 +27,6 @@ public abstract class Building {
         this.level = new SimpleIntegerProperty(1);
         this.maxLevel = new SimpleIntegerProperty(maxLevel);
         this.isActive = new SimpleBooleanProperty(true);
-
         this.maintenanceCosts = new EnumMap<>(ResourceType.class);
         this.constructionRequirements = new ArrayList<>();
 
@@ -74,7 +71,6 @@ public abstract class Building {
     public void processTurn(Colony colony) {
         if (!isActive.get()) return;
 
-        // 检查维护费是否支付
         if (!checkMaintenance(colony)) {
             isActive.set(false);
             return;

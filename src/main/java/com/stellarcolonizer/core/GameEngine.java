@@ -405,6 +405,21 @@ public class GameEngine {
 
         eventBus.publish(new GameEvent("TURN_START", "回合 " + gameState.getCurrentTurn()));
 
+        // 处理所有派系的回合逻辑（包括玩家和AI）
+        for (Faction faction : factions) {
+            // 处理派系外交回合
+            faction.nextTurn();
+            
+            // 处理派系所有殖民地的回合逻辑
+            for (Colony colony : faction.getColonies()) {
+                colony.processTurn();
+            }
+            
+            // 处理派系所有舰队的回合逻辑
+            for (var fleet : faction.getFleets()) {
+                fleet.processTurn();
+            }
+        }
 
         gameState.nextTurn();
 
