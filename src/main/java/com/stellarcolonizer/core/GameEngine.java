@@ -66,7 +66,7 @@ public class GameEngine {
         playerFaction.getResourceStockpile().addResource(ResourceType.FUEL, 300);
         playerFaction.getResourceStockpile().addResource(ResourceType.FOOD, 300);
         playerFaction.getResourceStockpile().addResource(ResourceType.MONEY, 300);
-        playerFaction.getResourceStockpile().addResource(ResourceType.SCIENCE, 500); // 初始科技值
+        playerFaction.getResourceStockpile().addResource(ResourceType.SCIENCE, 500);
         
         // 创建AI派系
         createAIFactions();
@@ -88,7 +88,7 @@ public class GameEngine {
         initializeDiplomaticRelations();
 
         syncAllFactionsScienceToTechTree();
-        
+
         System.out.println("游戏引擎初始化完成，派系数量: " + factions.size());
     }
     
@@ -409,6 +409,9 @@ public class GameEngine {
         for (Faction faction : factions) {
             // 处理派系外交回合
             faction.nextTurn();
+            
+            // 处理派系的科技研发和其他派系级处理
+            faction.processTurn();
             
             // 处理派系所有殖民地的回合逻辑
             for (Colony colony : faction.getColonies()) {

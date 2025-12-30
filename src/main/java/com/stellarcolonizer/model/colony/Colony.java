@@ -119,14 +119,14 @@ public class Colony {
         float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.15f;
         float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.1125f;
         float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.09f;
-
+        float scienceProduction = 500.0f; // 固定初始科技值TODO
         float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.03f;
         float moneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.015f;
 
         productionRates.get(ResourceType.ENERGY).set(energyProduction);
         productionRates.get(ResourceType.METAL).set(metalProduction);
         productionRates.get(ResourceType.FOOD).set(foodProduction);
-
+        productionRates.get(ResourceType.SCIENCE).set(scienceProduction);//TODO
         productionRates.get(ResourceType.FUEL).set(fuelProduction);
         productionRates.get(ResourceType.MONEY).set(moneyProduction);
     }
@@ -411,13 +411,14 @@ public class Colony {
             
             float net = production - consumption;
 
-            {
+            // 不再直接添加科研资源，因为科研现在用于研发科技
+            if (type != ResourceType.SCIENCE) {
                 // 所有资源产出和消耗现在都统一到派系层面
                 faction.getResourceStockpile().addResource(type, net);
             }
             
             // 调试信息
-            if (net != 0) {
+            if (net != 0 && type != ResourceType.SCIENCE) {
                 System.out.println("[" + name.get() + "] " + type.getDisplayName() + 
                     " 产量: " + String.format("%.2f", production) + 
                     ", 消耗: " + String.format("%.2f", consumption) + 
@@ -429,6 +430,7 @@ public class Colony {
         // 应用能量惩罚到生产率（这会影响下一回合的计算）
         if (energyPenaltyFactor < 1.0f) {
             for (ResourceType type : ResourceType.values()) {
+                if (type != ResourceType.SCIENCE) {
                     FloatProperty rate = productionRates.get(type);
                     if (rate != null) {
                         rate.set(rate.get() * energyPenaltyFactor);
@@ -443,6 +445,7 @@ public class Colony {
                 }
             }
         }
+    }
 
     private void checkResourceShortages() {
         float foodAmount = faction.getResourceStockpile().getResource(ResourceType.FOOD);
