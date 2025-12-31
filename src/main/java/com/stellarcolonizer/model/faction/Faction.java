@@ -49,7 +49,7 @@ public class Faction {
     
     // 派系基础科研产出
     private float baseResearchOutput = 500.0f; // 派系基础科研产出
-    
+
     // 外交关系
     private DiplomacyManager diplomacyManager;
 

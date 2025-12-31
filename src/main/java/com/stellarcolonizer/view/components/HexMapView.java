@@ -376,6 +376,16 @@ public class HexMapView extends Pane {
         if (clickedHex != null) {
             // 如果存在选中的舰队并且该舰队有当前位置，则优先处理移动逻辑
             if (selectedFleet != null && selectedFleet.getCurrentHex() != null) {
+                // 检查舰队是否属于玩家派系，如果不是，则不允许玩家移动
+                if (selectedFleet.getFaction() != null && selectedFleet.getFaction().isAI()) {
+                    // AI舰队不能被玩家移动，而是由AI自动控制
+                    setSelectedFleet(null);
+                    clearHighlights();
+                    draw();
+                    showAlert("无法移动", "AI舰队由AI自动控制，不能手动移动");
+                    return;
+                }
+                
                 if (selectedFleet.hasMovedThisTurn()) {
                     // 本回合已移动，点击当前格则取消选择
                     if (clickedHex.equals(selectedFleet.getCurrentHex())) {
@@ -729,10 +739,10 @@ public class HexMapView extends Pane {
             List<Fleet> fleets = hex.getFleets();
             for (int i = 0; i < fleets.size(); i++) {
                 Fleet fleet = fleets.get(i);
-                /*Color fleetColor = getFleetColor(fleet);*/
+                Color fleetColor = getFleetColor(fleet);
                 
                 // 绘制舰队图标（使用圆角矩形表示舰队）
-                /*gc.setFill(fleetColor);*/
+                gc.setFill(fleetColor);
                 gc.fillRoundRect(centerX + (i * 8), centerY, 6, 6, 2, 2); // 小圆角矩形
                 
                 // 如果是选中的舰队，添加边框高亮
@@ -773,62 +783,12 @@ public class HexMapView extends Pane {
                 }
             }
         }
-        
-        // 如果六边形中没有星系控制派系但有舰队，则显示舰队所属派系名称
-        List<Fleet> fleets = hex.getFleets();
-        if (!hex.hasStarSystem() || (hex.hasStarSystem() && hex.getStarSystem().getControllingFaction() == null)) {
-            if (!fleets.isEmpty()) {
-                // 显示第一个舰队的派系名称
-                Fleet firstFleet = fleets.get(0);
-                String factionName = firstFleet.getFaction().getName();
-                if (factionName != null && !factionName.isEmpty()) {
-                    // 根据六边形大小调整字体大小
-                    double fontSize = Math.max(8, screenSize * 0.15);
-                    gc.setFont(Font.font(fontSize));
-
-                    // 计算文本宽度以居中显示
-                    Text text = new Text(factionName);
-                    text.setFont(gc.getFont());
-                    double textWidth = text.getBoundsInLocal().getWidth();
-
-                    // 将派系名称显示在六边形的下方
-                    gc.setFill(Color.WHITE);
-                    gc.fillText(factionName, screenX - textWidth / 2, screenY + screenSize * 0.7);
-                }
-            }
-        }
     }
 
-/*    private Color getFleetColor(Fleet fleet) {
-        if (playerFaction == null) {
-            // 如果没有玩家派系，使用默认颜色
-            return Color.RED;
-        }
-        
-        // 检查是否为我方单位
-        if (fleet.getFaction().equals(playerFaction)) {
-            return Color.BLUE; // 蓝色表示我方单位
-        }
-        
-        // 获取外交关系状态
-        if (playerFaction.getDiplomacyManager() != null) {
-            var relationship = playerFaction.getRelationshipWith(fleet.getFaction());
-            if (relationship != null) {
-                var status = relationship.getStatus();
-                switch (status) {
-                    case PEACEFUL:
-                        return Color.GREEN; // 绿色表示友好单位
-                    case NEUTRAL:
-                        return Color.YELLOW; // 黄色表示中立单位
-                    case HOSTILE:
-                        return Color.RED; // 红色表示敌方单位
-                }
-            }
-        }
-        
-        // 如果没有外交关系信息，使用中立颜色
-        return Color.YELLOW;
-    }*/
+    private Color getFleetColor(Fleet fleet) {
+        // 直接使用舰队所属派系的颜色，而不是基于外交关系
+        return fleet.getFaction().getColor();
+    }
     private Color getHexColor(Hex hex) {
         // 如果六边形有星系且该星系有控制派系，返回派系颜色
         if (hex.hasStarSystem()) {
@@ -851,29 +811,7 @@ public class HexMapView extends Pane {
             }
         }
         
-        // 如果六边形没有被任何派系控制，但是有舰队存在，则显示舰队所属派系的颜色
-        // 这是为了确保所有AI派系在地图上的活动都可以被观察到
-        List<Fleet> fleets = hex.getFleets();
-        if (!fleets.isEmpty()) {
-            // 获取第一个舰队的派系颜色作为参考
-            Fleet firstFleet = fleets.get(0);
-            Color factionColor = firstFleet.getFaction().getColor();
-            if (factionColor != null) {
-                // 将JavaFX颜色转换为Canvas颜色，大幅增加亮度
-                int r = (int)(factionColor.getRed() * 255);
-                int g = (int)(factionColor.getGreen() * 255);
-                int b = (int)(factionColor.getBlue() * 255);
-                
-                // 大幅提高亮度
-                r = Math.min(255, (int)(r * 1.5)); // 增加50%亮度
-                g = Math.min(255, (int)(g * 1.5)); // 增加50%亮度
-                b = Math.min(255, (int)(b * 1.5)); // 增加50%亮度
-                
-                return Color.rgb(r, g, b, 0.3); // 更低的透明度以显示舰队的存在
-            }
-        }
-        
-        // 根据六边形类型返回颜色
+        // 其他情况下，根据六边形类型返回颜色，不因六边形中的舰队改变颜色
         switch (hex.getType()) {
             case EMPTY:
                 return Color.rgb(240, 240, 240); // 浅灰色，更协调

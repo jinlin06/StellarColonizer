@@ -64,6 +64,9 @@ public class MainController {
     private HexMapView hexMapView;
 
     private GameEngine gameEngine;
+    
+    // 添加回调接口
+    private MainMenuCallback mainMenuCallback;
 
     public void setGameEngine(GameEngine gameEngine) {
         this.gameEngine = gameEngine;
@@ -91,6 +94,11 @@ public class MainController {
         
         // 设置游戏事件监听器
         setupEventListeners();
+    }
+
+    // 添加设置回调的方法
+    public void setMainMenuCallback(MainMenuCallback callback) {
+        this.mainMenuCallback = callback;
     }
 
     @FXML
@@ -133,7 +141,18 @@ public class MainController {
                 @Override
                 public void onEvent(GameEvent event) {
                     javafx.application.Platform.runLater(() -> {
-                        addEventToLog(event.getMessage());
+                        if ("AI_LOG".equals(event.getType())) {
+                            // 处理AI日志事件
+                            addEventToLog("[AI] " + event.getData().toString());
+                        } else if ("VICTORY".equals(event.getType())) {
+                            // 处理胜利事件
+                            String victoryMessage = event.getData().toString();
+                            addEventToLog("[胜利] " + victoryMessage);
+                            showVictoryDialog(victoryMessage);
+                        } else {
+                            // 处理其他游戏事件
+                            addEventToLog(event.getMessage());
+                        }
                     });
                 }
             });
@@ -611,4 +630,88 @@ public class MainController {
         dialog.setScene(scene);
         dialog.show();
     }
+    
+    private void showVictoryDialog(String message) {
+        Stage dialog = new Stage();
+        dialog.setTitle("游戏胜利");
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            dialog.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+        
+        Label messageLabel = new Label(message);
+        messageLabel.setWrapText(true);
+        messageLabel.setStyle("-fx-font-size: 16px; -fx-padding: 20px;");
+        
+        Button returnToMenuButton = new Button("返回主菜单");
+        returnToMenuButton.setOnAction(e -> {
+            dialog.close();
+            returnToMainMenu();
+        });
+        
+        VBox layout = new VBox(20);
+        layout.getChildren().addAll(messageLabel, returnToMenuButton);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+        layout.setPadding(new Insets(20));
+        
+        Scene scene = new Scene(layout, 400, 200);
+        scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
+        
+        dialog.setScene(scene);
+        dialog.show();
+    }
+    
+    private void returnToMainMenu() {
+        try {
+            // 如果有回调函数，使用回调来返回主菜单，否则使用直接方式
+            if (mainMenuCallback != null) {
+                mainMenuCallback.returnToMainMenu();
+            } else {
+                // 获取当前窗口
+                Stage currentStage = (Stage) mainContainer.getScene().getWindow();
+                
+                // 创建主菜单界面
+                MainMenuUI mainMenu = new MainMenuUI(currentStage);
+                
+                // 设置主菜单的操作
+                mainMenu.setNewGameAction(() -> {
+                    // 开始新游戏的逻辑
+                    // 这里可以重新初始化游戏
+                });
+                
+                mainMenu.setContinueGameAction(() -> {
+                    // 继续游戏的逻辑
+                });
+                
+                mainMenu.setSettingsAction(() -> {
+                    // 设置的逻辑
+                });
+                
+                // 创建新场景并切换到主菜单
+                Scene newScene = new Scene(mainMenu, 1400, 900);
+                newScene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
+                
+                currentStage.setScene(newScene);
+                currentStage.setTitle("星际殖民者 - 主菜单");
+                
+                // 如果有游戏引擎，重置游戏状态
+                if (gameEngine != null) {
+                    gameEngine.resetGame();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("返回主菜单失败: " + e.getMessage());
+            
+            // 如果无法加载主菜单，至少显示一个错误信息
+            showInfoDialog("错误", "无法返回主菜单: " + e.getMessage());
+        }
+    }
 }
+

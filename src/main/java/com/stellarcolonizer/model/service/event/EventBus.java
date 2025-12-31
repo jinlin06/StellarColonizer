@@ -4,7 +4,17 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class EventBus {
+    private static EventBus instance;
     private final List<GameEventListener> listeners = new CopyOnWriteArrayList<>();
+
+    private EventBus() {}
+
+    public static EventBus getInstance() {
+        if (instance == null) {
+            instance = new EventBus();
+        }
+        return instance;
+    }
 
     public void register(GameEventListener listener) {
         listeners.add(listener);

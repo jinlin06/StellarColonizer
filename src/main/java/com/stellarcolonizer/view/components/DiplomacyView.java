@@ -125,8 +125,15 @@ public class DiplomacyView {
         TableColumn<DiplomaticRelationship, String> statusColumn = new TableColumn<>("关系状态");
         statusColumn.setCellValueFactory(cellData -> {
             DiplomaticRelationship rel = cellData.getValue();
-            String status = rel.getStatus().getDisplayName();
-            return new javafx.beans.property.SimpleStringProperty(status);
+            // 重新获取最新的关系状态以确保显示正确
+            Faction sourceFaction = rel.getSourceFaction();
+            Faction targetFaction = rel.getTargetFaction();
+            DiplomaticRelationship updatedRel = sourceFaction.getRelationshipWith(targetFaction);
+            if (updatedRel != null) {
+                return new javafx.beans.property.SimpleStringProperty(updatedRel.getStatus().getDisplayName());
+            } else {
+                return new javafx.beans.property.SimpleStringProperty("未知");
+            }
         });
         
         // 创建表格
@@ -165,15 +172,19 @@ public class DiplomacyView {
         List<Faction> allFactions = galaxy.getFactions();
         for (Faction faction : allFactions) {
             if (!faction.equals(playerFaction)) {
+                // 获取最新的外交关系
                 DiplomaticRelationship relationship = playerFaction.getRelationshipWith(faction);
                 if (relationship == null) {
                     // 如果没有关系，创建一个中立关系
                     relationship = new DiplomaticRelationship(playerFaction, faction, 
                         DiplomaticRelationship.RelationshipStatus.NEUTRAL);
                 }
+                // 确保显示的是最新的关系状态
                 table.getItems().add(relationship);
             }
         }
+        // 强制刷新表格以确保显示更新
+        table.refresh();
     }
     
     private static void updateButtonVisibility(TableView<DiplomaticRelationship> table, Button makePeaceButton, Button declareWarButton, Button establishDiplomaticRelationButton) {

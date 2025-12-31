@@ -53,4 +53,10 @@ public class GameState {
     public Faction getVictor() { return victor; }
 
     public List<String> getEventLog() { return new ArrayList<>(eventLog); }
+    
+    public void setGameOver(boolean gameOver) { this.isGameOver = gameOver; }
+    
+    public void setVictoryType(String victoryType) { this.victoryType = victoryType; }
+    
+    public void setVictor(Faction victor) { this.victor = victor; }
 }

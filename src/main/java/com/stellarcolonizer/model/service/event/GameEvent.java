@@ -2,28 +2,22 @@ package com.stellarcolonizer.model.service.event;
 
 public class GameEvent {
     private final String type;
-    private final String message;
-    private final long timestamp;
+    private final Object data;
 
-    public GameEvent(String type, String message) {
+    public GameEvent(String type, Object data) {
         this.type = type;
-        this.message = message;
-        this.timestamp = System.currentTimeMillis();
-    }
-
-    public GameEvent(String type) {
-        this(type, "");
+        this.data = data;
     }
 
     public String getType() {
         return type;
     }
 
-    public String getMessage() {
-        return message;
+    public Object getData() {
+        return data;
     }
-
-    public long getTimestamp() {
-        return timestamp;
+    
+    public String getMessage() {
+        return data != null ? data.toString() : "";
     }
 }

@@ -207,6 +207,12 @@ public class StarSystemInfoView extends VBox {
             moveFleetButton.setOnAction(e -> {
                 Fleet selectedFleet = fleetListView.getSelectionModel().getSelectedItem();
                 if (selectedFleet != null) {
+                    // 检查舰队是否属于AI，如果是AI舰队，则不允许玩家移动
+                    if (selectedFleet.getFaction() != null && selectedFleet.getFaction().isAI()) {
+                        showAlert("无法移动", "AI舰队由AI自动控制，不能手动移动");
+                        return;
+                    }
+                    
                     // 检查舰队是否本回合已移动
                     if (selectedFleet.hasMovedThisTurn()) {
                         showAlert("移动限制", "该舰队本回合已移动过，无法再次移动");
@@ -528,10 +534,10 @@ public class StarSystemInfoView extends VBox {
             return;
         }
         
-        // 计算基础殖民成本
+        // 计算殖民成本
         Map<ResourceType, Float> colonizationCost = planet.calculateColonizationCost();
         int requiredPopulation = planet.calculateRequiredPopulation();
-        
+
         // 检查是否有足够的殖民地来迁移人口
         if (playerFaction.getColonies().isEmpty()) {
             showAlert("殖民失败", "您没有其他殖民地来迁移人口");
@@ -587,10 +593,10 @@ public class StarSystemInfoView extends VBox {
         
         dialogContent.getChildren().addAll(descriptionLabel, sourceColonyCombo);
         sourceColonyDialog.getDialogPane().setContent(dialogContent);
-        
+
         ButtonType confirmButtonType = new ButtonType("确认", ButtonBar.ButtonData.OK_DONE);
         sourceColonyDialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
-        
+
         // 设置结果转换器
         sourceColonyDialog.setResultConverter(dialogButton -> {
             if (dialogButton == confirmButtonType) {
@@ -598,26 +604,26 @@ public class StarSystemInfoView extends VBox {
             }
             return null; // 取消按钮或其他情况返回null
         });
-        
+
         Optional<Colony> sourceResult = sourceColonyDialog.showAndWait();
         if (!sourceResult.isPresent()) {
             return; // 用户取消了操作
         }
-        
+
         Colony sourceColony = sourceResult.get();
         if (sourceColony == null) {
             showAlert("错误", "请选择源殖民地");
             return;
         }
-        
+
         // 获取源殖民地和目标行星所在的星系
         StarSystem sourceSystem = sourceColony.getPlanet().getStarSystem();
         StarSystem targetSystem = planet.getStarSystem();
-        
+
         // 获取星系所在的六边形
         Hex sourceHex = null;
         Hex targetHex = null;
-        
+
         // 从玩家派系获取星系
         for (StarSystem system : playerFaction.getGalaxy().getStarSystems()) {
             if (system.equals(sourceSystem)) {
@@ -627,24 +633,24 @@ public class StarSystemInfoView extends VBox {
                 targetHex = playerFaction.getGalaxy().getHexForStarSystem(system);
             }
         }
-        
+
         double distance = 0.0;
         if (sourceHex != null && targetHex != null) {
             // 计算六边形之间的距离
-            distance = (Math.abs(sourceHex.getCoord().q - targetHex.getCoord().q) + 
-                       Math.abs(sourceHex.getCoord().r - targetHex.getCoord().r) + 
+            distance = (Math.abs(sourceHex.getCoord().q - targetHex.getCoord().q) +
+                       Math.abs(sourceHex.getCoord().r - targetHex.getCoord().r) +
                        Math.abs(sourceHex.getCoord().s - targetHex.getCoord().s)) / 2.0;
         }
-        
+
         // 根据距离计算成本乘数
         double distanceCostMultiplier = 1.0 + (distance * 0.1); // 每格距离增加10%成本
-        
+
         // 应用距离成本乘数
         Map<ResourceType, Float> adjustedColonizationCost = new EnumMap<>(ResourceType.class);
         for (Map.Entry<ResourceType, Float> costEntry : colonizationCost.entrySet()) {
             adjustedColonizationCost.put(costEntry.getKey(), costEntry.getValue() * (float)distanceCostMultiplier);
         }
-        
+
         // 显示成本信息
         StringBuilder costInfo = new StringBuilder("殖民成本:\n");
         for (Map.Entry<ResourceType, Float> costEntry : adjustedColonizationCost.entrySet()) {
@@ -654,7 +660,7 @@ public class StarSystemInfoView extends VBox {
         }
         costInfo.append("\n距离: ").append(String.format("%.1f格", distance))
                 .append(" (成本增加").append(String.format("%.0f%%", (distanceCostMultiplier - 1.0) * 100)).append(")");
-        
+
         // 检查资源是否足够（使用调整后的成本）
         boolean hasEnoughResources = true;
         StringBuilder insufficientResources = new StringBuilder("资源不足:\n");
@@ -668,32 +674,32 @@ public class StarSystemInfoView extends VBox {
                         .append("\n");
             }
         }
-        
+
         if (!hasEnoughResources) {
             // 显示距离成本信息
-            showAlert("殖民失败", insufficientResources.toString() + 
+            showAlert("殖民失败", insufficientResources.toString() +
                      "\n距离成本: " + String.format("%.1f格", distance) + " (成本增加" + String.format("%.0f%%", (distanceCostMultiplier - 1.0) * 100) + ")");
             return;
         }
-        
+
         // 弹出对话框显示成本信息并选择迁移人口数量
         Dialog<Integer> transferDialog = new Dialog<>();
         transferDialog.setTitle("确认殖民");
         transferDialog.setHeaderText("确认殖民操作");
-        
+
         VBox dialogContent2 = new VBox(10);
-        
+
         Label costLabel = new Label(costInfo.toString());
         costLabel.setWrapText(true);
         costLabel.setStyle("-fx-text-fill: #4CAF50; -fx-font-weight: bold;");
-        
+
         Label sourceColonyLabel = new Label("源殖民地: " + sourceColony.getName());
         sourceColonyLabel.setWrapText(true);
         sourceColonyLabel.setStyle("-fx-text-fill: white;");
-        
+
         Label descriptionLabel2 = new Label("需要迁移 " + requiredPopulation + " 人口到新殖民地");
         descriptionLabel2.setWrapText(true);
-        
+
         Spinner<Integer> populationSpinner = new Spinner<>(1000, requiredPopulation, Math.min(requiredPopulation, 10000), 100);
         populationSpinner.getValueFactory().setValue(Math.min(requiredPopulation, Math.min(requiredPopulation, 10000)));
         populationSpinner.setPrefWidth(150);
@@ -737,7 +743,7 @@ public class StarSystemInfoView extends VBox {
         
         // 更新成本为调整后的成本
         colonizationCost = adjustedColonizationCost;
-        
+
         // 扣除资源成本
         for (Map.Entry<ResourceType, Float> costEntry : colonizationCost.entrySet()) {
             playerFaction.getResourceStockpile().consumeResource(costEntry.getKey(), costEntry.getValue());

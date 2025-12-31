@@ -1,8 +1,10 @@
 package com.stellarcolonizer;
 
 import com.stellarcolonizer.core.GameEngine;
+import com.stellarcolonizer.view.components.GameSettingsUI;
 import com.stellarcolonizer.view.components.MainMenuUI;
 import com.stellarcolonizer.view.controllers.MainController;
+import com.stellarcolonizer.view.controllers.MainMenuCallback;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -22,8 +24,8 @@ public class Main extends Application {
         // 设置主菜单按钮的事件处理
         mainMenu.setNewGameAction(() -> {
             try {
-                // 开始新游戏
-                startGame(primaryStage);
+                // 显示游戏设置界面
+                showGameSettings(primaryStage);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -35,8 +37,10 @@ public class Main extends Application {
         });
         
         mainMenu.setSettingsAction(() -> {
-            // 游戏设置功能
+            // 游戏设置功能 - 可以在这里让用户自定义AI数量和名称
             System.out.println("游戏设置功能正在开发中...");
+            // 在实际实现中，这里会打开一个设置窗口，让用户自定义AI数量和名称
+            showGameSettings(primaryStage);
         });
         
         // 显示主菜单
@@ -51,7 +55,7 @@ public class Main extends Application {
         primaryStage.show();
     }
     
-    private void startGame(Stage primaryStage) {
+    private void startGame(Stage primaryStage, int aiCount, String[] aiNames) {
         try {
             // 加载主界面
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/main.fxml"));
@@ -60,8 +64,18 @@ public class Main extends Application {
 
             // 初始化游戏引擎
             gameEngine = new GameEngine();
-            gameEngine.initialize(); // 提前初始化游戏引擎
+            gameEngine.initialize(aiCount, aiNames); // 使用自定义AI数量和名称初始化游戏引擎
             controller.setGameEngine(gameEngine);
+            
+            // 设置主菜单回调
+            controller.setMainMenuCallback(() -> {
+                try {
+                    // 重新显示主菜单
+                    start(primaryStage);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
 
             // 设置舞台
             Scene scene = new Scene(root, 1400, 900);
@@ -76,6 +90,29 @@ public class Main extends Application {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    private void showGameSettings(Stage primaryStage) {
+        GameSettingsUI gameSettings = new GameSettingsUI();
+        
+        gameSettings.setGameStartCallback((aiCount, aiNames) -> {
+            startGame(primaryStage, aiCount, aiNames);
+        });
+        
+        gameSettings.setBackCallback(() -> {
+            try {
+                start(primaryStage);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        
+        Scene scene = new Scene(gameSettings, 1000, 700);
+        scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
+        
+        primaryStage.setTitle("星际殖民者 - 游戏设置");
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
     public static GameEngine getGameEngine() {

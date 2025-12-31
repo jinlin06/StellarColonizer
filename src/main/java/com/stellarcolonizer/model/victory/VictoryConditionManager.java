@@ -4,6 +4,7 @@ import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.galaxy.Galaxy;
 import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.technology.TechTree;
+import com.stellarcolonizer.model.technology.Technology;
 
 import java.util.List;
 
@@ -17,32 +18,18 @@ public class VictoryConditionManager {
 
     
     public boolean checkCompleteVictory(Faction faction, TechTree techTree) {
-        return checkControlRate(faction) && checkTechCompletion(techTree);
+        // 满足以下任一条件即可获胜：只剩下一个玩家 或 研究了终极武器
+        return checkLastPlayerStanding(faction) || checkUltimateWeapon(faction);
     }
 
-    private boolean checkControlRate(Faction faction) {
-        // 获取所有行星
-        List<Planet> allPlanets = galaxy.getStarSystems().stream()
-                .flatMap(system -> system.getPlanets().stream())
+    private boolean checkLastPlayerStanding(Faction faction) {
+        // 获取所有仍然活跃的派系（拥有至少一个殖民地的派系）
+        List<Faction> activeFactions = galaxy.getFactions().stream()
+                .filter(f -> f.getColonies().size() > 0) // 只有拥有殖民地的派系才算活跃
                 .collect(java.util.stream.Collectors.toList());
         
-        int totalPlanets = allPlanets.size();
-        
-        // 避免除零错误
-        if (totalPlanets == 0) {
-            return false;
-        }
-        
-        // 计算达到80%所需的最少行星数
-        int minPlanetsNeeded = (totalPlanets * 4 + 5) / 5; // 等价于 Math.ceil(totalPlanets * 0.8)，但避免了浮点运算
-        
-        // 统计由该派系控制的行星数，一旦达到所需数量立即返回true以提高效率
-        long controlledPlanets = allPlanets.stream()
-                .filter(planet -> planet.getColony() != null && planet.getColony().getFaction() == faction)
-                .limit(minPlanetsNeeded)
-                .count();
-        
-        return controlledPlanets >= minPlanetsNeeded;
+        // 如果只剩一个活跃派系，且该派系就是传入的派系，则该派系获胜
+        return activeFactions.size() == 1 && activeFactions.contains(faction);
     }
 
     private boolean checkTechCompletion(TechTree techTree) {
@@ -50,5 +37,12 @@ public class VictoryConditionManager {
         // 即没有未研究的科技
         return techTree.getTechnologies().stream()
                 .noneMatch(tech -> !tech.isResearched());
+    }
+    
+    private boolean checkUltimateWeapon(Faction faction) {
+        // 检查派系是否已经研究了终极武器科技
+        TechTree techTree = faction.getTechTree();
+        Technology ultimateWeapon = techTree.getTechnology("ULTIMATE_WEAPON");
+        return ultimateWeapon != null && ultimateWeapon.isResearched();
     }
 }
