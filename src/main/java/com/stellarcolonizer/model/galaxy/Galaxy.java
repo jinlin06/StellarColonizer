@@ -324,10 +324,7 @@ public class Galaxy {
     public List<Faction> getFactions() { return new ArrayList<>(factions); }
     public void addFaction(Faction faction) { factions.add(faction); }
     public void removeFaction(Faction faction) { factions.remove(faction); }
-    
-    /**
-     * 边类，用于Prim算法
-     */
+
     private static class Edge implements Comparable<Edge> {
         StarSystem from;
         StarSystem to;

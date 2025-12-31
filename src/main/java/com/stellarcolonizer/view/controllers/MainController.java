@@ -167,6 +167,21 @@ public class MainController {
     }
 
     private void onHexSelected(Hex hex) {
+        // 检查是否有敌对舰队可以战斗
+        if (hex != null && hex.getFleets().size() > 1) {
+            // 检查是否存在不同派系的舰队
+            java.util.Set<com.stellarcolonizer.model.faction.Faction> factions = new java.util.HashSet<>();
+            for (Fleet fleet : hex.getFleets()) {
+                factions.add(fleet.getFaction());
+            }
+            
+            if (factions.size() > 1) {
+                // 存在不同派系的舰队，可以进行战斗
+                // 不在此处处理战斗，而是让HexMapView处理，因为它有更完整的战斗逻辑
+                // 这里只处理星系信息显示
+            }
+        }
+        
         // 显示选中单元格信息的弹窗
         if (hex.hasStarSystem()) {
             StarSystem system = hex.getStarSystem();

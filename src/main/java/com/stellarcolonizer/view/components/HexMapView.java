@@ -1,6 +1,8 @@
 // HexMapView.java - 六边形地图视图组件
 package com.stellarcolonizer.view.components;
 
+import com.stellarcolonizer.battle.BattleResult;
+import com.stellarcolonizer.battle.BattleSystem;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.galaxy.*;
@@ -374,6 +376,32 @@ public class HexMapView extends Pane {
         Hex clickedHex = hexGrid.getHex(coord);
 
         if (clickedHex != null) {
+            // 检查点击的六边形中是否有敌对舰队可以战斗
+            if (BattleSystem.hasEnemiesInHex(clickedHex)) {
+                // 创建战斗UI并显示
+                BattleUI battleUI = new BattleUI(clickedHex);
+                
+                // 创建一个新的Stage来显示战斗UI
+                javafx.stage.Stage battleStage = new javafx.stage.Stage();
+                battleStage.setTitle("舰队战斗");
+                battleStage.setScene(new javafx.scene.Scene(battleUI, 500, 400));
+                
+                // 设置窗口属性
+                battleStage.initOwner(this.getScene().getWindow());
+                battleStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+                
+                battleStage.showAndWait();
+                
+                // 重新绘制地图以更新舰队状态
+                draw();
+                
+                // 触发六边形选择事件，以便更新UI
+                HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
+                fireEvent(hexEvent);
+                
+                return; // 战斗处理完成后直接返回，不再执行其他逻辑
+            }
+            
             // 如果存在选中的舰队并且该舰队有当前位置，则优先处理移动逻辑
             if (selectedFleet != null && selectedFleet.getCurrentHex() != null) {
                 // 检查舰队是否属于玩家派系，如果不是，则不允许玩家移动
@@ -786,8 +814,12 @@ public class HexMapView extends Pane {
     }
 
     private Color getFleetColor(Fleet fleet) {
-        // 直接使用舰队所属派系的颜色，而不是基于外交关系
-        return fleet.getFaction().getColor();
+        // 如果是玩家派系的舰队，使用白色；否则使用派系颜色
+        if (fleet.getFaction().equals(playerFaction)) {
+            return Color.WHITE;
+        } else {
+            return fleet.getFaction().getColor();
+        }
     }
     private Color getHexColor(Hex hex) {
         // 如果六边形有星系且该星系有控制派系，返回派系颜色

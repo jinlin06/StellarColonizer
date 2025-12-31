@@ -1,7 +1,7 @@
 package com.stellarcolonizer.model.fleet;
 
 import com.stellarcolonizer.model.faction.Faction;
-import com.stellarcolonizer.model.fleet.enums.FleetMission;
+
 import com.stellarcolonizer.model.fleet.enums.ShipClass;
 import com.stellarcolonizer.model.galaxy.Hex;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
@@ -29,7 +29,6 @@ public class Fleet {
 
     // 状态
     private final BooleanProperty isMoving;
-    private final ObjectProperty<FleetMission> currentMission;
     private final ObjectProperty<Hex> destination;
     
     // 回合移动限制
@@ -56,7 +55,6 @@ public class Fleet {
         this.fuelConsumption = new SimpleFloatProperty(0);
 
         this.isMoving = new SimpleBooleanProperty(false);
-        this.currentMission = new SimpleObjectProperty<>(FleetMission.STANDBY);
         this.destination = new SimpleObjectProperty<>(null);
 
         this.commander = new SimpleObjectProperty<>(null);
@@ -128,7 +126,7 @@ public class Fleet {
         }
     }
 
-    private void updateFleetStats() {
+    public void updateFleetStats() {
         // 计算总战斗力 - 修复：使用舰船设计的综合战斗力计算
         float combatPower = ships.stream()
                 .map(ship -> ship.getDesign().calculateCombatPower())
@@ -179,8 +177,7 @@ public class Fleet {
         // 消耗舰队补给
         consumeSupplies();
 
-        // 检查任务状态
-        checkMission();
+
         
         // 自动补给
         autoResupply();
@@ -267,134 +264,7 @@ public class Fleet {
         }
     }
 
-    private void checkMission() {
-        FleetMission mission = currentMission.get();
-        if (mission == null) return;
 
-        switch (mission) {
-            case STANDBY:
-                // 待命状态，不执行特殊操作
-                break;
-
-            case PATROL:
-                executePatrolMission();
-                break;
-
-            case EXPLORE:
-                executeExploreMission();
-                break;
-
-            case DEFEND:
-                executeDefendMission();
-                break;
-
-            case ATTACK:
-                executeAttackMission();
-                break;
-
-            case RETREAT:
-                executeRetreatMission();
-                break;
-        }
-    }
-
-    private void executePatrolMission() {
-        // 巡逻任务：在指定区域内移动
-        if (destination.get() == null || currentHex.get().equals(destination.get())) {
-            // 选择新的巡逻点
-            Hex newDestination = findNearbyHex(5); // 5格范围内
-            destination.set(newDestination);
-            isMoving.set(true);
-        }
-    }
-
-    private void executeExploreMission() {
-        // 探索任务：移动到未知区域
-        if (destination.get() == null || currentHex.get().equals(destination.get())) {
-            // 寻找最近的未探索区域
-            Hex unexplored = findUnexploredHex();
-            if (unexplored != null) {
-                destination.set(unexplored);
-                isMoving.set(true);
-            }
-        }
-    }
-
-    private void executeDefendMission() {
-        // 防御任务：保护特定区域
-        if (destination.get() == null) {
-            // 选择要防御的殖民地
-            Hex colonyHex = findFriendlyColony();
-            if (colonyHex != null) {
-                destination.set(colonyHex);
-                isMoving.set(true);
-            }
-        }
-
-        // 如果到达目的地，停止移动
-        if (currentHex.get().equals(destination.get())) {
-            isMoving.set(false);
-        }
-    }
-
-    private void executeAttackMission() {
-        // 攻击任务：攻击敌方目标
-        if (destination.get() == null) {
-            // 寻找敌方目标
-            Hex enemyTarget = findEnemyTarget();
-            if (enemyTarget != null) {
-                destination.set(enemyTarget);
-                isMoving.set(true);
-            }
-        }
-
-        // 检查是否到达目标并发动攻击
-        if (currentHex.get().equals(destination.get())) {
-            engageEnemy();
-        }
-    }
-
-    private void executeRetreatMission() {
-        // 撤退任务：返回安全区域
-        if (destination.get() == null) {
-            // 寻找最近的友好殖民地
-            Hex safeHex = findFriendlyColony();
-            if (safeHex != null) {
-                destination.set(safeHex);
-                isMoving.set(true);
-            }
-        }
-    }
-
-    private Hex findNearbyHex(int range) {
-        // 在指定范围内随机选择一个六边形
-        // 这里需要访问星系地图
-        return currentHex.get(); // 简化实现
-    }
-
-    private Hex findUnexploredHex() {
-        // 寻找最近的未探索六边形
-        // 这里需要访问游戏地图
-        return currentHex.get(); // 简化实现
-    }
-
-    private Hex findFriendlyColony() {
-        // 寻找最近的友好殖民地
-        // 这里需要访问派系的殖民地列表
-        return currentHex.get(); // 简化实现
-    }
-
-    private Hex findEnemyTarget() {
-        // 寻找敌方目标
-        // 这里需要访问敌方情报
-        return null; // 简化实现
-    }
-
-    private void engageEnemy() {
-        // 与敌方交战
-        // 这里会触发战斗系统
-        System.out.println("舰队 " + name.get() + " 与敌人交战！");
-    }
 
     private void autoResupply() {
         // 如果位于友好殖民地，自动补给
@@ -414,16 +284,7 @@ public class Fleet {
         // 这里需要访问殖民地的资源
     }
 
-    public void setMission(FleetMission mission, Hex target) {
-        this.currentMission.set(mission);
-        this.destination.set(target);
 
-        if (target != null && !target.equals(currentHex.get())) {
-            isMoving.set(true);
-        } else {
-            isMoving.set(false);
-        }
-    }
 
     public boolean moveTo(Hex destination) {
         if (destination == null || destination.equals(currentHex.get())) return false;
@@ -450,7 +311,6 @@ public class Fleet {
         }
         
         isMoving.set(false);
-        currentMission.set(FleetMission.STANDBY);
         
         // 标记为已移动
         movedThisTurn = true;
@@ -615,8 +475,7 @@ public class Fleet {
     public boolean isMoving() { return isMoving.get(); }
     public BooleanProperty movingProperty() { return isMoving; }
 
-    public FleetMission getCurrentMission() { return currentMission.get(); }
-    public ObjectProperty<FleetMission> currentMissionProperty() { return currentMission; }
+
 
     public Hex getDestination() { return destination.get(); }
     public ObjectProperty<Hex> destinationProperty() { return destination; }
@@ -651,7 +510,6 @@ public class Fleet {
             
             // 停止移动标志
             isMoving.set(false);
-            currentMission.set(FleetMission.STANDBY);
         }
     }
 }

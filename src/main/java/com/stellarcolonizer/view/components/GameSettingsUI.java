@@ -62,6 +62,9 @@ public class GameSettingsUI extends VBox {
         this.setSpacing(15);
         this.setPadding(new Insets(20));
         
+        // 清除现有组件
+        this.getChildren().clear();
+        
         // 添加标题
         this.getChildren().add(titleLabel);
         
