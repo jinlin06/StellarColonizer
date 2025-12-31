@@ -1,0 +1,10 @@
+@startuml
+class com.stellarcolonizer.model.victory.VictoryConditionManager {
+- Galaxy galaxy
++ boolean checkCompleteVictory(Faction,TechTree)
+- boolean checkControlRate(Faction)
+- boolean checkTechCompletion(TechTree)
+}
+
+
+@enduml

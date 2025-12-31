@@ -1,0 +1,703 @@
+@startuml
+enum com.stellarcolonizer.model.fleet.enums.DamageType {
++  KINETIC
++  ENERGY
++  EXPLOSIVE
++  EMP
+- String displayName
+- String description
+- String icon
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
+}
+
+
+class com.stellarcolonizer.model.fleet.ShipDesign {
+- StringProperty name
+- ObjectProperty<ShipClass> shipClass
+- IntegerProperty version
+- IntegerProperty hullSize
+- IntegerProperty powerOutput
+- IntegerProperty crewCapacity
+- IntegerProperty cargoCapacity
+- IntegerProperty fuelCapacity
+- FloatProperty hitPoints
+- FloatProperty armor
+- FloatProperty shieldStrength
+- FloatProperty evasion
+- FloatProperty enginePower
+- FloatProperty warpSpeed
+- FloatProperty maneuverability
+- ObservableList<ShipModule> modules
+- Map<ResourceType,Float> constructionCost
+- Map<ResourceType,Float> maintenanceCost
+- IntegerProperty maxModules
+- IntegerProperty maxWeapons
+- IntegerProperty maxUtility
+- BooleanProperty isValidDesign
+- StringProperty validationMessage
+- FloatProperty hullSizeMultiplier
+- void initializeBaseStats(ShipClass)
+- void initializeDesignLimits(ShipClass)
+- void addDefaultModules()
++ boolean addModule(ShipModule)
++ boolean removeModule(ShipModule)
++ boolean canAddModule(ShipModule)
++ boolean canAddModule(ShipModule,Set<String>)
++ int getAvailablePower()
++ int getUsedHullSpace()
++ int getFreeHullSpace()
++ int getMaxModules()
++ int getMaxWeapons()
++ int getMaxUtility()
+- void updateDesign()
+- void recalculateStats()
+- float getBaseValueForType(String)
+- void recalculateCapacities()
+- int getBaseCapacityValueForType(String)
+- void recalculateCosts()
+- void validateDesign()
++ float calculateCombatPower()
++ float calculateStrategicValue()
++ float calculateTotalDamage()
++ ShipDesign createCopy(String)
++ boolean isDesignUnlocked(Set<String>)
++ List<ShipModule> getLockedModules(Set<String>)
++ String getName()
++ void setName(String)
++ StringProperty nameProperty()
++ ShipClass getShipClass()
++ ObjectProperty<ShipClass> shipClassProperty()
++ int getVersion()
++ IntegerProperty versionProperty()
++ int getHullSize()
++ FloatProperty hullSizeMultiplierProperty()
++ float getHullSizeMultiplier()
++ void setHullSizeMultiplier(float)
++ int getPowerOutput()
++ int getCrewCapacity()
++ int getCargoCapacity()
++ int getFuelCapacity()
++ float getHitPoints()
++ FloatProperty hitPointsProperty()
++ float getArmor()
++ FloatProperty armorProperty()
++ float getShieldStrength()
++ FloatProperty shieldStrengthProperty()
++ float getEvasion()
++ FloatProperty evasionProperty()
++ float getEnginePower()
++ FloatProperty enginePowerProperty()
++ float getWarpSpeed()
++ FloatProperty warpSpeedProperty()
++ float getManeuverability()
++ FloatProperty maneuverabilityProperty()
++ ObservableList<ShipModule> getModules()
++ Map<ResourceType,Float> getConstructionCost()
++ Map<ResourceType,Float> getMaintenanceCost()
++ boolean isValidDesign()
++ BooleanProperty validDesignProperty()
++ String getValidationMessage()
++ StringProperty validationMessageProperty()
++ String getFullName()
+}
+
+
+enum com.stellarcolonizer.model.fleet.enums.DefenseType {
++  SHIELD
++  ARMOR
++  POINT_DEFENSE
++  ECM
+- String displayName
+- String description
+- String icon
+- int crewRequirement
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
++ int getCrewRequirement()
+}
+
+
+class com.stellarcolonizer.model.fleet.FleetCommander {
+- StringProperty name
+- IntegerProperty level
+- IntegerProperty experience
+- ObjectProperty<CommanderTrait> trait
+- IntegerProperty tactics
+- IntegerProperty leadership
+- IntegerProperty logistics
+- void applyTraitEffects()
++ void gainExperience(int)
+- void levelUp()
+- int getExperienceForNextLevel()
+- void clampAbilities()
++ void applyCommanderEffects(Fleet)
++ String getName()
++ StringProperty nameProperty()
++ int getLevel()
++ IntegerProperty levelProperty()
++ int getExperience()
++ IntegerProperty experienceProperty()
++ CommanderTrait getTrait()
++ ObjectProperty<CommanderTrait> traitProperty()
++ int getTactics()
++ IntegerProperty tacticsProperty()
++ int getLeadership()
++ IntegerProperty leadershipProperty()
++ int getLogistics()
++ IntegerProperty logisticsProperty()
+}
+
+
+abstract class com.stellarcolonizer.model.fleet.ShipModule {
+# StringProperty name
+# ObjectProperty<ModuleType> type
+# IntegerProperty size
+# IntegerProperty powerRequirement
+# IntegerProperty powerOutput
+# FloatProperty weight
+# Map<ResourceType,Float> constructionCost
+# Map<ResourceType,Float> maintenanceCost
+# String requiredTechnology
+# IntegerProperty techLevel
+# List<String> unlockPrerequisites
+# BooleanProperty isActive
+# FloatProperty integrity
+# {abstract}void initializeCosts()
++ {abstract}float getHitPointBonus()
++ {abstract}float getArmorBonus()
++ {abstract}float getShieldBonus()
++ {abstract}float getEvasionBonus()
++ {abstract}float getEnginePowerBonus()
++ {abstract}float getWarpSpeedBonus()
++ {abstract}float getManeuverabilityBonus()
++ {abstract}int getCrewBonus()
++ {abstract}int getCargoBonus()
++ {abstract}int getFuelBonus()
++ Map<String,Float> getSpecialAbilities()
++ void damage(float)
++ void repair(float)
++ float getEffectiveness()
++ ShipModule createCopy()
++ String getName()
++ StringProperty nameProperty()
++ ModuleType getType()
++ ObjectProperty<ModuleType> typeProperty()
++ int getSize()
++ IntegerProperty sizeProperty()
++ int getPowerRequirement()
++ IntegerProperty powerRequirementProperty()
++ int getPowerOutput()
++ IntegerProperty powerOutputProperty()
++ float getWeight()
++ FloatProperty weightProperty()
++ Map<ResourceType,Float> getConstructionCost()
++ Map<ResourceType,Float> getMaintenanceCost()
++ String getRequiredTechnology()
++ int getTechLevel()
++ IntegerProperty techLevelProperty()
++ boolean canBeUnlocked(Set<String>)
++ boolean isActive()
++ BooleanProperty activeProperty()
++ float getIntegrity()
++ FloatProperty integrityProperty()
++ void addUnlockPrerequisite(String)
++ void removeUnlockPrerequisite(String)
++ List<String> getUnlockPrerequisites()
++ void setUnlockPrerequisites(List<String>)
++ void setRequiredTechnology(String)
+}
+
+
+class com.stellarcolonizer.model.fleet.EngineModule {
+- FloatProperty thrust
+# void initializeCosts()
++ float getHitPointBonus()
++ float getArmorBonus()
++ float getShieldBonus()
++ float getEvasionBonus()
++ float getEnginePowerBonus()
++ float getWarpSpeedBonus()
++ float getManeuverabilityBonus()
++ int getCrewBonus()
++ int getCargoBonus()
++ int getFuelBonus()
++ float getThrust()
++ FloatProperty thrustProperty()
+}
+
+
+enum com.stellarcolonizer.model.fleet.enums.ModuleType {
++  HULL
++  ENGINE
++  POWER
++  WEAPON
++  DEFENSE
++  UTILITY
+- String displayName
+- String description
+- String icon
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
+}
+
+
+class com.stellarcolonizer.model.fleet.PowerModule {
+# void initializeCosts()
++ float getHitPointBonus()
++ float getArmorBonus()
++ float getShieldBonus()
++ float getEvasionBonus()
++ float getEnginePowerBonus()
++ float getWarpSpeedBonus()
++ float getManeuverabilityBonus()
++ int getCrewBonus()
++ int getCargoBonus()
++ int getFuelBonus()
+}
+
+class com.stellarcolonizer.model.fleet.HullModule {
+# void initializeCosts()
++ float getHitPointBonus()
++ float getArmorBonus()
++ float getShieldBonus()
++ float getEvasionBonus()
++ float getEnginePowerBonus()
++ float getWarpSpeedBonus()
++ float getManeuverabilityBonus()
++ int getCrewBonus()
++ int getCargoBonus()
++ int getFuelBonus()
+}
+
+class com.stellarcolonizer.model.fleet.DefenseModule {
+- ObjectProperty<DefenseType> defenseType
+- FloatProperty defenseValue
+- FloatProperty rechargeRate
+- FloatProperty coverage
+- float calculateRechargeRate(DefenseType)
+- void initializeDefenseCosts(DefenseType)
++ float getDefenseBonus()
+# void initializeCosts()
++ float getHitPointBonus()
++ float getArmorBonus()
++ float getShieldBonus()
++ float getEvasionBonus()
++ float getEnginePowerBonus()
++ float getWarpSpeedBonus()
++ float getManeuverabilityBonus()
++ int getCrewBonus()
++ int getCargoBonus()
++ int getFuelBonus()
++ Map<String,Float> getSpecialAbilities()
++ DefenseType getDefenseType()
++ ObjectProperty<DefenseType> defenseTypeProperty()
++ float getDefenseValue()
++ FloatProperty defenseValueProperty()
++ float getRechargeRate()
++ FloatProperty rechargeRateProperty()
++ float getCoverage()
++ FloatProperty coverageProperty()
+}
+
+
+enum com.stellarcolonizer.model.fleet.enums.UtilityType {
++  SENSOR
++  CLOAKING
++  CARGO_BAY
++  HANGAR
++  RESEARCH_LAB
++  MEDICAL_BAY
+- String displayName
+- String description
+- String icon
+- int crewRequirement
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
++ int getCrewRequirement()
+}
+
+
+enum com.stellarcolonizer.model.fleet.enums.FleetMission {
++  STANDBY
++  PATROL
++  EXPLORE
++  DEFEND
++  ATTACK
++  RETREAT
++  MOVE
+- String displayName
+- String description
+- String icon
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
+}
+
+
+enum com.stellarcolonizer.model.fleet.enums.CommanderTrait {
++  AGGRESSIVE
++  DEFENSIVE
++  STRATEGIST
++  LOGISTICIAN
++  CHARISMATIC
+- String displayName
+- String statBonus
+- String description
++ int getTacticsBonus()
++ int getLeadershipBonus()
++ int getLogisticsBonus()
++ {abstract}void applyEffect(Fleet)
++ String getDisplayName()
++ String getStatBonus()
++ String getDescription()
+}
+
+
+class com.stellarcolonizer.model.fleet.ModuleStatus {
+- ShipModule module
+- FloatProperty integrity
+- BooleanProperty isActive
+- BooleanProperty isDestroyed
++ void damage(float)
++ void repair(float)
++ float getEffectiveness()
++ ShipModule getModule()
++ float getIntegrity()
++ FloatProperty integrityProperty()
++ boolean isActive()
++ BooleanProperty activeProperty()
++ boolean isDestroyed()
++ BooleanProperty destroyedProperty()
+}
+
+
+class com.stellarcolonizer.model.fleet.WeaponModule {
+- ObjectProperty<WeaponType> weaponType
+- FloatProperty damage
+- FloatProperty fireRate
+- FloatProperty range
+- FloatProperty accuracy
+- FloatProperty armorPenetration
+- boolean usesAmmo
+- IntegerProperty ammoCapacity
+- IntegerProperty ammoConsumption
+- ResourceType ammoType
+- FloatProperty trackingSpeed
+- FloatProperty reloadTime
+- boolean isTurret
+- float calculateBaseRange(WeaponType)
+- float calculateBaseAccuracy(WeaponType)
+- float calculateBasePenetration(WeaponType)
+- void initializeWeaponCosts(WeaponType)
++ float calculateDamagePerSecond()
++ float calculateEffectiveRange()
+# void initializeCosts()
++ float getHitPointBonus()
++ float getArmorBonus()
++ float getShieldBonus()
++ float getEvasionBonus()
++ float getEnginePowerBonus()
++ float getWarpSpeedBonus()
++ float getManeuverabilityBonus()
++ int getCrewBonus()
++ int getCargoBonus()
++ int getFuelBonus()
++ Map<String,Float> getSpecialAbilities()
++ WeaponType getWeaponType()
++ ObjectProperty<WeaponType> weaponTypeProperty()
++ float getDamage()
++ FloatProperty damageProperty()
++ float getFireRate()
++ FloatProperty fireRateProperty()
++ float getRange()
++ FloatProperty rangeProperty()
++ float getAccuracy()
++ FloatProperty accuracyProperty()
++ float getArmorPenetration()
++ FloatProperty armorPenetrationProperty()
++ boolean usesAmmo()
++ int getAmmoCapacity()
++ int getAmmoConsumption()
++ ResourceType getAmmoType()
++ float getTrackingSpeed()
++ FloatProperty trackingSpeedProperty()
++ float getReloadTime()
++ FloatProperty reloadTimeProperty()
++ boolean isTurret()
+}
+
+
+enum com.stellarcolonizer.model.fleet.enums.WeaponType {
++  LASER
++  PLASMA
++  RAILGUN
++  MISSILE
++  KINETIC
++  ION
++  PARTICLE
++  TORPEDO
+- String displayName
+- String description
+- String icon
+- boolean usesAmmo
+- ResourceType ammoType
+- int crewRequirement
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
++ boolean usesAmmo()
++ ResourceType getAmmoType()
++ int getCrewRequirement()
++ boolean isTurret()
+}
+
+
+class com.stellarcolonizer.model.fleet.Damage {
+- float amount
+- DamageType type
+- float armorPenetration
++ float getAmount()
++ DamageType getType()
++ float getArmorPenetration()
++ float getEffectiveDamage(float)
+}
+
+
+class com.stellarcolonizer.model.fleet.UtilityModule {
+- ObjectProperty<UtilityType> utilityType
+- FloatProperty utilityValue
+- Map<String,Float> specialEffects
+- void initializeUtilityCosts(UtilityType)
+- void initializeSpecialEffects(UtilityType)
+# void initializeCosts()
++ float getHitPointBonus()
++ float getArmorBonus()
++ float getShieldBonus()
++ float getEvasionBonus()
++ float getEnginePowerBonus()
++ float getWarpSpeedBonus()
++ float getManeuverabilityBonus()
++ int getCrewBonus()
++ int getCargoBonus()
++ int getFuelBonus()
++ Map<String,Float> getSpecialAbilities()
++ UtilityType getUtilityType()
++ ObjectProperty<UtilityType> utilityTypeProperty()
++ float getUtilityValue()
++ FloatProperty utilityValueProperty()
+}
+
+
+class com.stellarcolonizer.model.fleet.Ship {
+- StringProperty name
+- ObjectProperty<ShipDesign> design
+- ObjectProperty<Faction> faction
+- FloatProperty hitPoints
+- FloatProperty currentShield
+- FloatProperty currentArmor
+- FloatProperty integrity
+- ObjectProperty<Hex> currentHex
+- FloatProperty fuel
+- BooleanProperty isMoving
+- IntegerProperty currentCrew
+- FloatProperty morale
+- BooleanProperty inCombat
+- FloatProperty combatReadiness
+- Map<ShipModule,ModuleStatus> moduleStatus
+- Map<ResourceType,Float> ammunition
+- Map<ResourceType,Float> supplies
+- void initializeAmmunition()
+- void initializeSupplies()
++ void processTurn()
+- void recoverShield()
+- float calculateShieldRechargeRate()
+- void recoverArmor()
+- float calculateArmorRepairRate()
+- void recoverIntegrity()
+- void consumeFuel()
+- float calculateFuelConsumption()
+- float calculateTotalWeight()
+- void consumeSupplies()
+- void updateMorale()
+- void updateCombatReadiness()
+- float getEnergySufficiency()
+- void repairModules()
+- void checkShipStatus()
++ void takeDamage(Damage)
++ float calculateDamageOutput()
++ void fireWeapons(Ship)
+- float calculateHitChance(WeaponModule,Ship)
+- float calculateDistanceTo(Ship)
+- DamageType mapWeaponTypeToDamageType(WeaponType)
++ float getEffectiveEvasion()
++ void moveTo(Hex)
++ boolean canMove()
++ void refuel(float)
++ void resupply(ResourceType,float)
++ void loadAmmunition(ResourceType,float)
++ void embarkCrew(int)
++ void disembarkCrew(int)
+- void destroy()
+- void damageRandomModule(float)
++ String getName()
++ StringProperty nameProperty()
++ ShipDesign getDesign()
++ ObjectProperty<ShipDesign> designProperty()
++ Faction getFaction()
++ ObjectProperty<Faction> factionProperty()
++ float getHitPoints()
++ FloatProperty hitPointsProperty()
++ float getCurrentShield()
++ FloatProperty currentShieldProperty()
++ float getCurrentArmor()
++ FloatProperty currentArmorProperty()
++ float getIntegrity()
++ FloatProperty integrityProperty()
++ Hex getCurrentHex()
++ ObjectProperty<Hex> currentHexProperty()
++ void setCurrentHex(Hex)
++ float getFuel()
++ FloatProperty fuelProperty()
++ boolean isMoving()
++ BooleanProperty movingProperty()
++ int getCurrentCrew()
++ IntegerProperty currentCrewProperty()
++ float getMorale()
++ FloatProperty moraleProperty()
++ boolean isInCombat()
++ BooleanProperty inCombatProperty()
++ float getCombatReadiness()
++ FloatProperty combatReadinessProperty()
++ Map<ShipModule,ModuleStatus> getModuleStatus()
++ Map<ResourceType,Float> getAmmunition()
++ Map<ResourceType,Float> getSupplies()
++ float getShieldPercentage()
++ float getArmorPercentage()
++ float getHitPointPercentage()
++ float getFuelPercentage()
++ String getStatus()
+}
+
+
+enum com.stellarcolonizer.model.fleet.enums.ShipClass {
++  CORVETTE
++  FRIGATE
++  DESTROYER
++  CRUISER
++  BATTLESHIP
++  CARRIER
+- String displayName
+- String description
+- String icon
+- int techLevel
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
++ int getTechLevel()
+}
+
+
+class com.stellarcolonizer.model.fleet.Fleet {
+- StringProperty name
+- ObjectProperty<Faction> faction
+- ObjectProperty<Hex> currentHex
+- ObservableList<Ship> ships
+- Map<ShipDesign,Integer> shipCountByDesign
+- FloatProperty totalCombatPower
+- FloatProperty averageSpeed
+- FloatProperty detectionRange
+- FloatProperty fuelConsumption
+- BooleanProperty isMoving
+- ObjectProperty<FleetMission> currentMission
+- ObjectProperty<Hex> destination
+- boolean movedThisTurn
+- ObjectProperty<FleetCommander> commander
+- Map<ResourceType,Float> supplies
+- FloatProperty supplyEfficiency
+- void initializeSupplies()
++ boolean addShip(Ship)
++ String generateUniqueShipName(ShipDesign)
++ boolean removeShip(Ship)
++ void transferShip(Ship,Fleet)
+- void updateFleetStats()
++ void processTurn()
+- void consumeSupplies()
+- void consumeResource(ResourceType,float)
+- void calculateSupplyEfficiency()
+- float calculateDailyRequirement(ResourceType)
+- void checkMission()
+- void executePatrolMission()
+- void executeExploreMission()
+- void executeDefendMission()
+- void executeAttackMission()
+- void executeRetreatMission()
+- Hex findNearbyHex(int)
+- Hex findUnexploredHex()
+- Hex findFriendlyColony()
+- Hex findEnemyTarget()
+- void engageEnemy()
+- void autoResupply()
+- boolean isAtFriendlyColony()
+- void resupplyFromColony()
++ void setMission(FleetMission,Hex)
++ boolean moveTo(Hex)
++ boolean canMove()
++ void resupply(ResourceType,float)
++ void resupplyAll()
+- float getMaxCapacity(ResourceType)
++ void mergeFleet(Fleet)
++ Fleet splitFleet(String,List<Ship>)
++ float calculateTotalHealth()
++ Map<ShipClass,Integer> getShipCountByClass()
++ String getCompositionSummary()
++ String getName()
++ void setName(String)
++ StringProperty nameProperty()
++ boolean hasMovedThisTurn()
++ Faction getFaction()
++ ObjectProperty<Faction> factionProperty()
++ Hex getCurrentHex()
++ ObjectProperty<Hex> currentHexProperty()
++ void setCurrentHex(Hex)
++ ObservableList<Ship> getShips()
++ Map<ShipDesign,Integer> getShipCountByDesign()
++ float getTotalCombatPower()
++ FloatProperty totalCombatPowerProperty()
++ float getAverageSpeed()
++ FloatProperty averageSpeedProperty()
++ float getDetectionRange()
++ FloatProperty detectionRangeProperty()
++ float getFuelConsumption()
++ FloatProperty fuelConsumptionProperty()
++ boolean isMoving()
++ BooleanProperty movingProperty()
++ FleetMission getCurrentMission()
++ ObjectProperty<FleetMission> currentMissionProperty()
++ Hex getDestination()
++ ObjectProperty<Hex> destinationProperty()
++ FleetCommander getCommander()
++ void setCommander(FleetCommander)
++ ObjectProperty<FleetCommander> commanderProperty()
++ Map<ResourceType,Float> getSupplies()
++ float getSupplyEfficiency()
++ FloatProperty supplyEfficiencyProperty()
++ int getShipCount()
++ int getTotalCrew()
++ void moveTowardsDestination()
+}
+
+
+
+
+com.stellarcolonizer.model.fleet.ShipModule <|-- com.stellarcolonizer.model.fleet.EngineModule
+com.stellarcolonizer.model.fleet.ShipModule <|-- com.stellarcolonizer.model.fleet.PowerModule
+com.stellarcolonizer.model.fleet.ShipModule <|-- com.stellarcolonizer.model.fleet.HullModule
+com.stellarcolonizer.model.fleet.ShipModule <|-- com.stellarcolonizer.model.fleet.DefenseModule
+com.stellarcolonizer.model.fleet.ShipModule <|-- com.stellarcolonizer.model.fleet.WeaponModule
+com.stellarcolonizer.model.fleet.ShipModule <|-- com.stellarcolonizer.model.fleet.UtilityModule
+@enduml

@@ -1,0 +1,52 @@
+@startuml
+class com.stellarcolonizer.model.diplomacy.DiplomacyManager {
+- Map<String,DiplomaticRelationship> relationships
+- Random random
++ DiplomaticRelationship getRelationship(Faction,Faction)
++ void setRelationship(Faction,Faction,DiplomaticRelationship.RelationshipStatus)
++ void adjustRelationship(Faction,Faction,int)
+- void updateRelationshipStatus(Faction,Faction)
++ void declareWar(Faction,Faction)
++ void makePeace(Faction,Faction)
++ void establishTradeAgreement(Faction,Faction)
++ void terminateTradeAgreement(Faction,Faction)
++ List<Faction> getHostileFactions(Faction)
++ List<Faction> getPeacefulFactions(Faction)
++ List<Faction> getNeutralFactions(Faction)
+- String getRelationshipKey(Faction,Faction)
++ void establishDiplomaticRelation(Faction,Faction)
++ void nextTurn()
+}
+
+
+class com.stellarcolonizer.model.diplomacy.DiplomaticRelationship {
+- Faction sourceFaction
+- Faction targetFaction
+- RelationshipStatus status
+- int relationshipValue
+- String relationshipDetails
++ Faction getSourceFaction()
++ Faction getTargetFaction()
++ RelationshipStatus getStatus()
++ int getRelationshipValue()
++ String getRelationshipDetails()
++ void setStatus(RelationshipStatus)
++ void setRelationshipValue(int)
++ void adjustRelationship(int)
+- void updateStatusFromValue()
++ void setDetails(String)
+}
+
+
+enum com.stellarcolonizer.model.diplomacy.RelationshipStatus {
++  HOSTILE
++  NEUTRAL
++  PEACEFUL
+- String displayName
+- int value
++ String getDisplayName()
++ int getValue()
+}
+
+
+@enduml

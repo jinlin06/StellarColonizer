@@ -1,0 +1,31 @@
+@startuml
+class com.stellarcolonizer.model.service.event.EventBus {
+- List<GameEventListener> listeners
++ void register(GameEventListener)
++ void unregister(GameEventListener)
++ void publish(GameEvent)
+}
+
+
+interface com.stellarcolonizer.model.service.event.GameEventListener {
+~ void onEvent(GameEvent)
+}
+
+class com.stellarcolonizer.model.service.ai.AIController {
+- Faction faction
++ void makeDecision()
++ void makeDecision(Object)
+}
+
+
+class com.stellarcolonizer.model.service.event.GameEvent {
+- String type
+- String message
+- long timestamp
++ String getType()
++ String getMessage()
++ long getTimestamp()
+}
+
+
+@enduml

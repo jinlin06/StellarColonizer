@@ -1,0 +1,88 @@
+@startuml
+class com.stellarcolonizer.model.faction.Faction {
+- String name
+- boolean isAI
+- javafx.scene.paint.Color color
+- Galaxy galaxy
+- ResourceStockpile resourceStockpile
+- ObservableList<Colony> colonies
+- Set<String> researchedTechnologies
+- AIController aiController
+- TechTree techTree
+- FactionTrait primaryTrait
+- FactionTrait secondaryTrait
+- int totalPopulation
+- float totalProduction
+- float totalResearch
+- long turnCount
+- float baseResearchOutput
+- DiplomacyManager diplomacyManager
+- void initializeTechnologies()
+- void syncScienceToTechTree()
++ void updateBaseResearchPoints()
++ void addColony(Colony)
++ void removeColony(Colony)
++ void processTurn()
+- void updateStatistics()
++ boolean hasTechnology(String)
++ void researchTechnology(String)
++ String getName()
++ boolean isAI()
++ javafx.scene.paint.Color getColor()
++ void setColor(javafx.scene.paint.Color)
++ ResourceStockpile getResourceStockpile()
++ ObservableList<Colony> getColonies()
++ int getTotalPopulation()
++ float getTotalProduction()
++ float getTotalResearch()
++ AIController getAIController()
++ void setAIController(AIController)
++ FactionTrait getPrimaryTrait()
++ void setPrimaryTrait(FactionTrait)
++ FactionTrait getSecondaryTrait()
++ void setSecondaryTrait(FactionTrait)
++ TechTree getTechTree()
++ void setTechTree(TechTree)
++ Galaxy getGalaxy()
++ void setGalaxy(Galaxy)
++ List<Fleet> getFleets()
++ DiplomacyManager getDiplomacyManager()
++ DiplomaticRelationship getRelationshipWith(Faction)
++ void adjustRelationshipWith(Faction,int)
++ void declareWarOn(Faction)
++ void makePeaceWith(Faction)
++ void establishTradeAgreementWith(Faction)
++ void terminateTradeAgreementWith(Faction)
++ List<Faction> getHostileFactions()
++ List<Faction> getFriendlyFactions()
++ List<Faction> getNeutralFactions()
++ long getTurnCount()
++ void incrementTurnCount()
++ void nextTurn()
+}
+
+
+class com.stellarcolonizer.model.faction.PlayerFaction {
++ void saveGame(String)
++ void loadGame(String)
+}
+
+enum com.stellarcolonizer.model.faction.FactionTrait {
++  AGGRESSIVE
++  PEACEFUL
++  INDUSTRIAL
++  SCIENTIFIC
++  EXPANSIONIST
+- String displayName
+- float productionMultiplier
+- float researchMultiplier
++ String getDisplayName()
++ float getProductionMultiplier()
++ float getResearchMultiplier()
+}
+
+
+
+
+com.stellarcolonizer.model.faction.Faction <|-- com.stellarcolonizer.model.faction.PlayerFaction
+@enduml

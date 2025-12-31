@@ -1,0 +1,271 @@
+@startuml
+enum com.stellarcolonizer.model.technology.enums.TechCategory {
++  PHYSICS
++  CHEMISTRY
++  BIOLOGY
++  WEAPONS_SCIENCE
+- String displayName
+- String description
+- int tier
++ String getDisplayName()
++ String getDescription()
++ int getTier()
++ double getCostMultiplier()
++ boolean isAdvancedTech()
++ String getColorCode()
++ javafx.scene.paint.Color getColor()
++ String getIcon()
++ {static} TechCategory fromDisplayName(String)
++ {static} TechCategory[] getCategoriesByTier(int)
+}
+
+
+class com.stellarcolonizer.model.technology.Technology {
+- String id
+- String displayName
+- String description
+- TechCategory category
+- int researchCost
+- boolean isRepeatable
+- int maxResearchLevel
+- BooleanProperty researched
+- List<String> prerequisites
+- Set<String> unlockedBuildings
+- Set<String> unlockedUnits
+- Set<String> unlockedResources
+- Set<String> grantedAbilities
+- List<TechnologyEffect> effects
+- List<Unlockable> unlocks
++ String getId()
++ String getName()
++ String getDisplayName()
++ String getDescription()
++ TechCategory getCategory()
++ int getResearchCost()
++ int getBaseCost()
++ boolean isRepeatable()
++ int getMaxResearchLevel()
++ List<String> getPrerequisites()
++ Set<String> getUnlockedBuildings()
++ Set<String> getUnlockedUnits()
++ Set<String> getUnlockedResources()
++ Set<String> getGrantedAbilities()
++ List<TechnologyEffect> getEffects()
++ List<Unlockable> getUnlocks()
++ boolean isResearched()
++ BooleanProperty researchedProperty()
++ void setId(String)
++ void setDisplayName(String)
++ void setDescription(String)
++ void setCategory(TechCategory)
++ void setResearchCost(int)
++ void setRepeatable(boolean)
++ void setMaxResearchLevel(int)
++ void setResearched(boolean)
++ boolean addPrerequisite(String)
++ boolean removePrerequisite(String)
++ boolean hasPrerequisite(String)
++ void addUnlockedBuilding(String)
++ void addUnlockedUnit(String)
++ void addUnlockedResource(String)
++ void addGrantedAbility(String)
++ void addEffect(TechnologyEffect)
++ void addUnlock(Unlockable)
++ boolean removeEffect(TechnologyEffect)
++ boolean removeUnlock(Unlockable)
++ int getAdjustedResearchCost()
++ boolean isResearchable(Set<String>)
++ boolean unlocksBuilding(String)
++ boolean grantsAbility(String)
++ int getTier()
++ boolean isAdvancedTech()
++ String getDisplayColor()
++ javafx.scene.paint.Color getColor()
++ String getIcon()
++ int getPrerequisiteCount()
++ Technology clone()
++ String toString()
++ boolean equals(Object)
++ int hashCode()
+}
+
+
+class com.stellarcolonizer.model.technology.TechnologyEffect {
+- EffectType effectType
+- EffectScope effectScope
+- String targetId
+- String targetCategory
+- double value
+- boolean isPercentage
+- String description
+- int priority
+- boolean isStackable
++ EffectType getEffectType()
++ EffectScope getEffectScope()
++ String getTargetId()
++ String getTargetCategory()
++ double getValue()
++ boolean isPercentage()
++ String getDescription()
++ int getPriority()
++ boolean isStackable()
++ void setEffectType(EffectType)
++ void setEffectScope(EffectScope)
++ void setTargetId(String)
++ void setTargetCategory(String)
++ void setValue(double)
++ void setIsPercentage(boolean)
++ void setDescription(String)
++ void setPriority(int)
++ void setStackable(boolean)
++ String getFullDescription()
++ boolean affectsTarget(String,String)
++ boolean isBeneficial()
++ String getScopeDescription()
++ double applyEffect(double)
++ TechnologyEffect clone()
++ {static} TechnologyEffect createProductionBoost(String,double,String)
++ {static} TechnologyEffect createEfficiencyBoost(String,double,String)
++ {static} TechnologyEffect createCostReduction(String,double,String)
++ String toString()
++ boolean equals(Object)
++ int hashCode()
+}
+
+
+enum com.stellarcolonizer.model.technology.EffectType {
++  PRODUCTION_BOOST
++  EFFICIENCY_BOOST
++  COST_REDUCTION
++  MAINTENANCE_REDUCTION
++  HAPPINESS_BONUS
++  RESEARCH_BOOST
++  ENERGY_PRODUCTION
++  FOOD_PRODUCTION
++  MINERAL_PRODUCTION
++  CONSTRUCTION_SPEED
++  TRAVEL_SPEED
++  DEFENSE_BONUS
++  LONGEVITY_BOOST
++  FERTILITY_BOOST
++  ENVIRONMENT_RESISTANCE
++  TRADE_BONUS
++  DIPLOMACY_BOOST
++  RESOURCE_DISCOVERY
++  ACCIDENT_REDUCTION
++  POLLUTION_REDUCTION
+- String displayName
+- String description
++ String getDisplayName()
++ String getDescription()
++ boolean isProductionEffect()
++ boolean isEfficiencyEffect()
++ boolean isCostEffect()
++ boolean isPopulationEffect()
++ {static} EffectType fromDisplayName(String)
+}
+
+
+class com.stellarcolonizer.model.technology.TechTree {
+- StringProperty name
+- ObservableList<Technology> technologies
+- Map<String,Technology> technologyMap
+- ObservableList<ResearchProject> researchQueue
+- IntegerProperty currentResearchPoints
+- int baseResearchPointsPerRound
+- IntegerProperty baseResearchPointsPerRoundProperty
+- FloatProperty researchSpeedBonus
+- FloatProperty researchCostReduction
+- List<Consumer<String>> researchCompletedListeners
+- void initializeTechnologies()
+- int calculateTechTier(Technology,Map<String,Technology>,Set<String>)
+- int calculateResearchCostForTier(int,TechCategory)
++ void addTechnology(Technology)
++ Technology getTechnology(String)
++ boolean isTechnologyResearched(String)
++ boolean canResearch(Technology)
++ ResearchProject startResearch(Technology)
++ void processResearch(int)
++ void addToQueue(Technology)
++ void removeFromQueue(ResearchProject)
++ void moveUpInQueue(ResearchProject)
++ void moveDownInQueue(ResearchProject)
++ List<Technology> getAvailableTechnologies()
++ List<Technology> getResearchedTechnologies()
++ List<Technology> getTechnologiesByCategory(TechCategory)
++ float getResearchProgressPercentage()
++ Technology getCurrentResearch()
++ String getResearchStatus()
++ int getRemainingRoundsForCurrentResearch()
++ String getName()
++ StringProperty nameProperty()
++ ObservableList<Technology> getTechnologies()
++ ObservableList<ResearchProject> getResearchQueue()
++ ObjectProperty<ObservableList<ResearchProject>> researchQueueProperty()
++ int getCurrentResearchPoints()
++ IntegerProperty currentResearchPointsProperty()
++ float getResearchSpeedBonus()
++ void setResearchSpeedBonus(float)
++ FloatProperty researchSpeedBonusProperty()
++ float getResearchCostReduction()
++ void setResearchCostReduction(float)
++ FloatProperty researchCostReductionProperty()
++ int getBaseResearchPointsPerRound()
++ void setBaseResearchPointsPerRound(int)
++ IntegerProperty baseResearchPointsPerRoundProperty()
++ void initializeBaseResearchPoints(int)
++ int getCurrentBaseResearchPoints()
++ int getRemainingRoundsForTechnology(Technology)
++ void addResearchCompletedListener(Consumer<String>)
++ void removeResearchCompletedListener(Consumer<String>)
+- void notifyResearchCompleted(String)
+}
+
+
+enum com.stellarcolonizer.model.technology.enums.EffectScope {
++  GLOBAL
++  PLANET_WIDE
++  BUILDING_TYPE
++  RESOURCE_TYPE
++  UNIT_TYPE
++  SINGLE_BUILDING
++  SINGLE_RESOURCE
++  FACTION_WIDE
+- String displayName
+- String description
++ String getDisplayName()
++ String getDescription()
+}
+
+
+class com.stellarcolonizer.model.technology.ResearchProject {
+- ObjectProperty<Technology> technology
+- ObjectProperty<TechTree> techTree
+- IntegerProperty progress
+- IntegerProperty totalCost
+- IntegerProperty researchPoints
++ boolean progress(int)
++ float getProgressPercentage()
++ Technology getTechnology()
++ ObjectProperty<Technology> technologyProperty()
++ TechTree getTechTree()
++ ObjectProperty<TechTree> techTreeProperty()
++ int getProgress()
++ IntegerProperty progressProperty()
++ int getTotalCost()
++ IntegerProperty totalCostProperty()
++ int getResearchPoints()
++ IntegerProperty researchPointsProperty()
++ boolean equals(Object)
++ int hashCode()
+}
+
+
+interface com.stellarcolonizer.model.technology.Unlockable {
+~ String getId()
+~ String getName()
+~ String getDescription()
+~ String getType()
+}
+
+@enduml

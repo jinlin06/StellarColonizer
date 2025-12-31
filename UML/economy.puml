@@ -1,0 +1,42 @@
+@startuml
+class com.stellarcolonizer.model.economy.UniversalResourceMarket {
+- PlayerFaction playerFaction
+- Map<ResourceType,Double> basePrices
+- Map<ResourceType,Double> currentPriceMultipliers
+- Map<ResourceType,Integer> transactionVolumes
++ double getPurchaseCost(ResourceType,int)
++ double getSaleRevenue(ResourceType,int)
++ boolean canAfford(ResourceType,int)
++ boolean hasEnoughResource(ResourceType,int)
++ boolean buyResource(ResourceType,int)
++ boolean sellResource(ResourceType,int)
++ float getPlayerMoney()
++ double executePurchase(ResourceType,int)
++ double executeSale(ResourceType,int)
++ double getCurrentPriceMultiplier(ResourceType)
++ double getBasePrice(ResourceType)
++ double getCurrentPrice(ResourceType)
+}
+
+
+class com.stellarcolonizer.model.economy.ResourceStockpile {
+- Map<ResourceType,Float> resources
+- Map<ResourceType,Float> capacity
+- void initializeCapacities()
++ float getResource(ResourceType)
++ void addResource(ResourceType,float)
++ boolean consumeResource(ResourceType,float)
++ boolean transferTo(ResourceStockpile,ResourceType,float)
++ float getCapacity(ResourceType)
++ void setCapacity(ResourceType,float)
++ float getUsagePercentage(ResourceType)
++ boolean isFull(ResourceType)
++ boolean isEmpty(ResourceType)
++ Map<ResourceType,Float> getAllResources()
++ float getTotalValue()
+- float getResourceValue(ResourceType)
++ void clear()
+}
+
+
+@enduml

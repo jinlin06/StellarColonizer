@@ -1,0 +1,297 @@
+@startuml
+class com.stellarcolonizer.model.colony.BuildingUpgrade {
+- int targetLevel
+- List<ResourceRequirement> resourceRequirements
+- String technologyRequirement
++ int getTargetLevel()
++ List<ResourceRequirement> getResourceRequirements()
++ String getTechnologyRequirement()
+}
+
+
+enum com.stellarcolonizer.model.colony.enums.GovernorTrait {
++  ORGANIZER
++  LOGISTICIAN
++  DIPLOMAT
++  MILITARIST
++  SCHOLAR
++  ENTREPRENEUR
+- String displayName
+- String statBonus
+- String description
+- Color color
++ int getAdministrationBonus()
++ int getLogisticsBonus()
++ int getDiplomacyBonus()
++ int getMilitaryBonus()
++ int getResearchBonus()
++ {abstract}void applyEffect(Colony,float)
++ void applyEffect(Colony)
++ String getDisplayName()
++ String getStatBonus()
++ String getDescription()
++ Color getColor()
+}
+
+
+abstract class com.stellarcolonizer.model.colony.Building {
+# StringProperty name
+# ObjectProperty<BuildingType> type
+# IntegerProperty level
+# IntegerProperty maxLevel
+# BooleanProperty isActive
+# Map<ResourceType,Float> maintenanceCosts
+# List<ResourceRequirement> constructionRequirements
+# String requiredTechnology
+# {abstract}void initializeRequirements()
+# {abstract}void initializeMaintenanceCosts()
++ {abstract}Map<ResourceType,Float> getProductionBonuses()
++ {abstract}float getProductionEfficiency(ResourceType)
++ {abstract}void applyEffects(Colony)
++ BuildingUpgrade getUpgradeRequirements()
+# {abstract}BuildingUpgrade createUpgradeRequirements(int)
++ boolean upgrade()
+# void onUpgrade()
++ void processTurn(Colony)
+- boolean checkMaintenance(Colony)
+- void payMaintenance(Colony)
++ String getName()
++ StringProperty nameProperty()
++ BuildingType getType()
++ ObjectProperty<BuildingType> typeProperty()
++ int getLevel()
++ IntegerProperty levelProperty()
++ int getMaxLevel()
++ boolean isActive()
++ BooleanProperty activeProperty()
++ List<ResourceRequirement> getConstructionRequirements()
++ String getRequiredTechnology()
++ float getMaintenanceCost(ResourceType)
+}
+
+
+class com.stellarcolonizer.model.colony.Colony {
+- StringProperty name
+- Planet planet
+- Faction faction
+- ObjectProperty<ColonyGovernor> governor
+- IntegerProperty totalPopulation
+- Map<PopType,Integer> populationByType
+- FloatProperty growthRate
+- FloatProperty happiness
+- FloatProperty populationGrowthPoints
+- FloatProperty populationGrowthPointsRequired
+- Map<ResourceType,FloatProperty> productionRates
+- Map<ResourceType,FloatProperty> consumptionRates
+- List<Building> buildings
+- IntegerProperty usedBuildingSlots
+- IntegerProperty maxBuildingSlots
+- FloatProperty development
+- IntegerProperty stability
+- IntegerProperty crimeRate
+- IntegerProperty defenseStrength
+- IntegerProperty garrisonSize
+- void initializePopulation()
+- void initializeProductionRates()
+- void initializeBaseProductionRates()
+- float calculateBaseFoodProduction()
+- float calculateFoodConsumption()
+- void addStartingBuildings()
++ void processTurn()
+- void updatePopulation()
+- void updatePopulationDistribution()
+- void calculateProduction()
+- boolean isRareResource(ResourceType)
+- void calculateConsumption()
+- void updateResourceStockpile()
+- void checkResourceShortages()
+- float getEnergyPenaltyFactor()
+- float getFoodSufficiency()
+- void updateDevelopment()
+- void updateStability()
+- void updateCrimeRate()
+- void processBuildings()
+- void processRandomEvents()
+- void triggerRandomEvent()
+- void addColonyLog(String)
++ boolean canBuild(Building)
++ boolean build(Building)
++ boolean upgradeBuilding(Building)
++ boolean demolishBuilding(Building)
++ void reallocatePopulation(PopType,PopType,int)
++ void focusAgriculture()
++ void focusIndustry()
++ void balanceDevelopment()
++ void setGrowthFocus(GrowthFocus)
++ Map<ResourceType,Float> getProductionStats()
++ Map<ResourceType,Float> getConsumptionStats()
++ Map<ResourceType,Float> getNetProduction()
++ float getProductionEfficiency(ResourceType)
++ float getResourceProduction(ResourceType)
++ String getStatusSummary()
++ String getName()
++ void setName(String)
++ StringProperty nameProperty()
++ Planet getPlanet()
++ Faction getFaction()
++ int getTotalPopulation()
++ IntegerProperty totalPopulationProperty()
++ Map<PopType,Integer> getPopulationByType()
++ void setPopulationByType(Map<PopType,Integer>)
++ void updatePopulationType(PopType,int)
++ float getGrowthRate()
++ void setGrowthRate(float)
++ FloatProperty growthRateProperty()
++ float getPopulationGrowthPoints()
++ float getPopulationGrowthPointsRequired()
++ FloatProperty populationGrowthPointsProperty()
++ FloatProperty populationGrowthPointsRequiredProperty()
++ float getHappiness()
++ void setHappiness(float)
++ FloatProperty happinessProperty()
++ ResourceStockpile getResourceStockpile()
++ List<Building> getBuildings()
++ int getUsedBuildingSlots()
++ IntegerProperty usedBuildingSlotsProperty()
++ int getMaxBuildingSlots()
++ void setMaxBuildingSlots(int)
++ IntegerProperty maxBuildingSlotsProperty()
++ float getDevelopment()
++ FloatProperty developmentProperty()
++ int getStability()
++ IntegerProperty stabilityProperty()
++ int getCrimeRate()
++ IntegerProperty crimeRateProperty()
++ int getDefenseStrength()
++ IntegerProperty defenseStrengthProperty()
++ int getGarrisonSize()
++ void setGarrisonSize(int)
++ IntegerProperty garrisonSizeProperty()
++ ColonyGovernor getGovernor()
++ void setGovernor(ColonyGovernor)
++ ObjectProperty<ColonyGovernor> governorProperty()
+}
+
+
+class com.stellarcolonizer.model.colony.ResourceRequirement {
+- ResourceType resourceType
+- float amount
++ ResourceType getResourceType()
++ float getAmount()
+}
+
+
+enum com.stellarcolonizer.model.colony.enums.GrowthFocus {
++  RAPID_GROWTH
++  STABLE_GROWTH
++  QUALITY_OF_LIFE
+- String displayName
+- String description
++ String getDisplayName()
++ String getDescription()
+}
+
+
+enum com.stellarcolonizer.model.colony.enums.BuildingType {
++  FOOD_PRODUCTION
++  ENERGY_PRODUCTION
++  MINERAL_PRODUCTION
++  RESEARCH
++  HOUSING
++  ADMINISTRATION
++  DEFENSE
++  TRADE
++  ENTERTAINMENT
++  HEALTHCARE
++  EDUCATION
++  TRANSPORTATION
++  SPECIAL
+- String displayName
+- String description
+- String icon
++ String getDisplayName()
++ String getDescription()
++ String getIcon()
+}
+
+
+class com.stellarcolonizer.model.colony.BasicBuilding {
+- Map<ResourceType,Float> productionBonuses
+- Map<ResourceType,Float> efficiencyBonuses
+# void initializeRequirements()
+# void initializeMaintenanceCosts()
+- void initializeBonuses()
++ Map<ResourceType,Float> getProductionBonuses()
++ float getProductionEfficiency(ResourceType)
++ void applyEffects(Colony)
+# BuildingUpgrade createUpgradeRequirements(int)
+# void onUpgrade()
+}
+
+
+enum com.stellarcolonizer.model.colony.enums.PopType {
++  WORKERS
++  FARMERS
++  MINERS
++  ARTISANS
+- String displayName
+- String description
+- Color color
++ String getDisplayName()
++ String getDescription()
++ Color getColor()
+}
+
+
+class com.stellarcolonizer.model.colony.ColonyGovernor {
+- StringProperty name
+- IntegerProperty level
+- IntegerProperty experience
+- ObjectProperty<GovernorTrait> primaryTrait
+- ObjectProperty<GovernorTrait> secondaryTrait
+- IntegerProperty administration
+- IntegerProperty logistics
+- IntegerProperty diplomacy
+- IntegerProperty military
+- IntegerProperty research
+- BooleanProperty isAssigned
+- Colony assignedColony
+- void applyTraitEffects()
+- void clampAbilities()
+- int clamp(int)
++ void assignToColony(Colony)
++ void unassign()
++ void gainExperience(int)
+- void levelUp()
+- int getExperienceForNextLevel()
++ void applyGovernorEffects(Colony)
++ String getName()
++ StringProperty nameProperty()
++ int getLevel()
++ IntegerProperty levelProperty()
++ int getExperience()
++ IntegerProperty experienceProperty()
++ GovernorTrait getPrimaryTrait()
++ ObjectProperty<GovernorTrait> primaryTraitProperty()
++ GovernorTrait getSecondaryTrait()
++ ObjectProperty<GovernorTrait> secondaryTraitProperty()
++ int getAdministration()
++ IntegerProperty administrationProperty()
++ int getLogistics()
++ IntegerProperty logisticsProperty()
++ int getDiplomacy()
++ IntegerProperty diplomacyProperty()
++ int getMilitary()
++ IntegerProperty militaryProperty()
++ int getResearch()
++ IntegerProperty researchProperty()
++ boolean isAssigned()
++ BooleanProperty assignedProperty()
++ Colony getAssignedColony()
+}
+
+
+
+
+com.stellarcolonizer.model.colony.Building <|-- com.stellarcolonizer.model.colony.BasicBuilding
+@enduml
