@@ -477,8 +477,11 @@ public class GameEngine {
     }
     
     private void syncAllFactionsScienceToTechTree() {
+        // 现在科技值由每回合的科研产出决定，包括派系基础科研产出和科研建筑产出
+        // 不再需要从资源库存中同步科技值
         for (Faction faction : factions) {
-            faction.getTechTree().initializeBaseResearchPoints((int) faction.getResourceStockpile().getResource(ResourceType.SCIENCE));
+            // 确保派系的科研产出被正确计算和更新
+            faction.updateBaseResearchPoints();
         }
     }
 }

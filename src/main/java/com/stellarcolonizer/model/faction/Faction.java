@@ -47,6 +47,9 @@ public class Faction {
     
     private long turnCount; // 当前回合数
     
+    // 派系基础科研产出
+    private float baseResearchOutput = 500.0f; // 派系基础科研产出
+    
     // 外交关系
     private DiplomacyManager diplomacyManager;
 
@@ -77,13 +80,14 @@ public class Faction {
 
     
     private void syncScienceToTechTree() {
-        // 将资源库存中的科技值同步到科技树
-        techTree.initializeBaseResearchPoints((int) resourceStockpile.getResource(ResourceType.SCIENCE));
+        // 现在科技值由每回合的科研产出决定，包括派系基础科研产出和科研建筑产出
+        // 不再需要从资源库存中同步科技值
+        // 只需确保科技树被正确初始化
     }
 
     public void updateBaseResearchPoints() {
-        // 计算科研点数 - 从所有殖民地的建筑产出中获得
-        float totalResearchPoints = 0f;
+        // 计算科研点数 - 派系基础科研产出 + 所有殖民地的建筑产出
+        float totalResearchPoints = baseResearchOutput; // 派系基础科研产出
         
         // 遍历所有殖民地，计算它们的建筑产生的科研点数
         for (Colony colony : colonies) {
@@ -121,8 +125,8 @@ public class Faction {
             colony.processTurn();
         }
 
-        // 计算科研点数 - 从所有殖民地的建筑产出中获得
-        float totalResearchPoints = 0f;
+        // 计算科研点数 - 派系基础科研产出 + 所有殖民地的建筑产出
+        float totalResearchPoints = baseResearchOutput; // 派系基础科研产出
         
         // 遍历所有殖民地，计算它们的建筑产生的科研点数
         for (Colony colony : colonies) {
@@ -170,7 +174,7 @@ public class Faction {
                 .reduce(0f, Float::sum);
 
         // 更新总科研
-        totalResearch = 0f;
+        totalResearch = baseResearchOutput; // 派系基础科研产出
         for (Colony colony : colonies) {
             for (Building building : colony.getBuildings()) {
                 Map<ResourceType, Float> bonuses = building.getProductionBonuses();

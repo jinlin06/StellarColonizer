@@ -119,14 +119,14 @@ public class Colony {
         float energyProduction = populationByType.getOrDefault(PopType.WORKERS, 0) * 0.15f;
         float metalProduction = populationByType.getOrDefault(PopType.MINERS, 0) * 0.1125f;
         float foodProduction = populationByType.getOrDefault(PopType.FARMERS, 0) * 0.09f;
-        float scienceProduction = 500.0f; // 固定初始科技值TODO
+        float scienceProduction = 0.0f; // 科研产出现在由派系统一管理，殖民地不再有基础科研产出
         float fuelProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.03f;
         float moneyProduction = populationByType.getOrDefault(PopType.ARTISANS, 0) * 0.015f;
 
         productionRates.get(ResourceType.ENERGY).set(energyProduction);
         productionRates.get(ResourceType.METAL).set(metalProduction);
         productionRates.get(ResourceType.FOOD).set(foodProduction);
-        productionRates.get(ResourceType.SCIENCE).set(scienceProduction);//TODO
+        productionRates.get(ResourceType.SCIENCE).set(scienceProduction);
         productionRates.get(ResourceType.FUEL).set(fuelProduction);
         productionRates.get(ResourceType.MONEY).set(moneyProduction);
     }
