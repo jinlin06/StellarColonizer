@@ -82,9 +82,7 @@ public class Colony {
         this.garrisonSize = new SimpleIntegerProperty(1000);
 
         this.governor = new SimpleObjectProperty<>(null);
-        
-        // 在构造函数中计算初始生产率，确保殖民地创建后立即有正确的产出
-        // 仅调用calculateProduction方法，该方法会重置并重新计算所有生产率
+
         calculateProduction();
         
         System.out.println("[" + name.get() + "] 殖民地创建完成");
@@ -212,11 +210,17 @@ public class Colony {
         }
         
         // 应用幸福度和稳定度对增长点数的修正
-        growthPointsPerTurn *= happiness.get();
-        growthPointsPerTurn *= (1.0f - crimeRate.get() / 100.0f);
+        // 每10%的幸福度会提高1%的人口点数产出
+        float happinessModifier = 1.0f + (happiness.get() - 0.5f) * 0.02f; // 以0.5为基准，每0.1（10%）提供0.002（2%）修正
+        
+        // 每10%的稳定度会提高1%的人口点数产出
+        float stabilityModifier = 1.0f + (stability.get() / 100.0f - 0.5f) * 0.02f; // 以0.5为基准，每0.1（10%）提供0.002（2%）修正
+        
+        growthPointsPerTurn *= happinessModifier;
+        growthPointsPerTurn *= stabilityModifier;
         
         // 增加到人口增长点数
-        populationGrowthPoints.set(populationGrowthPoints.get() + growthPointsPerTurn);
+        populationGrowthPoints.set(populationGrowthPoints.get() + growthPointsPerTurn/2);
 
         if (populationGrowthPoints.get() >= populationGrowthPointsRequired.get() && totalPopulation.get() >= 1000) {
             // 增加1000人口
@@ -510,7 +514,17 @@ public class Colony {
     private void updateDevelopment() {
         float developmentIncrease = 0;
         developmentIncrease += growthRate.get() * 0.1f;
-        developmentIncrease += buildings.size() * 0.01f;
+        
+        // 只有当有提供发展度加成的建筑时才增加发展度
+        int developmentBuildings = 0;
+        for (Building building : buildings) {
+            if (building.getType() == BuildingType.RESEARCH || 
+                building.getType() == BuildingType.EDUCATION || 
+                building.getType() == BuildingType.TRADE) {
+                developmentBuildings++;
+            }
+        }
+        developmentIncrease += developmentBuildings * 0.01f;
 
         float totalProduction = 0;
         for (FloatProperty rate : productionRates.values()) {
@@ -518,7 +532,8 @@ public class Colony {
         }
         developmentIncrease += totalProduction * 0.0001f;
 
-        developmentIncrease *= happiness.get();
+        // 减少幸福度对发展度增长的影响，避免正反馈循环
+        developmentIncrease *= Math.sqrt(happiness.get());
 
         float newDevelopment = development.get() + developmentIncrease;
         development.set(Math.min(1.0f, newDevelopment));
@@ -536,7 +551,24 @@ public class Colony {
 
         newStability -= crimeRate.get() / 10;
 
-        if (development.get() > 0.5f) newStability += 5;
+        // 只有当有行政建筑时才获得发展度带来的稳定度加成
+        int adminBuildings = 0;
+        for (Building building : buildings) {
+            if (building.getType() == BuildingType.ADMINISTRATION) {
+                adminBuildings++;
+            }
+        }
+        if (development.get() > 0.5f && adminBuildings > 0) newStability += 5;
+        
+        // 如果没有行政建筑，稳定度会自然趋向于中等水平
+        if (adminBuildings == 0) {
+            // 没有行政建筑时，稳定度会趋向于70（中等偏上）
+            if (newStability > 70) {
+                newStability -= 1; // 稍微下降
+            } else if (newStability < 70) {
+                newStability += 1; // 稍微上升
+            }
+        }
 
         newStability = Math.max(0, Math.min(100, newStability));
         stability.set(newStability);
@@ -605,9 +637,31 @@ public class Colony {
                 break;
 
             case 4:
-                float happinessBonus = 0.05f + random.nextFloat() * 0.15f;
-                happiness.set(Math.min(1.0f, happiness.get() + happinessBonus));
-                addColonyLog("文化繁荣！幸福度+" + (int)(happinessBonus * 100) + "%");
+                // 检查是否有住房等提供幸福度的建筑
+                int happinessBuildings = 0;
+                for (Building building : buildings) {
+                    if (building.getType() == BuildingType.HOUSING || 
+                        building.getType() == BuildingType.ENTERTAINMENT ||
+                        building.getType() == BuildingType.HEALTHCARE) {
+                        happinessBuildings++;
+                    }
+                }
+                
+                // 只有有提供幸福度的建筑时才增加幸福度
+                if (happinessBuildings > 0) {
+                    float happinessBonus = 0.05f + random.nextFloat() * 0.15f;
+                    happiness.set(Math.min(1.0f, happiness.get() + happinessBonus));
+                    addColonyLog("文化繁荣！幸福度+" + (int)(happinessBonus * 100) + "%");
+                } else {
+                    // 如果没有提供幸福度的建筑，随机事件不会增加幸福度，可能还会略微下降
+                    float happinessChange = -0.02f + random.nextFloat() * 0.04f; // -2% 到 +2% 的小范围浮动
+                    happiness.set(Math.max(0.0f, Math.min(1.0f, happiness.get() + happinessChange)));
+                    if (happinessChange > 0) {
+                        addColonyLog("小范围文化活动！幸福度+" + (int)(happinessChange * 100) + "%");
+                    } else {
+                        addColonyLog("日常琐事影响！幸福度" + (int)(happinessChange * 100) + "%");
+                    }
+                }
                 break;
         }
     }

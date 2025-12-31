@@ -250,7 +250,7 @@ public class GameEngine {
     private void assignSystemToFaction(Faction faction) {
         // 寻找一个未被控制且有可殖民行星的星系
         for (StarSystem system : galaxy.getStarSystems()) {
-            if (system.getControllingFaction() == null) {
+            if (system.getControllingFaction() == null) { // 确保该星系没有被任何派系控制
                 // 优先寻找宜居度至少80%的可殖民行星
                 Planet suitablePlanet = null;
                 for (Planet planet : system.getPlanets()) {
@@ -285,7 +285,7 @@ public class GameEngine {
 
         // 如果没找到可殖民的行星，尝试在任何行星上建立殖民地（即使不可殖民）
         for (StarSystem system : galaxy.getStarSystems()) {
-            if (system.getControllingFaction() == null) {
+            if (system.getControllingFaction() == null) { // 确保该星系没有被任何派系控制
                 // 尝试在系统中的任何行星上建立殖民地
                 for (Planet planet : system.getPlanets()) {
                     if (planet.getColony() == null) {
@@ -305,7 +305,7 @@ public class GameEngine {
         
         // 如果没有找到可殖民的行星，至少分配一个星系（如果星系中没有行星或行星不可殖民）
         for (StarSystem system : galaxy.getStarSystems()) {
-            if (system.getControllingFaction() == null) {
+            if (system.getControllingFaction() == null) { // 确保该星系没有被任何派系控制
                 system.setControllingFaction(faction);
                 System.out.println(faction.getName() + " 控制了星系 " + system.getName() + "（无殖民地）");
                 return; // 只为每个派系分配一个星系
@@ -321,16 +321,16 @@ public class GameEngine {
                 Planet homeworld = findSuitableHomeworld(faction);
                 if (homeworld != null) {
                     if (homeworld.getColony() == null) {
-                        Colony colony = new Colony(homeworld, faction);
-                        faction.addColony(colony);
-                        homeworld.setColony(colony);
-
-                        // 设置该行星所属星系的控制派系
+                        // 确保该星系未被其他派系控制
                         StarSystem system = homeworld.getStarSystem();
-                        if (system != null) {
+                        if (system != null && system.getControllingFaction() == null) {
+                            Colony colony = new Colony(homeworld, faction);
+                            faction.addColony(colony);
+                            homeworld.setColony(colony);
+
+                            // 设置该行星所属星系的控制派系
                             system.setControllingFaction(faction);
                         }
-
                     }
                 }
             }

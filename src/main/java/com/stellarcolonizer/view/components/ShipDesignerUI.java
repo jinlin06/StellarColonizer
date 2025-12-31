@@ -870,17 +870,14 @@ public class ShipDesignerUI extends BorderPane {
         // 功能模块 - 基础级
         UtilityModule basicSensor = createUtilityModule("基础传感器", UtilityType.SENSOR, 50, 80, 1);
         // 基础传感器是基础模块，不需要科技解锁
-        basicSensor.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicSensor);
         
         UtilityModule basicCargoBay = createUtilityModule("简易货舱", UtilityType.CARGO_BAY, 100, 100, 1);
         // 简易货舱是基础模块，不需要科技解锁
-        basicCargoBay.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicCargoBay);
         
-        UtilityModule basicHangar = createUtilityModule("基础机库", UtilityType.HANGAR, 80, 200, 3);
+        UtilityModule basicHangar = createUtilityModule("基础机库", UtilityType.HANGAR, 80, 200, 1);
         // 基础机库是基础模块，不需要科技解锁
-        basicHangar.setRequiredTechnology("BASIC_MODULE");
         availableModules.add(basicHangar);
 
         // 功能模块 - 高级（需要科技解锁）

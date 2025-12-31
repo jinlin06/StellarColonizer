@@ -349,6 +349,9 @@ public class Ship {
     public float calculateDamageOutput() {
         float totalDamage = 0;
 
+        // 基于舰船等级的初始攻击力
+        float baseDamage = calculateBaseDamage();
+        
         for (Map.Entry<ShipModule, ModuleStatus> entry : moduleStatus.entrySet()) {
             ShipModule module = entry.getKey();
             ModuleStatus status = entry.getValue();
@@ -373,10 +376,18 @@ public class Ship {
             }
         }
 
-        return totalDamage;
+        // 如果没有武器模块，返回基础攻击力；否则返回基础攻击力加上武器模块攻击力
+        return baseDamage + totalDamage;
+    }
+    
+    private float calculateBaseDamage() {
+        // 使用舰船设计中的基础伤害值计算方法
+        return design.get().calculateBaseDamage();
     }
 
     public void fireWeapons(Ship target) {
+        boolean firedAnyWeapon = false;
+        
         for (Map.Entry<ShipModule, ModuleStatus> entry : moduleStatus.entrySet()) {
             ShipModule module = entry.getKey();
             ModuleStatus status = entry.getValue();
@@ -410,6 +421,18 @@ public class Ship {
 
                 // 对目标造成伤害
                 target.takeDamage(weaponDamage);
+                firedAnyWeapon = true;
+            }
+        }
+        
+        // 如果没有武器模块或没有武器可以开火，使用基础攻击
+        if (!firedAnyWeapon) {
+            float baseDamage = calculateBaseDamage();
+            if (baseDamage > 0) {
+                // 创建基础伤害对象
+                Damage baseDamageObject = new Damage(baseDamage, DamageType.KINETIC, 0);
+                // 对目标造成伤害
+                target.takeDamage(baseDamageObject);
             }
         }
     }

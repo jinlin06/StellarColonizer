@@ -528,28 +528,9 @@ public class StarSystemInfoView extends VBox {
             return;
         }
         
-        // 计算殖民成本
+        // 计算基础殖民成本
         Map<ResourceType, Float> colonizationCost = planet.calculateColonizationCost();
         int requiredPopulation = planet.calculateRequiredPopulation();
-        
-        // 检查资源是否足够
-        boolean hasEnoughResources = true;
-        StringBuilder insufficientResources = new StringBuilder("资源不足:\n");
-        for (Map.Entry<ResourceType, Float> costEntry : colonizationCost.entrySet()) {
-            float available = playerFaction.getResourceStockpile().getResource(costEntry.getKey());
-            if (available < costEntry.getValue()) {
-                hasEnoughResources = false;
-                insufficientResources.append(costEntry.getKey().getDisplayName())
-                        .append(": 需要 ").append(String.format("%.1f", costEntry.getValue()))
-                        .append(", 拥有 ").append(String.format("%.1f", available))
-                        .append("\n");
-            }
-        }
-        
-        if (!hasEnoughResources) {
-            showAlert("殖民失败", insufficientResources.toString());
-            return;
-        }
         
         // 检查是否有足够的殖民地来迁移人口
         if (playerFaction.getColonies().isEmpty()) {
@@ -566,19 +547,19 @@ public class StarSystemInfoView extends VBox {
             return;
         }
         
-        // 弹出对话框选择要迁移人口的殖民地
-        Dialog<Colony> transferDialog = new Dialog<>();
-        transferDialog.setTitle("选择人口来源");
-        transferDialog.setHeaderText("选择要迁移人口的殖民地");
+        // 弹出对话框让用户先选择源殖民地
+        Dialog<Colony> sourceColonyDialog = new Dialog<>();
+        sourceColonyDialog.setTitle("选择源殖民地");
+        sourceColonyDialog.setHeaderText("选择要迁移人口的源殖民地");
         
         VBox dialogContent = new VBox(10);
         
-        Label descriptionLabel = new Label("需要迁移 " + requiredPopulation + " 人口到新殖民地");
+        Label descriptionLabel = new Label("选择一个殖民地作为人口迁移的来源");
         descriptionLabel.setWrapText(true);
         
         ComboBox<Colony> sourceColonyCombo = new ComboBox<>();
         sourceColonyCombo.getItems().addAll(playerFaction.getColonies());
-        sourceColonyCombo.setPromptText("选择人口来源殖民地");
+        sourceColonyCombo.setPromptText("选择源殖民地");
         
         // 设置下拉框样式
         sourceColonyCombo.setCellFactory(lv -> new javafx.scene.control.ListCell<Colony>() {
@@ -597,43 +578,150 @@ public class StarSystemInfoView extends VBox {
             protected void updateItem(Colony item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
-                    setText("选择人口来源殖民地");
+                    setText("选择源殖民地");
                 } else {
                     setText(item.getName() + " (人口: " + String.format("%,d", item.getTotalPopulation()) + ")");
                 }
             }
         });
         
-        Spinner<Integer> populationSpinner = new Spinner<>(100, requiredPopulation, Math.min(requiredPopulation, 10000), 100);
-        populationSpinner.getValueFactory().setValue(Math.min(requiredPopulation, 1000));
-        populationSpinner.setPrefWidth(150);
-        
-        Label populationLabel = new Label("迁移人口数量:");
-        
-        dialogContent.getChildren().addAll(descriptionLabel, sourceColonyCombo, populationLabel, populationSpinner);
-        transferDialog.getDialogPane().setContent(dialogContent);
+        dialogContent.getChildren().addAll(descriptionLabel, sourceColonyCombo);
+        sourceColonyDialog.getDialogPane().setContent(dialogContent);
         
         ButtonType confirmButtonType = new ButtonType("确认", ButtonBar.ButtonData.OK_DONE);
-        transferDialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+        sourceColonyDialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
         
         // 设置结果转换器
-        transferDialog.setResultConverter(dialogButton -> {
+        sourceColonyDialog.setResultConverter(dialogButton -> {
             if (dialogButton == confirmButtonType) {
                 return sourceColonyCombo.getValue(); // 返回选中的殖民地
             }
             return null; // 取消按钮或其他情况返回null
         });
         
-        Optional<Colony> result = transferDialog.showAndWait();
+        Optional<Colony> sourceResult = sourceColonyDialog.showAndWait();
+        if (!sourceResult.isPresent()) {
+            return; // 用户取消了操作
+        }
+        
+        Colony sourceColony = sourceResult.get();
+        if (sourceColony == null) {
+            showAlert("错误", "请选择源殖民地");
+            return;
+        }
+        
+        // 获取源殖民地和目标行星所在的星系
+        StarSystem sourceSystem = sourceColony.getPlanet().getStarSystem();
+        StarSystem targetSystem = planet.getStarSystem();
+        
+        // 获取星系所在的六边形
+        Hex sourceHex = null;
+        Hex targetHex = null;
+        
+        // 从玩家派系获取星系
+        for (StarSystem system : playerFaction.getGalaxy().getStarSystems()) {
+            if (system.equals(sourceSystem)) {
+                sourceHex = playerFaction.getGalaxy().getHexForStarSystem(system);
+            }
+            if (system.equals(targetSystem)) {
+                targetHex = playerFaction.getGalaxy().getHexForStarSystem(system);
+            }
+        }
+        
+        double distance = 0.0;
+        if (sourceHex != null && targetHex != null) {
+            // 计算六边形之间的距离
+            distance = (Math.abs(sourceHex.getCoord().q - targetHex.getCoord().q) + 
+                       Math.abs(sourceHex.getCoord().r - targetHex.getCoord().r) + 
+                       Math.abs(sourceHex.getCoord().s - targetHex.getCoord().s)) / 2.0;
+        }
+        
+        // 根据距离计算成本乘数
+        double distanceCostMultiplier = 1.0 + (distance * 0.1); // 每格距离增加10%成本
+        
+        // 应用距离成本乘数
+        Map<ResourceType, Float> adjustedColonizationCost = new EnumMap<>(ResourceType.class);
+        for (Map.Entry<ResourceType, Float> costEntry : colonizationCost.entrySet()) {
+            adjustedColonizationCost.put(costEntry.getKey(), costEntry.getValue() * (float)distanceCostMultiplier);
+        }
+        
+        // 显示成本信息
+        StringBuilder costInfo = new StringBuilder("殖民成本:\n");
+        for (Map.Entry<ResourceType, Float> costEntry : adjustedColonizationCost.entrySet()) {
+            costInfo.append(costEntry.getKey().getDisplayName())
+                    .append(": ").append(String.format("%.1f", costEntry.getValue()))
+                    .append("\n");
+        }
+        costInfo.append("\n距离: ").append(String.format("%.1f格", distance))
+                .append(" (成本增加").append(String.format("%.0f%%", (distanceCostMultiplier - 1.0) * 100)).append(")");
+        
+        // 检查资源是否足够（使用调整后的成本）
+        boolean hasEnoughResources = true;
+        StringBuilder insufficientResources = new StringBuilder("资源不足:\n");
+        for (Map.Entry<ResourceType, Float> costEntry : adjustedColonizationCost.entrySet()) {
+            float available = playerFaction.getResourceStockpile().getResource(costEntry.getKey());
+            if (available < costEntry.getValue()) {
+                hasEnoughResources = false;
+                insufficientResources.append(costEntry.getKey().getDisplayName())
+                        .append(": 需要 ").append(String.format("%.1f", costEntry.getValue()))
+                        .append(", 拥有 ").append(String.format("%.1f", available))
+                        .append("\n");
+            }
+        }
+        
+        if (!hasEnoughResources) {
+            // 显示距离成本信息
+            showAlert("殖民失败", insufficientResources.toString() + 
+                     "\n距离成本: " + String.format("%.1f格", distance) + " (成本增加" + String.format("%.0f%%", (distanceCostMultiplier - 1.0) * 100) + ")");
+            return;
+        }
+        
+        // 弹出对话框显示成本信息并选择迁移人口数量
+        Dialog<Integer> transferDialog = new Dialog<>();
+        transferDialog.setTitle("确认殖民");
+        transferDialog.setHeaderText("确认殖民操作");
+        
+        VBox dialogContent2 = new VBox(10);
+        
+        Label costLabel = new Label(costInfo.toString());
+        costLabel.setWrapText(true);
+        costLabel.setStyle("-fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+        
+        Label sourceColonyLabel = new Label("源殖民地: " + sourceColony.getName());
+        sourceColonyLabel.setWrapText(true);
+        sourceColonyLabel.setStyle("-fx-text-fill: white;");
+        
+        Label descriptionLabel2 = new Label("需要迁移 " + requiredPopulation + " 人口到新殖民地");
+        descriptionLabel2.setWrapText(true);
+        
+        Spinner<Integer> populationSpinner = new Spinner<>(1000, requiredPopulation, Math.min(requiredPopulation, 10000), 100);
+        populationSpinner.getValueFactory().setValue(Math.min(requiredPopulation, Math.min(requiredPopulation, 10000)));
+        populationSpinner.setPrefWidth(150);
+        
+        Label populationLabel = new Label("迁移人口数量:");
+        
+        dialogContent2.getChildren().addAll(costLabel, sourceColonyLabel, descriptionLabel2, populationLabel, populationSpinner);
+        transferDialog.getDialogPane().setContent(dialogContent2);
+        
+        ButtonType confirmButtonType2 = new ButtonType("确认", ButtonBar.ButtonData.OK_DONE);
+        transferDialog.getDialogPane().getButtonTypes().addAll(confirmButtonType2, ButtonType.CANCEL);
+        
+        // 设置结果转换器
+        transferDialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType2) {
+                return populationSpinner.getValue(); // 返回迁移的人口数量
+            }
+            return null; // 取消按钮或其他情况返回null
+        });
+        
+        Optional<Integer> result = transferDialog.showAndWait();
         if (!result.isPresent()) {
             return; // 用户取消了操作
         }
         
-        Colony sourceColony = result.get();
-        int populationToTransfer = populationSpinner.getValue();
-        
-        if (sourceColony == null) {
-            showAlert("错误", "请选择人口来源殖民地");
+        int populationToTransfer = result.get();
+        if (populationToTransfer == 0) {
+            showAlert("错误", "请确认迁移人口数量");
             return;
         }
         
@@ -646,6 +734,9 @@ public class StarSystemInfoView extends VBox {
             showAlert("错误", "迁移人口不能超过所需人口 (" + requiredPopulation + ")");
             return;
         }
+        
+        // 更新成本为调整后的成本
+        colonizationCost = adjustedColonizationCost;
         
         // 扣除资源成本
         for (Map.Entry<ResourceType, Float> costEntry : colonizationCost.entrySet()) {
@@ -696,7 +787,7 @@ public class StarSystemInfoView extends VBox {
         playerFaction.addColony(colony);
         
         showAlert("殖民成功", "您已成功殖民 " + planet.getName() + 
-                  "，迁移了 " + populationToTransfer + " 人口");
+                  "，从 " + sourceColony.getName() + " 迁移了 " + populationToTransfer + " 人口");
         
         // 刷新显示
         Planet selectedPlanet = planetListView.getSelectionModel().getSelectedItem();

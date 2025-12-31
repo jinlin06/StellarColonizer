@@ -594,7 +594,33 @@ public class ShipDesign {
             }
         }
         
-        return totalDamage;
+        // 添加基于舰船等级的基础伤害值
+        float baseDamage = calculateBaseDamage();
+        
+        return totalDamage + baseDamage;
+    }
+    
+    /**
+     * 计算基于舰船等级的基础伤害值
+     * @return 基础伤害值
+     */
+    public float calculateBaseDamage() {
+        switch (shipClass.get()) {
+            case CORVETTE:
+                return 10.0f;  // 护卫舰基础攻击力
+            case FRIGATE:
+                return 25.0f;  // 驱逐舰基础攻击力
+            case DESTROYER:
+                return 50.0f;  // 巡洋舰基础攻击力
+            case CRUISER:
+                return 100.0f; // 战列舰基础攻击力
+            case BATTLESHIP:
+                return 200.0f; // 航母基础攻击力
+            case CARRIER:
+                return 250.0f; // 无畏舰基础攻击力
+            default:
+                return 5.0f;   // 默认基础攻击力
+        }
     }
 
     public ShipDesign createCopy(String newName) {

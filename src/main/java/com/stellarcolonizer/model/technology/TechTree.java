@@ -262,17 +262,17 @@ public class TechTree {
                 "解锁轻型等离子炮", TechCategory.WEAPONS_SCIENCE, 150);
         plasmaWeapons.addPrerequisite("WEAPONS_SCIENCE");
 
-        // 标准磁轨炮 - 200科研값
+        // 标准磁轨炮 - 200科研
         Technology railgunWeapons = new Technology("RAILGUN_WEAPONS", "磁轨炮技术",
                 "解锁标准磁轨炮", TechCategory.WEAPONS_SCIENCE, 200);
         railgunWeapons.addPrerequisite("PLASMA_WEAPONS"); // 依赖等离子武器科技
 
-        // 先进激光炮 - 250科研값
+        // 先进激光炮 - 250科研
         Technology advancedLaser = new Technology("ADVANCED_LASER", "高级激光技术",
                 "解锁先进激光炮", TechCategory.WEAPONS_SCIENCE, 250);
         advancedLaser.addPrerequisite("RAILGUN_WEAPONS"); // 依赖磁轨炮科技
 
-        // 重型轨道炮 - 300科研값
+        // 重型轨道炮 - 300科研
         Technology heavyCannons = new Technology("HEAVY_CANNONS", "重型火炮技术",
                 "解锁重型轨道炮", TechCategory.WEAPONS_SCIENCE, 300);
         heavyCannons.addPrerequisite("ADVANCED_LASER"); // 依赖先进激光科技
@@ -283,17 +283,17 @@ public class TechTree {
         energyWeapons.addPrerequisite("HEAVY_CANNONS");
 
         // 防御科技
-        // 复合装甲 - 150科研값
+        // 复合装甲 - 150科研
         Technology compositeArmor = new Technology("COMPOSITE_ARMOR", "复合装甲",
                 "解锁复合装甲", TechCategory.WEAPONS_SCIENCE, 150);
         compositeArmor.addPrerequisite("MATERIALS_CHEMISTRY");
 
-        // 点防御系统 - 200科研값
+        // 点防御系统 - 200科研
         Technology pointDefense = new Technology("POINT_DEFENSE", "点防御系统",
                 "解锁点防御系统", TechCategory.WEAPONS_SCIENCE, 200);
         pointDefense.addPrerequisite("COMPOSITE_ARMOR"); // 依赖复合装甲科技
 
-        // 高级护盾 - 250科研값
+        // 高级护盾 - 250科研
         Technology advancedShields = new Technology("ADVANCED_SHIELDS", "高级护盾技术",
                 "解锁先进护盾", TechCategory.WEAPONS_SCIENCE, 250);
         advancedShields.addPrerequisite("POINT_DEFENSE"); // 依赖点防御系统
@@ -317,17 +317,17 @@ public class TechTree {
         advancedStorage.addPrerequisite("ZERO_POINT_POWER"); // 让高级存储系统也依赖零点能源
 
         // 引擎科技
-        // 标准引擎 - 150科研값
+        // 标准引擎 - 150
         Technology standardEngines = new Technology("STANDARD_ENGINES", "标准引擎技术",
                 "解锁标准引擎", TechCategory.WEAPONS_SCIENCE, 150);
         standardEngines.addPrerequisite("WEAPONS_SCIENCE");
 
-        // 高性能引擎 - 250科研값
+        // 高性能引擎 - 250
         Technology highPerformanceEngines = new Technology("HIGH_PERFORMANCE_ENGINES", "高性能引擎技术",
                 "解锁高性能引擎", TechCategory.WEAPONS_SCIENCE, 250);
         highPerformanceEngines.addPrerequisite("STANDARD_ENGINES"); // 依赖标准引擎
 
-        // 先进引擎 - 400科研값
+        // 先进引擎 - 400科研
         Technology advancedEngines = new Technology("ADVANCED_ENGINES", "先进引擎系统",
                 "解锁先进引擎", TechCategory.WEAPONS_SCIENCE, 400);
         advancedEngines.addPrerequisite("HIGH_PERFORMANCE_ENGINES"); // 依赖高性能引擎
@@ -339,17 +339,17 @@ public class TechTree {
         warpDrive.addPrerequisite("ZERO_POINT_POWER"); // 让曲速引擎也依赖零点能源
 
         // 电力科技
-        // 标准发电机 - 150科研값
+        // 标准发电机 - 150科研
         Technology standardPower = new Technology("STANDARD_POWER", "标准发电机技术",
                 "解锁标准发电机", TechCategory.WEAPONS_SCIENCE, 150);
         standardPower.addPrerequisite("WEAPONS_SCIENCE");
 
-        // 性能发电机 - 250科研값
+        // 性能发电机 - 250科研
         Technology highEfficiencyPower = new Technology("HIGH_EFFICIENCY_POWER", "高性能发电机技术",
                 "解锁性能发电机", TechCategory.WEAPONS_SCIENCE, 250);
         highEfficiencyPower.addPrerequisite("STANDARD_POWER"); // 依赖标准发电机
 
-        // 先进发电机 - 450科研값
+        // 先进发电机 - 450科研
         Technology advancedPower = new Technology("ADVANCED_POWER", "先进发电机系统",
                 "解锁先进发电机", TechCategory.WEAPONS_SCIENCE, 450);
         advancedPower.addPrerequisite("HIGH_EFFICIENCY_POWER"); // 依赖性能发电机
@@ -359,7 +359,7 @@ public class TechTree {
                 "从真空中提取能量的革命性技术", TechCategory.WEAPONS_SCIENCE, 475);
         zeroPointPower.addPrerequisite("ADVANCED_POWER");
 
-        // 高级武器科技 - 300科研값（仅保留，但不用于解锁模块）
+        // 高级武器科技 - 300科研（仅保留，但不用于解锁模块）
         Technology advancedWeapons = new Technology("ADVANCED_WEAPONS", "先进武器系统",
                 "高级武器理论研究，用于解锁后续科技", TechCategory.WEAPONS_SCIENCE, 300);
         advancedWeapons.addPrerequisite("ENERGY_WEAPONS"); // 改为依赖新增的能量武器
