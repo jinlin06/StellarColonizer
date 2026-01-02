@@ -1,0 +1,48 @@
+@startuml
+class com.stellarcolonizer.model.galaxy.Galaxy {
+- String name
+- HexGrid hexGrid
+- List<StarSystem> starSystems
+- List<Faction> factions
+- Map<StarSystem,List<StarSystem>> starSystemConnections
+- Map<Hex,Set<Hex>> hexConnections
+- String generateGalaxyName()
++ void addStarSystem(StarSystem)
++ void removeStarSystem(StarSystem)
++ StarSystem findStarSystem(String)
++ List<StarSystem> getStarSystemsInRange(Point2D,double)
++ int getColonizedPlanetCount()
++ int getTotalPlanetCount()
+- String createConnectionId(Hex,Hex)
++ void generateStarSystemConnections()
+- String getHexIdentifier(Hex)
++ Map<Hex,Set<Hex>> getHexConnections()
+- double calculateHexDistance(CubeCoord,CubeCoord)
+- void addConnection(StarSystem,StarSystem)
++ boolean areSystemsConnected(StarSystem,StarSystem)
++ Hex getHexForStarSystem(StarSystem)
++ List<StarSystem> getConnectedSystems(StarSystem)
++ String getName()
++ void setName(String)
++ HexGrid getHexGrid()
++ void setHexGrid(HexGrid)
++ List<StarSystem> getStarSystems()
++ List<Faction> getFactions()
++ void addFaction(Faction)
++ void removeFaction(Faction)
+}
+
+
+class com.stellarcolonizer.model.galaxy.Galaxy$Edge {
+~ StarSystem from
+~ StarSystem to
+~ double weight
++ int compareTo(Edge)
+}
+
+
+
+
+com.stellarcolonizer.model.galaxy.Galaxy +.. com.stellarcolonizer.model.galaxy.Galaxy$Edge
+com.stellarcolonizer.model.galaxy.Comparable <|.. com.stellarcolonizer.model.galaxy.Galaxy$Edge
+@enduml

@@ -1,8 +1,7 @@
 // HexMapView.java - 六边形地图视图组件
 package com.stellarcolonizer.view.components;
 
-import com.stellarcolonizer.battle.BattleResult;
-import com.stellarcolonizer.battle.BattleSystem;
+import com.stellarcolonizer.model.battle.BattleSystem;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.galaxy.*;

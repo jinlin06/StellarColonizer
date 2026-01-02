@@ -1,7 +1,7 @@
 package com.stellarcolonizer.view.components;
 
-import com.stellarcolonizer.battle.BattleResult;
-import com.stellarcolonizer.battle.BattleSystem;
+import com.stellarcolonizer.model.battle.BattleResult;
+import com.stellarcolonizer.model.battle.BattleSystem;
 import com.stellarcolonizer.model.colony.BasicBuilding;
 import com.stellarcolonizer.model.colony.Building;
 import com.stellarcolonizer.model.colony.Colony;
@@ -9,7 +9,6 @@ import com.stellarcolonizer.model.colony.ResourceRequirement;
 import com.stellarcolonizer.model.colony.enums.BuildingType;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.fleet.Fleet;
-import com.stellarcolonizer.model.fleet.Ship;
 import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.galaxy.Hex;
