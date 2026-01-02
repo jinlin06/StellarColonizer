@@ -3,7 +3,6 @@ package com.stellarcolonizer.view.components;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.fleet.*;
 import com.stellarcolonizer.model.faction.Faction;
-import com.stellarcolonizer.model.fleet.enums.FleetMission;
 import com.stellarcolonizer.model.fleet.enums.ShipClass;
 import com.stellarcolonizer.model.galaxy.CubeCoord;
 import com.stellarcolonizer.model.galaxy.Hex;
@@ -11,6 +10,8 @@ import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.colony.Colony;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
+import com.stellarcolonizer.battle.BattleResult;
+import com.stellarcolonizer.battle.BattleSystem;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
@@ -46,11 +47,13 @@ public class FleetManagerUI extends BorderPane {
     // 舰队信息面板
     private Label fleetNameLabel;
     private Label fleetLocationLabel;
-    private Label fleetMissionLabel;
     private Label fleetCombatPowerLabel;
     private Label fleetShipCountLabel;
     private Label fleetCrewLabel;
     private Label fleetSupplyLabel;
+    private Label fleetHitPointsLabel;
+    private Label fleetDamageLabel;
+    private Label fleetArmorLabel;
 
     // 舰船信息面板
     private Label shipNameLabel;
@@ -68,6 +71,7 @@ public class FleetManagerUI extends BorderPane {
     private Button repairFleetButton;
     private Button resupplyFleetButton;
     private Button buildShipButton;
+    private Button battleButton;
     private Button scrapShipButton;
     private Button transferShipButton;
 
@@ -114,6 +118,32 @@ public class FleetManagerUI extends BorderPane {
                     if (hexMapView != null) {
                         hexMapView.setSelectedFleet(null);
                     }
+                    
+                    // 确保舰队信息标签不为空
+                    if (fleetHitPointsLabel != null && fleetDamageLabel != null && fleetArmorLabel != null) {
+                        // 如果选中了舰队，更新显示
+                        if (selectedFleet != null) {
+                            // 计算并显示舰队总血量、伤害和装甲
+                            int totalHitPoints = 0;
+                            int totalDamage = 0;
+                            int totalArmor = 0;
+                            
+                            if (selectedFleet.getShips() != null) {
+                                for (Ship ship : selectedFleet.getShips()) {
+                                    totalHitPoints += ship.getHitPoints();
+                                    totalDamage += ship.calculateDamageOutput();
+                                    totalArmor += ship.getCurrentArmor();
+                                }
+                            }
+                            
+                            fleetHitPointsLabel.setText(String.valueOf(totalHitPoints));
+                            fleetDamageLabel.setText(String.valueOf(totalDamage));
+                            fleetArmorLabel.setText(String.valueOf(totalArmor));
+                        } else {
+                            // 清除所有标签
+                            clearFleetDetails();
+                        }
+                    }
                 }
         );
 
@@ -144,35 +174,52 @@ public class FleetManagerUI extends BorderPane {
 
         // 补给舰队
         resupplyFleetButton.setOnAction(e -> resupplySelectedFleet());
+        
+        // 建造舰船
+        buildShipButton.setOnAction(e -> showBuildShipDialog());
 
         // 移除更改任务功能
         // changeMissionButton.setOnAction(e -> changeFleetMission());
-
-        // 建造舰船
-        buildShipButton.setOnAction(e -> showBuildShipDialog());
 
         // 移除拆解舰船和转移舰船功能
         // scrapShipButton.setOnAction(e -> scrapSelectedShip());
         // transferShipButton.setOnAction(e -> showTransferShipDialog());
     }
+    
+    private VBox createFleetOperationsPanel() {
+        VBox panel = new VBox(5);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
 
-    // 移除更改任务功能
-    // private void changeFleetMission() {
-    //     if (selectedFleet == null || missionComboBox.getValue() == null) return;
-    // 
-    //     FleetMission newMission = missionComboBox.getValue();
-    //     selectedFleet.setMission(newMission, null);
-    // 
-    //     showAlert("任务更改", selectedFleet.getName() + " 的任务已更改为 " + newMission.getDisplayName());
-    //     updateFleetDetails();
-    // }
+        Label title = new Label("舰队操作");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        title.setTextFill(Color.WHITE);
 
-    // 任务选择
-    private ComboBox<FleetMission> missionComboBox;
+        moveFleetButton = new Button("移动舰队");
+        splitFleetButton = new Button("拆分舰队");
+        mergeFleetButton = new Button("合并舰队");
+        repairFleetButton = new Button("修理舰队");
+        resupplyFleetButton = new Button("补给舰队");
+        buildShipButton = new Button("建造舰船"); // 添加建造舰船按钮
 
-    // 任务控制
-    private VBox createMissionControlPanel() {
-        // 移除了任务控制面板，因为用户不需要此功能
+        // 设置按钮样式
+        String buttonStyle = "-fx-background-color: #2196F3; -fx-text-fill: white; -fx-min-width: 120;";
+        moveFleetButton.setStyle(buttonStyle);
+        splitFleetButton.setStyle(buttonStyle);
+        mergeFleetButton.setStyle(buttonStyle);
+        repairFleetButton.setStyle(buttonStyle);
+        resupplyFleetButton.setStyle(buttonStyle);
+        buildShipButton.setStyle(buttonStyle); // 设置建造舰船按钮样式
+        
+        // 移除了战斗按钮
+        
+        panel.getChildren().addAll(title, moveFleetButton, splitFleetButton,
+                mergeFleetButton, repairFleetButton, resupplyFleetButton, buildShipButton);
+        return panel;
+    }
+    
+    private VBox createShipOperationsPanel() {
+        // 舰船操作功能已移除
         return new VBox();
     }
 
@@ -269,6 +316,9 @@ public class FleetManagerUI extends BorderPane {
         // 如果有关联的舰队，选择第一个
         if (!fleets.isEmpty()) {
             fleetListView.getSelectionModel().select(0);
+            // 确保选中舰队后更新详细信息
+            selectedFleet = fleets.get(0);
+            updateFleetDetails();
         }
     }
 
@@ -354,21 +404,10 @@ public class FleetManagerUI extends BorderPane {
         TreeItem<String> root = new TreeItem<>("舰队组织");
         root.setExpanded(true);
 
-        // 按任务分类
-        for (FleetMission mission : FleetMission.values()) {
-            TreeItem<String> missionItem = new TreeItem<>(mission.getDisplayName() + " " + mission.getIcon());
-
-            // 添加该任务下的舰队
-            for (Fleet fleet : fleets) {
-                if (fleet.getCurrentMission() == mission) {
-                    TreeItem<String> fleetItem = new TreeItem<>(fleet.getName());
-                    missionItem.getChildren().add(fleetItem);
-                }
-            }
-
-            if (!missionItem.getChildren().isEmpty()) {
-                root.getChildren().add(missionItem);
-            }
+        // 按舰队名称组织
+        for (Fleet fleet : fleets) {
+            TreeItem<String> fleetItem = new TreeItem<>(fleet.getName());
+            root.getChildren().add(fleetItem);
         }
 
         TreeView<String> treeView = new TreeView<>(root);
@@ -417,12 +456,27 @@ public class FleetManagerUI extends BorderPane {
         infoGrid.setVgap(8);
         infoGrid.setPadding(new Insets(10));
 
-        addFleetInfoRow(infoGrid, 0, "名称:", fleetNameLabel = new Label());
-        addFleetInfoRow(infoGrid, 1, "位置:", fleetLocationLabel = new Label());
-        addFleetInfoRow(infoGrid, 2, "战斗力:", fleetCombatPowerLabel = new Label());
-        addFleetInfoRow(infoGrid, 3, "舰船数量:", fleetShipCountLabel = new Label());
-        addFleetInfoRow(infoGrid, 4, "船员总数:", fleetCrewLabel = new Label());
-        addFleetInfoRow(infoGrid, 5, "补给效率:", fleetSupplyLabel = new Label());
+        // 初始化所有舰队信息标签
+        fleetNameLabel = new Label();
+        fleetLocationLabel = new Label();
+        fleetCombatPowerLabel = new Label();
+        fleetShipCountLabel = new Label();
+        fleetCrewLabel = new Label();
+        fleetSupplyLabel = new Label();
+        fleetHitPointsLabel = new Label();
+        fleetDamageLabel = new Label();
+        fleetArmorLabel = new Label();
+        
+        // 添加舰队信息行到GridPane
+        addFleetInfoRow(infoGrid, 0, "名称:", fleetNameLabel);
+        addFleetInfoRow(infoGrid, 1, "位置:", fleetLocationLabel);
+        addFleetInfoRow(infoGrid, 2, "战斗力:", fleetCombatPowerLabel);
+        addFleetInfoRow(infoGrid, 3, "舰船数量:", fleetShipCountLabel);
+        addFleetInfoRow(infoGrid, 4, "船员总数:", fleetCrewLabel);
+        addFleetInfoRow(infoGrid, 5, "补给效率:", fleetSupplyLabel);
+        addFleetInfoRow(infoGrid, 6, "血量:", fleetHitPointsLabel);
+        addFleetInfoRow(infoGrid, 7, "伤害:", fleetDamageLabel);
+        addFleetInfoRow(infoGrid, 8, "装甲:", fleetArmorLabel);
 
         // 舰船组成图表
         VBox compositionBox = createCompositionChart();
@@ -524,41 +578,6 @@ public class FleetManagerUI extends BorderPane {
         container.getChildren().add(row);
     }
 
-    private VBox createFleetOperationsPanel() {
-        VBox panel = new VBox(5);
-        panel.setPadding(new Insets(10));
-        panel.setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
-
-        Label title = new Label("舰队操作");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        title.setTextFill(Color.WHITE);
-
-        moveFleetButton = new Button("移动舰队");
-        splitFleetButton = new Button("拆分舰队");
-        mergeFleetButton = new Button("合并舰队");
-        repairFleetButton = new Button("修理舰队");
-        resupplyFleetButton = new Button("补给舰队");
-        buildShipButton = new Button("建造舰船"); // 添加建造舰船按钮
-
-        // 设置按钮样式
-        String buttonStyle = "-fx-background-color: #2196F3; -fx-text-fill: white; -fx-min-width: 120;";
-        moveFleetButton.setStyle(buttonStyle);
-        splitFleetButton.setStyle(buttonStyle);
-        mergeFleetButton.setStyle(buttonStyle);
-        repairFleetButton.setStyle(buttonStyle);
-        resupplyFleetButton.setStyle(buttonStyle);
-        buildShipButton.setStyle(buttonStyle); // 设置建造舰船按钮样式
-
-        panel.getChildren().addAll(title, moveFleetButton, splitFleetButton,
-                mergeFleetButton, repairFleetButton, resupplyFleetButton, buildShipButton);
-        return panel;
-    }
-
-    private VBox createShipOperationsPanel() {
-        // 舰船操作功能已移除
-        return new VBox();
-    }
-
     private void updateFleetDetails() {
         if (selectedFleet == null) {
             clearFleetDetails();
@@ -585,24 +604,49 @@ public class FleetManagerUI extends BorderPane {
             fleetLocationLabel.setText("未知");
         }
         
-        // fleetMissionLabel.setText(selectedFleet.getCurrentMission().getDisplayName());  // 移除任务显示
         fleetCombatPowerLabel.setText(String.format("%.0f", selectedFleet.getTotalCombatPower()));
         fleetShipCountLabel.setText(String.valueOf(selectedFleet.getShipCount()));
         fleetCrewLabel.setText(String.valueOf(selectedFleet.getTotalCrew()));
         fleetSupplyLabel.setText(String.format("%.1f%%", selectedFleet.getSupplyEfficiency() * 100));
+        
+        // 计算并显示舰队总血量、伤害和装甲
+        int totalHitPoints = 0;
+        int totalDamage = 0;
+        int totalArmor = 0;
+        
+        if (selectedFleet != null && selectedFleet.getShips() != null) {
+            for (Ship ship : selectedFleet.getShips()) {
+                totalHitPoints += ship.getHitPoints();
+                totalDamage += ship.calculateDamageOutput();
+                totalArmor += ship.getCurrentArmor();
+            }
+        }
+        
+        // 确保标签不为空
+        if (fleetHitPointsLabel != null) {
+            fleetHitPointsLabel.setText(String.valueOf(totalHitPoints));
+        }
+        if (fleetDamageLabel != null) {
+            fleetDamageLabel.setText(String.valueOf(totalDamage));
+        }
+        if (fleetArmorLabel != null) {
+            fleetArmorLabel.setText(String.valueOf(totalArmor));
+        }
 
         // 更新舰船组成
         updateCompositionChart();
     }
 
     private void clearFleetDetails() {
-        fleetNameLabel.setText("");
-        fleetLocationLabel.setText("");
-        // fleetMissionLabel.setText("");  // 移除任务显示
-        fleetCombatPowerLabel.setText("");
-        fleetShipCountLabel.setText("");
-        fleetCrewLabel.setText("");
-        fleetSupplyLabel.setText("");
+        if (fleetNameLabel != null) fleetNameLabel.setText("");
+        if (fleetLocationLabel != null) fleetLocationLabel.setText("");
+        if (fleetCombatPowerLabel != null) fleetCombatPowerLabel.setText("");
+        if (fleetShipCountLabel != null) fleetShipCountLabel.setText("");
+        if (fleetCrewLabel != null) fleetCrewLabel.setText("");
+        if (fleetSupplyLabel != null) fleetSupplyLabel.setText("");
+        if (fleetHitPointsLabel != null) fleetHitPointsLabel.setText("");
+        if (fleetDamageLabel != null) fleetDamageLabel.setText("");
+        if (fleetArmorLabel != null) fleetArmorLabel.setText("");
     }
 
     private void updateCompositionChart() {
@@ -743,6 +787,12 @@ public class FleetManagerUI extends BorderPane {
                 updateFleetDetails();
                 updateShipList();
             }
+        } else if (!fleets.isEmpty()) {
+            // 如果没有之前选中的舰队，选择第一个舰队
+            fleetListView.getSelectionModel().select(0);
+            selectedFleet = fleets.get(0);
+            updateFleetDetails();
+            updateShipList();
         }
     }
 
@@ -908,15 +958,7 @@ public class FleetManagerUI extends BorderPane {
         updateFleetDetails();
     }
 
-    private void changeFleetMission() {
-        if (selectedFleet == null || missionComboBox.getValue() == null) return;
 
-        FleetMission newMission = missionComboBox.getValue();
-        selectedFleet.setMission(newMission, null);
-
-        showAlert("任务更改", selectedFleet.getName() + " 的任务已更改为 " + newMission.getDisplayName());
-        updateFleetDetails();
-    }
 
     private void showBuildShipDialog() {
         // 显示舰船设计器
@@ -1236,9 +1278,9 @@ public class FleetManagerUI extends BorderPane {
             } else {
                 HBox container = new HBox(10);
 
-                // 任务图标
-                Label missionIcon = new Label(fleet.getCurrentMission().getIcon());
-                missionIcon.setStyle("-fx-font-size: 16;");
+                // 舰队等级图标
+                Label classIcon = new Label("⚔️"); // 使用默认图标
+                classIcon.setStyle("-fx-font-size: 16;");
 
                 VBox infoBox = new VBox(2);
 
@@ -1254,7 +1296,7 @@ public class FleetManagerUI extends BorderPane {
                 infoLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 11;");
 
                 infoBox.getChildren().addAll(nameLabel, infoLabel);
-                container.getChildren().addAll(missionIcon, infoBox);
+                container.getChildren().addAll(classIcon, infoBox);
                 setGraphic(container);
             }
         }
@@ -1327,6 +1369,107 @@ public class FleetManagerUI extends BorderPane {
                 setGraphic(container);
             }
         }
+    }
+    
+    // 显示敌方舰队选择对话框
+    private void showEnemyFleetSelectionDialog(Fleet selectedFleet, List<Fleet> enemyFleets) {
+        Dialog<Fleet> dialog = new Dialog<>();
+        dialog.setTitle("选择敌方舰队");
+        dialog.setHeaderText("选择要战斗的敌方舰队");
+
+        ListView<Fleet> enemyFleetListView = new ListView<>();
+        enemyFleetListView.getItems().addAll(enemyFleets);
+        enemyFleetListView.setPrefSize(300, 150);
+        enemyFleetListView.setCellFactory(param -> new ListCell<Fleet>() {
+            @Override
+            protected void updateItem(Fleet item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName() + " (舰船: " + item.getShipCount() + 
+                           ", 派系: " + item.getFaction().getName() + ")");
+                }
+            }
+        });
+
+        VBox dialogContent = new VBox(10);
+        dialogContent.getChildren().addAll(
+            new Label("选择一个敌方舰队进行战斗:"),
+            enemyFleetListView
+        );
+
+        dialog.getDialogPane().setContent(dialogContent);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                return enemyFleetListView.getSelectionModel().getSelectedItem();
+            }
+            return null;
+        });
+
+        Optional<Fleet> result = dialog.showAndWait();
+        result.ifPresent(targetFleet -> {
+            // 直接执行战斗并显示结果
+            executeBattle(selectedFleet, targetFleet);
+        });
+    }
+    
+
+    
+    // 计算预期伤害
+    private int calculateExpectedDamage(Fleet attacker, Fleet defender) {
+        int totalDamage = 0;
+        for (Ship ship : attacker.getShips()) {
+            totalDamage += ship.calculateDamageOutput();
+        }
+        return totalDamage;
+    }
+    
+    // 执行战斗
+    private void executeBattle(Fleet attacker, Fleet defender) {
+        // 使用BattleSystem执行实际战斗
+        BattleResult result = BattleSystem.startBattle(attacker, defender);
+        
+        // 创建战斗结果对话框
+        Alert battleResult = new Alert(Alert.AlertType.INFORMATION);
+        battleResult.setTitle("战斗结果");
+        battleResult.setHeaderText("战斗已结束");
+        
+        StringBuilder resultMessage = new StringBuilder();
+        
+        if (result != null) {
+            // 使用BattleResult中的实际战斗数据
+            resultMessage.append("我方舰队造成 ").append((int)result.getDamageToDefender()).append(" 伤害");
+            
+            // 检查是否摧毁
+            if (result.isDefenderDestroyed()) {
+                resultMessage.append("，敌方舰队已被摧毁！\n");
+            } else {
+                resultMessage.append("；敌方舰队造成 ").append((int)result.getDamageToAttacker()).append(" 伤害\n");
+            }
+            
+            // 计算实际剩余血量
+            int attackerHitPoints = attacker.getTotalHitPoints();
+            int defenderHitPoints = defender.getTotalHitPoints();
+            
+            resultMessage.append("我方舰队剩余 ").append(Math.max(0, attackerHitPoints)).append(" 血量，");
+            resultMessage.append("敌方舰队剩余 ").append(Math.max(0, defenderHitPoints)).append(" 血量");
+            
+            // 显示损失
+            for (Map.Entry<Faction, Integer> loss : result.getLosses().entrySet()) {
+                resultMessage.append("\n").append(loss.getKey().getName()).append(" 损失 ").append(loss.getValue()).append(" 艘舰船");
+            }
+        } else {
+            resultMessage.append("战斗无法执行或出现错误");
+        }
+        
+        battleResult.setContentText(resultMessage.toString());
+        battleResult.showAndWait();
+        
+        // 更新UI
+        updateFleetDetails();
     }
 }
 

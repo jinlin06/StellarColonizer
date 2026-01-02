@@ -1,5 +1,7 @@
 package com.stellarcolonizer.view.components;
 
+import com.stellarcolonizer.battle.BattleResult;
+import com.stellarcolonizer.battle.BattleSystem;
 import com.stellarcolonizer.model.colony.BasicBuilding;
 import com.stellarcolonizer.model.colony.Building;
 import com.stellarcolonizer.model.colony.Colony;
@@ -7,6 +9,7 @@ import com.stellarcolonizer.model.colony.ResourceRequirement;
 import com.stellarcolonizer.model.colony.enums.BuildingType;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.fleet.Fleet;
+import com.stellarcolonizer.model.fleet.Ship;
 import com.stellarcolonizer.model.galaxy.Planet;
 import com.stellarcolonizer.model.galaxy.StarSystem;
 import com.stellarcolonizer.model.galaxy.Hex;
@@ -19,10 +22,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class StarSystemInfoView extends VBox {
     
@@ -33,6 +33,7 @@ public class StarSystemInfoView extends VBox {
     private List<Fleet> fleetList; // 添加舰队列表字段
     private FleetSelectionCallback fleetSelectionCallback; // 添加舰队选择回调
     private Hex hex; // 添加六边形引用，用于显示坐标信息
+    private ListView<Fleet> fleetListView; // 添加舰队列表视图作为成员变量
     
     public StarSystemInfoView(StarSystem starSystem, Faction playerFaction) {
         this.starSystem = starSystem;
@@ -171,28 +172,37 @@ public class StarSystemInfoView extends VBox {
             Label fleetHeaderLabel = new Label("舰队信息:");
             fleetHeaderLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
             
-            ListView<Fleet> fleetListView = new ListView<>();
-            fleetListView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
-            fleetListView.getItems().addAll(fleetList);
+            this.fleetListView = new ListView<>(); // 使用成员变量
+            this.fleetListView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+            this.fleetListView.getItems().addAll(fleetList);
             
             // 设置单元格工厂以显示舰队信息
-            fleetListView.setCellFactory(param -> new ListCell<Fleet>() {
+            this.fleetListView.setCellFactory(param -> new ListCell<Fleet>() {
                 @Override
                 protected void updateItem(Fleet item, boolean empty) {
                     super.updateItem(item, empty);
                     if (empty || item == null) {
                         setText(null);
                     } else {
+                        // 只显示血量大于0的舰队
+                        int totalHitPoints = item.getTotalHitPoints();
+                        if (totalHitPoints <= 0) {
+                            setText(null);
+                            return;
+                        }
+                        
+                        // 格式化显示文本（不显示伤害和装甲值）
+                        String hitPointsText = String.valueOf(totalHitPoints);
+                        
                         setText(item.getName() + " (舰船: " + item.getShipCount() + 
-                               ", 战斗力: " + String.format("%.0f", item.getTotalCombatPower()) + 
-                               ", 任务: " + item.getCurrentMission().getDisplayName() + ")");
+                               ", 血量: " + hitPointsText + ")");
                         setStyle("-fx-text-fill: white;");
                     }
                 }
             });
             
             // 添加选择监听器，当选择舰队时高亮显示可移动范围
-            fleetListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            this.fleetListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
                 if (newVal != null && fleetSelectionCallback != null) {
                     // 通过回调通知HexMapView选中舰队
                     // 但注意：现在只有在点击移动按钮时才应该高亮可移动范围
@@ -205,7 +215,7 @@ public class StarSystemInfoView extends VBox {
             Button moveFleetButton = new Button("移动选中舰队");
             moveFleetButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
             moveFleetButton.setOnAction(e -> {
-                Fleet selectedFleet = fleetListView.getSelectionModel().getSelectedItem();
+                Fleet selectedFleet = this.fleetListView.getSelectionModel().getSelectedItem();
                 if (selectedFleet != null) {
                     // 检查舰队是否属于AI，如果是AI舰队，则不允许玩家移动
                     if (selectedFleet.getFaction() != null && selectedFleet.getFaction().isAI()) {
@@ -233,7 +243,12 @@ public class StarSystemInfoView extends VBox {
                 }
             });
             
-            fleetInfoBox.getChildren().addAll(fleetHeaderLabel, fleetListView, moveFleetButton);
+            // 添加战斗按钮，允许玩家与敌方舰队战斗
+            Button battleButton = new Button("与敌方舰队战斗");
+            battleButton.setStyle("-fx-background-color: #FF5722; -fx-text-fill: white;");
+            battleButton.setOnAction(e -> startBattle());
+            
+            fleetInfoBox.getChildren().addAll(fleetHeaderLabel, this.fleetListView, moveFleetButton, battleButton);
         }
         
         // 行星列表和详情区域
@@ -319,6 +334,167 @@ public class StarSystemInfoView extends VBox {
             this.getChildren().add(mainContent);
         }
     }
+    
+    // 添加战斗按钮的私有方法
+    private void startBattle() {
+        Fleet selectedFleet = fleetListView.getSelectionModel().getSelectedItem();
+        if (selectedFleet == null) {
+            showAlert("选择错误", "请先选择一个舰队");
+            return;
+        }
+        
+        // 检查舰队是否属于AI，如果是AI舰队，则不允许玩家移动
+        if (selectedFleet.getFaction() != null && selectedFleet.getFaction().isAI()) {
+            showAlert("无法战斗", "AI舰队由AI自动控制，不能手动战斗");
+            return;
+        }
+        
+        // 检查舰队是否本回合已移动（因为战斗也算作行动）
+        if (selectedFleet.hasMovedThisTurn()) {
+            showAlert("战斗限制", "该舰队本回合已进行过行动，无法再次战斗");
+            return;
+        }
+        
+        // 获取当前六边形
+        Hex currentHex = selectedFleet.getCurrentHex();
+        if (currentHex == null) {
+            showAlert("错误", "舰队没有当前位置");
+            return;
+        }
+        
+        // 获取所有舰队
+        List<Fleet> allFleets = currentHex.getFleets();
+        
+        // 过滤出敌方舰队（不同派系的舰队）
+        List<Fleet> enemyFleets = allFleets.stream()
+            .filter(fleet -> !fleet.getFaction().equals(selectedFleet.getFaction()))
+            .collect(java.util.stream.Collectors.toList());
+        
+        // 如果没有敌方舰队，弹窗提示
+        if (enemyFleets.isEmpty()) {
+            showAlert("无敌人", "本单元格内没有敌方舰队");
+            return;
+        }
+        
+        // 显示敌方舰队选择对话框
+        showEnemyFleetSelectionDialog(selectedFleet, enemyFleets);
+    }
+    
+    // 显示敌方舰队选择对话框
+    private void showEnemyFleetSelectionDialog(Fleet selectedFleet, List<Fleet> enemyFleets) {
+        Dialog<Fleet> dialog = new Dialog<>();
+        dialog.setTitle("选择敌方舰队");
+        dialog.setHeaderText("选择要战斗的敌方舰队");
+
+        ListView<Fleet> enemyFleetListView = new ListView<>();
+        enemyFleetListView.getItems().addAll(enemyFleets);
+        enemyFleetListView.setPrefSize(300, 150);
+        enemyFleetListView.setCellFactory(param -> new ListCell<Fleet>() {
+            @Override
+            protected void updateItem(Fleet item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName() + " (舰船: " + item.getShipCount() + 
+                           ", 派系: " + item.getFaction().getName() + ")");
+                }
+            }
+        });
+
+        VBox dialogContent = new VBox(10);
+        dialogContent.getChildren().addAll(
+            new Label("选择一个敌方舰队进行战斗:"),
+            enemyFleetListView
+        );
+
+        dialog.getDialogPane().setContent(dialogContent);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                return enemyFleetListView.getSelectionModel().getSelectedItem();
+            }
+            return null;
+        });
+
+        Optional<Fleet> result = dialog.showAndWait();
+        result.ifPresent(targetFleet -> {
+            // 这里可以启动战斗逻辑
+            startCombat(selectedFleet, targetFleet);
+        });
+    }
+    
+    // 启动战斗逻辑
+    private void startCombat(Fleet attacker, Fleet defender) {
+        // 使用BattleSystem执行实际战斗
+        BattleResult result = BattleSystem.startBattle(attacker, defender);
+        
+        // 创建战斗结果对话框
+        Alert battleResult = new Alert(Alert.AlertType.INFORMATION);
+        battleResult.setTitle("战斗结果");
+        battleResult.setHeaderText("战斗已结束");
+        
+        StringBuilder resultMessage = new StringBuilder();
+        
+        if (result != null) {
+            // 使用BattleResult中的实际战斗数据
+            resultMessage.append("我方舰队造成 ").append((int)result.getDamageToDefender()).append(" 伤害");
+            
+            // 检查是否摧毁
+            if (result.isDefenderDestroyed()) {
+                resultMessage.append("，敌方舰队已被摧毁！\n");
+            } else {
+                resultMessage.append("；敌方舰队造成 ").append((int)result.getDamageToAttacker()).append(" 伤害\n");
+            }
+            
+            // 计算实际剩余血量
+            int attackerHitPoints = attacker.getTotalHitPoints();
+            int defenderHitPoints = defender.getTotalHitPoints();
+            
+            resultMessage.append("我方舰队剩余 ").append(Math.max(0, attackerHitPoints)).append(" 血量，");
+            resultMessage.append("敌方舰队剩余 ").append(Math.max(0, defenderHitPoints)).append(" 血量");
+            
+
+        } else {
+            resultMessage.append("战斗无法执行或出现错误");
+        }
+        
+        battleResult.setContentText(resultMessage.toString());
+        battleResult.showAndWait();
+        
+        // 更新UI
+        updateFleetDetails();
+    }
+    
+    // 更新舰队详情显示
+    private void updateFleetDetails() {
+        if (fleetListView != null && fleetList != null) {
+            // 刷新舰队列表
+            fleetListView.getItems().clear();
+            // 去重后添加舰队到列表
+            Set<Fleet> uniqueFleets = new HashSet<>(fleetList);
+            fleetListView.getItems().addAll(uniqueFleets);
+            
+            // 如果有选中的舰队，保持选择状态
+            if (fleetListView.getSelectionModel().getSelectedItem() != null) {
+                Fleet selectedFleet = fleetListView.getSelectionModel().getSelectedItem();
+                int index = -1;
+                for (int i = 0; i < fleetListView.getItems().size(); i++) {
+                    if (fleetListView.getItems().get(i).equals(selectedFleet)) {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index >= 0) {
+                    fleetListView.getSelectionModel().select(index);
+                }
+            }
+        }
+    }
+    
+    // 更新舰队详情显示
+
     
     private void setupEventHandlers() {
         if (starSystem != null) {

@@ -240,8 +240,7 @@ public class MainController {
             Fleet fleet = fleetList.get(i);
             info += (i + 1) + ". " + fleet.getName() + "\n" +
                    "   舰船数量: " + fleet.getShipCount() + "\n" +
-                   "   战斗力: " + String.format("%.0f", fleet.getTotalCombatPower()) + "\n" +
-                   "   任务: " + fleet.getCurrentMission().getDisplayName() + "\n\n";
+                   "   战斗力: " + String.format("%.0f", fleet.getTotalCombatPower()) + "\n\n";
         }
         
         showInfoDialog("舰队列表", info);

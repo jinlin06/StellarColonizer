@@ -493,6 +493,10 @@ public class Fleet {
         return ships.stream().mapToInt(Ship::getCurrentCrew).sum();
     }
     
+    public int getTotalHitPoints() {
+        return ships.stream().mapToInt(ship -> (int) ship.getHitPoints()).sum();
+    }
+    
     public void moveTowardsDestination() {
         if (destination.get() != null && !currentHex.get().equals(destination.get())) {
             // 从当前六边形中移除舰队
