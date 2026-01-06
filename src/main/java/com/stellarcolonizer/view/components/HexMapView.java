@@ -375,31 +375,7 @@ public class HexMapView extends Pane {
         Hex clickedHex = hexGrid.getHex(coord);
 
         if (clickedHex != null) {
-            // 检查点击的六边形中是否有敌对舰队可以战斗
-            if (BattleSystem.hasEnemiesInHex(clickedHex)) {
-                // 创建战斗UI并显示
-                BattleUI battleUI = new BattleUI(clickedHex);
-                
-                // 创建一个新的Stage来显示战斗UI
-                javafx.stage.Stage battleStage = new javafx.stage.Stage();
-                battleStage.setTitle("舰队战斗");
-                battleStage.setScene(new javafx.scene.Scene(battleUI, 500, 400));
-                
-                // 设置窗口属性
-                battleStage.initOwner(this.getScene().getWindow());
-                battleStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
-                
-                battleStage.showAndWait();
-                
-                // 重新绘制地图以更新舰队状态
-                draw();
-                
-                // 触发六边形选择事件，以便更新UI
-                HexSelectedEvent hexEvent = new HexSelectedEvent(HexSelectedEvent.HEX_SELECTED, clickedHex);
-                fireEvent(hexEvent);
-                
-                return; // 战斗处理完成后直接返回，不再执行其他逻辑
-            }
+            // 移除了战斗界面功能
             
             // 如果存在选中的舰队并且该舰队有当前位置，则优先处理移动逻辑
             if (selectedFleet != null && selectedFleet.getCurrentHex() != null) {

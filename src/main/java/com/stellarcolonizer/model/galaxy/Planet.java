@@ -205,7 +205,25 @@ public class Planet {
     public void setStarSystem(StarSystem starSystem) { this.starSystem = starSystem; }
 
     public Colony getColony() { return colony; }
-    public void setColony(Colony colony) { this.colony = colony; }
+    public void setColony(Colony colony) { 
+        this.colony = colony; 
+        // 如果设置为null，说明殖民地被摧毁，需要更新星系中该行星所属星系的控制派系
+        if (colony == null && starSystem != null) {
+            starSystem.setControllingFaction(null); // 没有殖民地的行星不再有控制派系
+        }
+    }
+    
+    /**
+     * 摧毁行星上的殖民地
+     */
+    public void destroyColony() {
+        if (colony != null) {
+            // 从派系中移除殖民地（这会触发殖民地的destroyColony逻辑）
+            Colony tempColony = colony;
+            setColony(null);
+            tempColony.getFaction().removeColony(tempColony);
+        }
+    }
 
     public Map<ResourceType, Float> getResources() { return new HashMap<>(resources); }
     public float getResource(ResourceType type) { return resources.getOrDefault(type, 0f); }

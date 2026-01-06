@@ -1,5 +1,6 @@
 package com.stellarcolonizer.view.components;
 
+import com.stellarcolonizer.core.GameEngine;
 import com.stellarcolonizer.model.battle.BattleResult;
 import com.stellarcolonizer.model.battle.BattleSystem;
 import com.stellarcolonizer.model.colony.BasicBuilding;
@@ -242,12 +243,17 @@ public class StarSystemInfoView extends VBox {
                 }
             });
             
+            // 添加攻击殖民地按钮
+            Button attackColonyButton = new Button("攻击殖民地");
+            attackColonyButton.setStyle("-fx-background-color: #FF5722; -fx-text-fill: white;");
+            attackColonyButton.setOnAction(e -> startAttackColony());
+            
             // 添加战斗按钮，允许玩家与敌方舰队战斗
             Button battleButton = new Button("与敌方舰队战斗");
             battleButton.setStyle("-fx-background-color: #FF5722; -fx-text-fill: white;");
             battleButton.setOnAction(e -> startBattle());
             
-            fleetInfoBox.getChildren().addAll(fleetHeaderLabel, this.fleetListView, moveFleetButton, battleButton);
+            fleetInfoBox.getChildren().addAll(fleetHeaderLabel, this.fleetListView, moveFleetButton, attackColonyButton, battleButton);
         }
         
         // 行星列表和详情区域
@@ -466,6 +472,159 @@ public class StarSystemInfoView extends VBox {
         updateFleetDetails();
     }
     
+    // 启动攻击殖民地功能
+    private void startAttackColony() {
+        Fleet selectedFleet = fleetListView.getSelectionModel().getSelectedItem();
+        if (selectedFleet == null) {
+            showAlert("选择错误", "请先选择一个舰队");
+            return;
+        }
+        
+        // 检查舰队是否属于AI，如果是AI舰队，则不允许玩家移动
+        if (selectedFleet.getFaction() != null && selectedFleet.getFaction().isAI()) {
+            showAlert("无法攻击", "AI舰队由AI自动控制，不能手动攻击");
+            return;
+        }
+        
+        // 检查舰队是否本回合已移动（因为攻击也算作行动）
+        if (selectedFleet.hasMovedThisTurn()) {
+            showAlert("攻击限制", "该舰队本回合已进行过行动，无法再次攻击");
+            return;
+        }
+        
+        // 获取当前六边形
+        Hex currentHex = selectedFleet.getCurrentHex();
+        if (currentHex == null) {
+            showAlert("错误", "舰队没有当前位置");
+            return;
+        }
+        
+        // 获取星系中的所有行星
+        List<Planet> planets = starSystem.getPlanets();
+        
+        // 过滤出有殖民地且不属于玩家派系的行星
+        List<Planet> enemyColonies = planets.stream()
+            .filter(planet -> planet.getColony() != null && !planet.getColony().getFaction().equals(selectedFleet.getFaction()))
+            .collect(java.util.stream.Collectors.toList());
+        
+        // 如果没有敌方殖民地，弹窗提示
+        if (enemyColonies.isEmpty()) {
+            showAlert("无敌人", "本星系内没有敌方殖民地");
+            return;
+        }
+        
+        // 显示敌方殖民地选择对话框
+        showEnemyColonySelectionDialog(selectedFleet, enemyColonies);
+    }
+    
+    // 显示敌方殖民地选择对话框
+    private void showEnemyColonySelectionDialog(Fleet selectedFleet, List<Planet> enemyColonies) {
+        Dialog<Planet> dialog = new Dialog<>();
+        dialog.setTitle("选择敌方殖民地");
+        dialog.setHeaderText("选择要攻击的敌方殖民地");
+
+        ListView<Planet> enemyColonyListView = new ListView<>();
+        enemyColonyListView.getItems().addAll(enemyColonies);
+        enemyColonyListView.setPrefSize(300, 150);
+        enemyColonyListView.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+        enemyColonyListView.setCellFactory(param -> new ListCell<Planet>() {
+            @Override
+            protected void updateItem(Planet item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    Colony colony = item.getColony();
+                    if (colony != null) {
+                        setText(colony.getName() + " (行星: " + item.getName() + ", 血量: " + colony.getCurrentHealth() + "/" + colony.getMaxHealth() + ")");
+                    } else {
+                        setText(item.getName() + " (无殖民地)");
+                    }
+                }
+            }
+        });
+
+        VBox dialogContent = new VBox(10);
+        dialogContent.getChildren().addAll(
+            new Label("选择一个敌方殖民地进行攻击:"),
+            enemyColonyListView
+        );
+
+        dialog.getDialogPane().setContent(dialogContent);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                return enemyColonyListView.getSelectionModel().getSelectedItem();
+            }
+            return null;
+        });
+
+        Optional<Planet> result = dialog.showAndWait();
+        result.ifPresent(targetPlanet -> {
+            // 这里可以启动攻击殖民地的战斗逻辑
+            startAttackOnColony(selectedFleet, targetPlanet);
+        });
+    }
+    
+    // 启动攻击殖民地的战斗逻辑
+    private void startAttackOnColony(Fleet attacker, Planet targetPlanet) {
+        if (targetPlanet.getColony() == null) {
+            showAlert("错误", "目标行星上没有殖民地");
+            return;
+        }
+        
+        // 使用BattleSystem执行实际战斗
+        BattleResult result = BattleSystem.startBattle(attacker, targetPlanet.getColony());
+        
+        // 创建战斗结果对话框
+        Alert battleResult = new Alert(Alert.AlertType.INFORMATION);
+        battleResult.setTitle("战斗结果");
+        battleResult.setHeaderText("战斗已结束");
+        
+        StringBuilder resultMessage = new StringBuilder();
+        
+        if (result != null) {
+            // 使用BattleResult中的实际战斗数据
+            resultMessage.append("我方舰队造成 ").append((int)result.getDamageToDefender()).append(" 伤害");
+            
+            // 检查是否摧毁
+            if (result.isDefenderDestroyed()) {
+                resultMessage.append("，敌方殖民地已被摧毁！\n");
+                
+                // 殖民地被摧毁后，将行星设置为未殖民状态
+                Faction defeatedFaction = targetPlanet.getColony().getFaction();
+                targetPlanet.setColony(null); // 移除行星上的殖民地
+                
+                // 检查被击败的派系是否还有其他殖民地
+                if (!defeatedFaction.hasColonies()) { // 使用Faction的hasColonies方法
+                    resultMessage.append("敌方派系 ").append(defeatedFaction.getName()).append(" 已失去所有殖民地，派系消失！\n");
+                    
+                    // 从游戏中移除该派系（包括其所有舰队）
+                    GameEngine.getInstance().removeFaction(defeatedFaction);
+                }
+            } else {
+                // 殖民地未被摧毁，只显示其剩余血量
+                int defenderCurrentHealth = targetPlanet.getColony().getCurrentHealth();
+                int defenderMaxHealth = targetPlanet.getColony().getMaxHealth();
+                resultMessage.append("\n敌方殖民地剩余 ").append(defenderCurrentHealth).append("/").append(defenderMaxHealth).append(" 血量");
+            }
+            
+            // 计算我方舰队剩余血量
+            int attackerHitPoints = attacker.getTotalHitPoints();
+            resultMessage.append("\n我方舰队剩余 ").append(Math.max(0, attackerHitPoints)).append(" 血量");
+            
+        } else {
+            resultMessage.append("战斗无法执行或出现错误");
+        }
+        
+        battleResult.setContentText(resultMessage.toString());
+        battleResult.showAndWait();
+        
+        // 更新UI
+        updateFleetDetails();
+    }
+    
     // 更新舰队详情显示
     private void updateFleetDetails() {
         if (fleetListView != null && fleetList != null) {
@@ -494,7 +653,6 @@ public class StarSystemInfoView extends VBox {
     
     // 更新舰队详情显示
 
-    
     private void setupEventHandlers() {
         if (starSystem != null) {
             planetListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {

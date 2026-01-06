@@ -115,6 +115,24 @@ public class Faction {
         colonies.remove(colony);
         updateStatistics();
         updateBaseResearchPoints(); // 移除殖民地后更新科研产出
+        
+        // 检查派系是否还有其他殖民地
+        if (colonies.isEmpty()) {
+            System.out.println("派系 [" + name + "] 已失去所有殖民地，派系消失!");
+            
+            // 触发派系被消灭的事件
+            onFactionEliminated();
+        }
+    }
+    
+    /**
+     * 当派系被完全消灭时的处理方法
+     */
+    private void onFactionEliminated() {
+        // 这里可以添加派系被消灭时的逻辑
+        // 例如，通知游戏引擎移除该派系
+        // 目前我们只做日志记录，实际的移除操作需要在GameEngine中处理
+        System.out.println("派系 [" + name + "] 已被完全消灭");
     }
 
     public void processTurn() {
@@ -207,6 +225,14 @@ public class Faction {
     public int getTotalPopulation() { return totalPopulation; }
     public float getTotalProduction() { return totalProduction; }
     public float getTotalResearch() { return totalResearch; }
+
+    /**
+     * 检查派系是否还有殖民地
+     * @return 如果派系还有殖民地则返回true，否则返回false
+     */
+    public boolean hasColonies() {
+        return !colonies.isEmpty();
+    }
 
     public AIController getAIController() { return aiController; }
     public void setAIController(AIController aiController) { this.aiController = aiController; }

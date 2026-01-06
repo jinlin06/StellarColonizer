@@ -3,6 +3,7 @@ package com.stellarcolonizer.model.battle;
 import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.fleet.Ship;
 import com.stellarcolonizer.model.faction.Faction;
+import com.stellarcolonizer.model.colony.Colony;
 
 import java.util.*;
 
@@ -197,6 +198,150 @@ public class BattleSystem {
         
         // 执行单回合战斗：发起方攻击，如果目标未被摧毁则反击
         return executeSingleRoundBattle(fleet1, fleet2);
+    }
+    
+    /**
+     * 开始舰队攻击殖民地的战斗
+     * @param attackingFleet 攻击舰队
+     * @param defendingColony 防守殖民地
+     * @return 战斗结果
+     */
+    public static BattleResult startBattle(Fleet attackingFleet, Colony defendingColony) {
+        if (attackingFleet == null || defendingColony == null) {
+            System.out.println("战斗失败: 舰队或殖民地为空");
+            return null; // 无法战斗
+        }
+        
+        if (attackingFleet.getFaction().equals(defendingColony.getFaction())) {
+            System.out.println("战斗失败: 同一派系的舰队和殖民地");
+            return null; // 同一派系，无法战斗
+        }
+        
+        System.out.println("开始战斗: " + attackingFleet.getName() + " vs " + defendingColony.getName());
+        
+        // 执行舰队攻击殖民地的战斗逻辑
+        return executeFleetVsColonyBattle(attackingFleet, defendingColony);
+    }
+    
+    /**
+     * 执行舰队攻击殖民地的战斗
+     * @param attacker 攻击舰队
+     * @param defender 防守殖民地
+     * @return 战斗结果
+     */
+    private static BattleResult executeFleetVsColonyBattle(Fleet attacker, Colony defender) {
+        // 保存原始状态用于计算伤害
+        float originalAttackerHealth = calculateTotalHealth(attacker);
+        int originalDefenderHealth = defender.getCurrentHealth();
+        
+        // 攻击方先攻击殖民地
+        performAttackOnColony(attacker, defender);
+        
+        // 计算攻击方对殖民地造成的伤害
+        float damageToDefender = originalDefenderHealth - defender.getCurrentHealth();
+        
+        // 检查殖民地是否被摧毁
+        boolean defenderDestroyed = defender.getCurrentHealth() <= 0;
+        float damageToAttacker = 0;
+        
+        if (!defenderDestroyed) {
+            // 如果殖民地未被摧毁，进行反击（殖民地的防御力量反击）
+            performColonyCounterAttack(defender, attacker);
+            damageToAttacker = originalAttackerHealth - calculateTotalHealth(attacker);
+        }
+        
+        // 计算损失
+        Map<Faction, Integer> losses = new HashMap<>();
+        losses.put(attacker.getFaction(), (int)(originalAttackerHealth - calculateTotalHealth(attacker))); // 舰船损失
+        losses.put(defender.getFaction(), defender.getMaxHealth() - defender.getCurrentHealth()); // 殖民地生命值损失
+        
+        // 确定胜利者
+        Faction winner = null;
+        if (attacker.getShipCount() > 0 && defender.getCurrentHealth() <= 0) {
+            // 攻击方胜利（殖民地被摧毁）
+            winner = attacker.getFaction();
+        } else if (defender.getCurrentHealth() > 0 && attacker.getShipCount() == 0) {
+            // 防守方胜利（舰队被摧毁）
+            winner = defender.getFaction();
+        }
+        // 如果双方都还有剩余单位，则为平局或继续战斗
+        
+        // 更新舰队状态
+        updateFleetsAfterBattle(Arrays.asList(attacker), null);
+        
+        // 创建战斗结果，包含伤害信息
+        return new BattleResult(winner, 1, losses, damageToDefender, damageToAttacker, defenderDestroyed);
+    }
+    
+    /**
+     * 舰队对殖民地执行攻击
+     * @param attacker 攻击舰队
+     * @param defender 防守殖民地
+     */
+    private static void performAttackOnColony(Fleet attacker, Colony defender) {
+        if (attacker.getShipCount() == 0) {
+            return; // 如果舰队没有舰船，则不进行攻击
+        }
+        
+        // 计算舰队的总伤害
+        float totalAttackDamage = attacker.getTotalCombatPower();
+        
+        // 计算殖民地的防御值（基于防御强度和人口/发展度）
+        float totalDefense = defender.getDefenseStrength(); // 殖民地防御强度
+        
+        // 实际造成的伤害
+        float actualDamage = Math.max(0, (int)(totalAttackDamage - totalDefense));
+        
+        // 对殖民地造成伤害
+        if (actualDamage > 0) {
+            defender.takeDamage((int)actualDamage);
+        }
+    }
+    
+    /**
+     * 殖民地反击攻击舰队
+     * @param defender 防守殖民地
+     * @param attacker 攻击舰队
+     */
+    private static void performColonyCounterAttack(Colony defender, Fleet attacker) {
+        if (defender.getCurrentHealth() <= 0) {
+            return; // 如果殖民地已被摧毁，则不进行反击
+        }
+        
+        // 殖民地的反击能力基于其防御力量和驻军
+        int colonyCounterAttackPower = (int)(defender.getDefenseStrength() * 0.5); // 殖民地反击力量为防御力量的一半
+        
+        // 对舰队造成反击伤害
+        if (colonyCounterAttackPower > 0) {
+            performDamageToShips(attacker, colonyCounterAttackPower);
+        }
+    }
+    
+    /**
+     * 对舰队中的舰船造成伤害
+     * @param fleet 被攻击的舰队
+     * @param damage 总伤害
+     */
+    private static void performDamageToShips(Fleet fleet, float damage) {
+        List<Ship> ships = new ArrayList<>(fleet.getShips());
+        
+        // 按顺序对舰船造成伤害
+        for (Ship ship : ships) {
+            if (damage <= 0) break; // 如果伤害已经分配完，则停止
+            
+            float shipHitPoints = ship.getHitPoints();
+            float damageToApply = Math.min(damage, shipHitPoints);
+            
+            // 减少舰船的生命值
+            ship.hitPointsProperty().set(shipHitPoints - damageToApply);
+            
+            // 如果舰船生命值降至0或以下，则移除该舰船
+            if (ship.getHitPoints() <= 0) {
+                fleet.getShips().remove(ship);
+            }
+            
+            damage -= damageToApply;
+        }
     }
     
     /**

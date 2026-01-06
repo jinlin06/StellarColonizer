@@ -1,4 +1,4 @@
-package com.stellarcolonizer.core;
+  package com.stellarcolonizer.core;
 
 import com.stellarcolonizer.model.colony.Colony;
 import com.stellarcolonizer.model.diplomacy.DiplomaticRelationship;
@@ -6,6 +6,7 @@ import com.stellarcolonizer.model.diplomacy.DiplomacyManager;
 import com.stellarcolonizer.model.economy.ResourceStockpile;
 import com.stellarcolonizer.model.faction.Faction;
 import com.stellarcolonizer.model.faction.PlayerFaction;
+import com.stellarcolonizer.model.fleet.Fleet;
 import com.stellarcolonizer.model.galaxy.enums.ResourceType;
 import com.stellarcolonizer.model.galaxy.*;
 import com.stellarcolonizer.model.galaxy.enums.PlanetType;
@@ -44,12 +45,25 @@ public class GameEngine {
     private VictoryConditionManager victoryConditionManager;
 
     private UniversalResourceMarket universalResourceMarket;
+    
+    // 添加静态实例变量以支持单例模式
+    private static GameEngine instance;
 
     public GameEngine() {
         this.eventBus = EventBus.getInstance();
         this.listeners = new CopyOnWriteArrayList<>();
         this.factions = new ArrayList<>();
         this.universalResourceMarket = null;
+        // 设置静态实例
+        instance = this;
+    }
+    
+    /**
+     * 获取GameEngine的单例实例
+     * @return GameEngine实例
+     */
+    public static GameEngine getInstance() {
+        return instance;
     }
 
     public void initialize() {
@@ -545,7 +559,18 @@ public class GameEngine {
     }
 
     private void checkVictoryConditions() {
-        // 检查每个派系是否满足完全胜利条件
+        // 检查是否只剩下一个派系（征服胜利）- 优先检查征服胜利
+        if (factions.size() == 1) {
+            Faction remainingFaction = factions.get(0);
+            gameState.setVictoryType("征服胜利");
+            gameState.setVictor(remainingFaction);
+            gameState.setGameOver(true);
+            // 发布胜利事件
+            eventBus.publish(new GameEvent("VICTORY", remainingFaction.getName() + " 消灭了所有敌对派系，获得征服胜利！"));
+            return;
+        }
+        
+        // 检查每个派系是否满足完全胜利条件（科技胜利）
         for (Faction faction : factions) {
             // 现在AI派系也可以获胜
 
@@ -554,14 +579,50 @@ public class GameEngine {
 
             // 检查是否满足完全胜利条件
             if (victoryConditionManager.checkCompleteVictory(faction, techTree)) {
-                // 宣布胜利并结束游戏
-                gameState.setVictoryType("完全胜利");
+                // 宣布科技胜利并结束游戏
+                gameState.setVictoryType("科技胜利");
                 gameState.setVictor(faction);
                 gameState.setGameOver(true);
                 // 发布胜利事件
-                eventBus.publish(new GameEvent("VICTORY", faction.getName() + " 通过终极武器科技获得完全胜利！"));
+                eventBus.publish(new GameEvent("VICTORY", faction.getName() + " 通过终极武器科技获得科技胜利！"));
                 return;
             }
+        }
+    }
+
+    /**
+     * 从游戏中移除一个派系
+     * @param faction 要移除的派系
+     */
+    public void removeFaction(Faction faction) {
+        if (faction != null && factions.contains(faction)) {
+            System.out.println("正在从游戏中移除派系: " + faction.getName());
+            
+            // 移除该派系的所有舰队
+            List<Fleet> factionFleets = faction.getFleets();
+            for (Fleet fleet : factionFleets) {
+                Hex currentHex = fleet.getCurrentHex();
+                if (currentHex != null) {
+                    currentHex.removeEntity(fleet); // 从六边形中移除舰队
+                }
+            }
+            
+            // 从星系中移除派系的关联
+            if (galaxy != null) {
+                galaxy.removeFaction(faction);
+            }
+            
+            // 从派系列表中移除
+            factions.remove(faction);
+            
+            // 如果是玩家派系，需要特殊处理
+            if (faction.equals(playerFaction)) {
+                System.out.println("警告：玩家派系被移除，游戏结束！");
+                gameState.setGameOver(true);
+                gameState.setVictor(null); // 没有胜利者
+            }
+            
+            System.out.println("派系 [" + faction.getName() + "] 已从游戏中移除");
         }
     }
 

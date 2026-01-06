@@ -1,5 +1,6 @@
 package com.stellarcolonizer.model.colony;
 
+import com.stellarcolonizer.core.GameEngine;
 import com.stellarcolonizer.model.colony.enums.BuildingType;
 import com.stellarcolonizer.model.colony.enums.GrowthFocus;
 import com.stellarcolonizer.model.colony.enums.PopType;
@@ -43,8 +44,9 @@ public class Colony {
     private final IntegerProperty defenseStrength;
     private final IntegerProperty garrisonSize;
     
-
-
+    // 殖民地生命值相关属性
+    private final IntegerProperty maxHealth;
+    private final IntegerProperty currentHealth;
 
     public Colony(Planet planet, Faction faction) {
         this.planet = planet;
@@ -80,6 +82,11 @@ public class Colony {
 
         this.defenseStrength = new SimpleIntegerProperty(100);
         this.garrisonSize = new SimpleIntegerProperty(1000);
+        
+        // 初始化殖民地生命值，基于发展度和人口
+        int initialHealth = (int) (1000 * development.get() + totalPopulation.get() * 0.5);
+        this.maxHealth = new SimpleIntegerProperty(initialHealth);
+        this.currentHealth = new SimpleIntegerProperty(initialHealth);
 
         this.governor = new SimpleObjectProperty<>(null);
 
@@ -1082,4 +1089,55 @@ public class Colony {
     public ColonyGovernor getGovernor() { return governor.get(); }
     public void setGovernor(ColonyGovernor governor) { this.governor.set(governor); }
     public ObjectProperty<ColonyGovernor> governorProperty() { return governor; }
+    
+    // 殖民地生命值相关方法
+    public int getMaxHealth() { return maxHealth.get(); }
+    public IntegerProperty maxHealthProperty() { return maxHealth; }
+    
+    public int getCurrentHealth() { return currentHealth.get(); }
+    public IntegerProperty currentHealthProperty() { return currentHealth; }
+    
+    public void setCurrentHealth(int health) {
+        int newHealth = Math.max(0, Math.min(health, maxHealth.get()));
+        currentHealth.set(newHealth);
+        
+        // 检查殖民地是否被摧毁
+        if (newHealth <= 0) {
+            destroyColony();
+        }
+    }
+    
+    public float getHealthPercentage() {
+        return maxHealth.get() > 0 ? (float) currentHealth.get() / maxHealth.get() : 0.0f;
+    }
+    
+    public void takeDamage(int damage) {
+        setCurrentHealth(currentHealth.get() - damage);
+    }
+    
+    public void addHealth(int health) {
+        setCurrentHealth(currentHealth.get() + health);
+    }
+    
+    /**
+     * 摧毁殖民地
+     */
+    private void destroyColony() {
+        System.out.println("[" + name.get() + "] 殖民地已被摧毁!");
+        
+        // 从派系中移除该殖民地
+        faction.removeColony(this);
+        
+        // 检查派系是否还有其他殖民地
+        if (faction.getColonies().isEmpty()) {
+            System.out.println("派系 [" + faction.getName() + "] 已失去所有殖民地，派系消失!");
+            
+            // 这里可以添加派系完全消失的处理逻辑
+            // 例如，从游戏引擎中移除该派系
+            GameEngine.getInstance().removeFaction(faction);
+        }
+        
+        // 可能还需要处理该殖民地上的舰队（如果有的话）
+        // 例如，将舰队移除或使其成为海盗舰队
+    }
 }
