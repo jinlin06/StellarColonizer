@@ -988,6 +988,32 @@ public class FleetManagerUI extends BorderPane {
         
         // 设置下拉框样式，与主界面风格保持一致
         colonyCombo.setStyle("-fx-background-color: #1e1e1e; -fx-text-fill: white;");
+        
+        // 设置单元格工厂以显示殖民地名称
+        colonyCombo.setCellFactory(lv -> new ListCell<Colony>() {
+            @Override
+            protected void updateItem(Colony item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName());
+                }
+            }
+        });
+        
+        // 设置按钮单元格工厂以显示殖民地名称
+        colonyCombo.setButtonCell(new ListCell<Colony>() {
+            @Override
+            protected void updateItem(Colony item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("选择殖民地");
+                } else {
+                    setText(item.getName());
+                }
+            }
+        });
 
         // 数量选择
         Spinner<Integer> quantitySpinner = new Spinner<>(1, 100, 1);
