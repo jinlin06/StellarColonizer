@@ -140,6 +140,10 @@ public class Fleet {
                     .average()
                     .orElse(0);
             averageSpeed.set(avgSpeed);
+        } else {
+            // 如果舰队没有舰船了，将战斗力和速度设为0
+            totalCombatPower.set(0);
+            averageSpeed.set(0);
         }
 
         // 计算探测范围

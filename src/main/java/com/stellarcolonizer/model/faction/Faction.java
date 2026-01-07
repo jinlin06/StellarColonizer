@@ -80,9 +80,7 @@ public class Faction {
 
     
     private void syncScienceToTechTree() {
-        // 现在科技值由每回合的科研产出决定，包括派系基础科研产出和科研建筑产出
-        // 不再需要从资源库存中同步科技值
-        // 只需确保科技树被正确初始化
+
     }
 
     public void updateBaseResearchPoints() {

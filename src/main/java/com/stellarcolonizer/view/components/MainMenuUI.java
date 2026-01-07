@@ -53,6 +53,7 @@ public class MainMenuUI extends BorderPane {
             Text titleText = new Text("星际殖民者");
             titleText.setFill(Color.WHITE);
             titleText.setFont(Font.font("Arial", FontWeight.BOLD, 60));
+            titleText.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0, 5, 5);");
             
             // 创建按钮容器
             VBox buttonContainer = new VBox(20);
@@ -86,6 +87,7 @@ public class MainMenuUI extends BorderPane {
             Text titleText = new Text("星际殖民者");
             titleText.setFill(Color.WHITE);
             titleText.setFont(Font.font("Arial", FontWeight.BOLD, 60));
+            titleText.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0, 5, 5);");
             
             // 创建按钮容器
             VBox buttonContainer = new VBox(20);
@@ -115,40 +117,7 @@ public class MainMenuUI extends BorderPane {
         Button button = new Button(text);
         button.setPrefSize(300, 50);
         button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-        button.setStyle(
-            "-fx-background-color: linear-gradient(to bottom, #4a4a4a, #2a2a2a);" +
-            "-fx-text-fill: white;" +
-            "-fx-border-color: #6a6a6a;" +
-            "-fx-border-width: 2;" +
-            "-fx-border-radius: 10;" +
-            "-fx-background-radius: 10;" +
-            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0, 0, 2);"
-        );
-        
-        // 添加鼠标悬停效果
-        button.setOnMouseEntered(e -> {
-            button.setStyle(
-                "-fx-background-color: linear-gradient(to bottom, #5a5a5a, #3a3a3a);" +
-                "-fx-text-fill: white;" +
-                "-fx-border-color: #7a7a7a;" +
-                "-fx-border-width: 2;" +
-                "-fx-border-radius: 10;" +
-                "-fx-background-radius: 10;" +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 8, 0, 0, 3);"
-            );
-        });
-        
-        button.setOnMouseExited(e -> {
-            button.setStyle(
-                "-fx-background-color: linear-gradient(to bottom, #4a4a4a, #2a2a2a);" +
-                "-fx-text-fill: white;" +
-                "-fx-border-color: #6a6a6a;" +
-                "-fx-border-width: 2;" +
-                "-fx-border-radius: 10;" +
-                "-fx-background-radius: 10;" +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0, 0, 2);"
-            );
-        });
+        button.getStyleClass().add("button-primary"); // 使用CSS样式
         
         return button;
     }

@@ -274,10 +274,14 @@ public class FleetManagerUI extends BorderPane {
         // 从游戏引擎加载舰队数据
         fleets.clear();
         
-        // 获取玩家派系的舰队列表
+        // 获取玩家派系的舰队列表，只添加还有舰船的舰队（未被完全摧毁的）
         if (playerFaction != null) {
             List<Fleet> playerFleets = playerFaction.getFleets();
-            fleets.addAll(playerFleets);
+            // 过滤掉被完全摧毁的舰队（没有舰船的舰队）
+            List<Fleet> validFleets = playerFleets.stream()
+                .filter(fleet -> fleet.getShipCount() > 0)
+                .collect(java.util.stream.Collectors.toList());
+            fleets.addAll(validFleets);
         }
     }
 

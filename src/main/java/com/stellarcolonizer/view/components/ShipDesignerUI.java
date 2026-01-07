@@ -814,7 +814,7 @@ public class ShipDesignerUI extends BorderPane {
         
         // 轻型等离子炮 - 需要等离子武器科技解锁
         WeaponModule lightPlasma = createWeaponModule("轻型等离子炮", WeaponType.PLASMA, 100, 1, 150, 2);
-        lightPlasma.setRequiredTechnology("PLASMA_WEAPONS");
+        lightPlasma.setRequiredTechnology("等离子武器");
         availableModules.add(lightPlasma);
         
         WeaponModule basicMissile = createWeaponModule("基础导弹", WeaponType.MISSILE, 150, 0.3f, 180, 2);
@@ -825,18 +825,18 @@ public class ShipDesignerUI extends BorderPane {
         // 武器模块 - 中级（需要科技解锁）
         // 标准磁轨炮 - 需要磁轨炮科技解锁
         WeaponModule standardRailgun = createWeaponModule("标准磁轨炮", WeaponType.RAILGUN, 200, 0.5f, 200, 3);
-        standardRailgun.setRequiredTechnology("RAILGUN_WEAPONS");
+        standardRailgun.setRequiredTechnology("磁轨炮技术");
         availableModules.add(standardRailgun);
 
         // 武器模块 - 高级（需要科技解锁）
         // 先进激光炮 - 需要高级激光科技解锁
         WeaponModule advancedLaser = createWeaponModule("先进激光炮", WeaponType.LASER, 120, 3, 250, 4);
-        advancedLaser.setRequiredTechnology("ADVANCED_LASER");
+        advancedLaser.setRequiredTechnology("高级激光技术");
         availableModules.add(advancedLaser);
         
         // 重型轨道炮 - 需要重型火炮科技解锁
         WeaponModule heavyCannon = createWeaponModule("重型轨道炮", WeaponType.RAILGUN, 350, 0.4f, 350, 5);
-        heavyCannon.setRequiredTechnology("HEAVY_CANNONS");
+        heavyCannon.setRequiredTechnology("重型火炮技术");
         availableModules.add(heavyCannon);
 
         // 防御模块 - 基础级
@@ -847,7 +847,7 @@ public class ShipDesignerUI extends BorderPane {
         
         // 复合装甲 - 需要复合装甲科技解锁
         DefenseModule compositeArmor = createDefenseModule("复合装甲", DefenseType.ARMOR, 100, 100, 1);
-        compositeArmor.setRequiredTechnology("COMPOSITE_ARMOR");
+        compositeArmor.setRequiredTechnology("复合装甲技术");
         availableModules.add(compositeArmor);
         
         DefenseModule basicECM = createDefenseModule("电子对抗系统", DefenseType.ECM, 30, 80, 3);
@@ -858,13 +858,13 @@ public class ShipDesignerUI extends BorderPane {
         // 防御模块 - 中级（需要科技解锁）
         // 点防御系统 - 需要点防御系统科技解锁
         DefenseModule pointDefenseSystem = createDefenseModule("点防御系统", DefenseType.POINT_DEFENSE, 50, 100, 2);
-        pointDefenseSystem.setRequiredTechnology("POINT_DEFENSE");
+        pointDefenseSystem.setRequiredTechnology("点防御系统");
         availableModules.add(pointDefenseSystem);
 
         // 防御模块 - 高级（需要科技解锁）
         // 先进护盾 - 需要高级护盾科技解锁
         DefenseModule advancedShield = createDefenseModule("先进护盾", DefenseType.SHIELD, 400, 250, 3);
-        advancedShield.setRequiredTechnology("ADVANCED_SHIELDS");
+        advancedShield.setRequiredTechnology("高级护盾技术");
         availableModules.add(advancedShield);
 
         // 功能模块 - 基础级
@@ -894,17 +894,17 @@ public class ShipDesignerUI extends BorderPane {
         // 引擎模块 - 中级（需要科技解锁）
         // 标准引擎 - 需要标准引擎科技解锁
         EngineModule standardEngine = createEngineModule("标准引擎", 200, 320, 2);
-        standardEngine.setRequiredTechnology("STANDARD_ENGINES");
+        standardEngine.setRequiredTechnology("标准引擎技术");
         availableModules.add(standardEngine);
         
         // 高性能引擎 - 需要高性能引擎科技解锁
         EngineModule highPerformanceEngine = createEngineModule("高性能引擎", 300, 350, 3);
-        highPerformanceEngine.setRequiredTechnology("HIGH_PERFORMANCE_ENGINES");
+        highPerformanceEngine.setRequiredTechnology("高性能引擎技术");
         availableModules.add(highPerformanceEngine);
 
         // 引擎模块 - 高级（需要科技解锁）
         EngineModule advancedEngine = createEngineModule("先进引擎", 500, 450, 5);
-        advancedEngine.setRequiredTechnology("ADVANCED_ENGINES");
+        advancedEngine.setRequiredTechnology("先进引擎技术");
         availableModules.add(advancedEngine);
 
         // 电力模块 - 基础级
@@ -916,18 +916,18 @@ public class ShipDesignerUI extends BorderPane {
         // 电力模块 - 中级（需要科技解锁）
         // 标准发电机 - 需要标准发电机科技解锁
         PowerModule standardPower = createPowerModule("标准发电机", 1000, 280, 2);
-        standardPower.setRequiredTechnology("STANDARD_POWER");
+        standardPower.setRequiredTechnology("标准发电机技术");
         availableModules.add(standardPower);
 
         // 电力模块 - 高级（需要科技解锁）
         // 性能发电机 - 需要高性能发电机科技解锁
         PowerModule highEfficiencyPower = createPowerModule("性能发电机", 2000, 300, 3);
-        highEfficiencyPower.setRequiredTechnology("HIGH_EFFICIENCY_POWER");
+        highEfficiencyPower.setRequiredTechnology("性能发电机技术");
         availableModules.add(highEfficiencyPower);
 
         // 电力模块 - 顶级（需要科技解锁）
         PowerModule advancedPower = createPowerModule("先进发电机", 5000, 400, 5);
-        advancedPower.setRequiredTechnology("ADVANCED_POWER");
+        advancedPower.setRequiredTechnology("先进发电机技术");
         availableModules.add(advancedPower);
     }
 
@@ -1300,6 +1300,9 @@ n     * @return 已研发的科技集合
         // 更新评分
         combatPowerLabel.setText(String.format("战斗力: %.0f", currentDesign.calculateCombatPower()));
         strategicValueLabel.setText(String.format("战略价值: %.0f", currentDesign.calculateStrategicValue()));
+        
+        // 更新成本面板
+        updateCostPanels();
     }
 
     private void updateCostPanels() {
@@ -1521,16 +1524,12 @@ n     * @return 已研发的科技集合
     private String getDetailedFailureReason(ShipModule module) {
         StringBuilder reason = new StringBuilder();
         reason.append("无法添加模块 \"").append(module.getName()).append("\"：\n\n");
-        
-        // 检查模块是否可以解锁（重构：采用添加前检查的方法）
-        // 仅对科技等级大于1的模块进行解锁检查，科技等级为1的基础模块默认解锁
+
         if (module.getTechLevel() > 1 && !module.canBeUnlocked(researchedTechnologies)) {
             reason.append("• 模块尚未解锁，请先研发相关科技\n");
             reason.append("  所需科技: ").append(module.getRequiredTechnology()).append("\n");
         }
-        
-        // 检查船体空间是否足够（这是主要的修改点）
-        // 计算除船体模块外的所有模块占用的空间
+
         int totalSize = currentDesign.getModules().stream()
                 .filter(m -> !(m instanceof HullModule))  // 船体模块不计入占用空间
                 .mapToInt(ShipModule::getSize)

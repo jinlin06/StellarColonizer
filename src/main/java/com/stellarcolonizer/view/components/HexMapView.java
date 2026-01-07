@@ -738,30 +738,35 @@ public class HexMapView extends Pane {
             double centerX = screenX - 5;
             double centerY = screenY - 5;
             
-            // 为每个舰队绘制图标
-            List<Fleet> fleets = hex.getFleets();
-            for (int i = 0; i < fleets.size(); i++) {
-                Fleet fleet = fleets.get(i);
-                Color fleetColor = getFleetColor(fleet);
-                
-                // 绘制舰队图标（使用圆角矩形表示舰队）
-                gc.setFill(fleetColor);
-                gc.fillRoundRect(centerX + (i * 8), centerY, 6, 6, 2, 2); // 小圆角矩形
-                
-                // 如果是选中的舰队，添加边框高亮
-                if (selectedFleet != null && selectedFleet.equals(fleet)) {
-                    gc.setStroke(Color.WHITE);
-                    gc.setLineWidth(1.5);
-                    gc.strokeRoundRect(centerX + (i * 8), centerY, 6, 6, 2, 2);
-                }
-            }
+            // 为每个舰队绘制图标 - 过滤掉被完全摧毁的舰队
+            List<Fleet> fleets = hex.getFleets().stream()
+                .filter(fleet -> fleet.getShipCount() > 0) // 只绘制还有舰船的舰队
+                .collect(java.util.stream.Collectors.toList());
             
-            // 如果缩放足够大，显示舰队数量
-            if (scale > 1.0 && fleets.size() > 1) {
-                gc.setFill(Color.WHITE);
-                gc.setFont(Font.font(8));
-                String fleetCount = String.valueOf(fleets.size());
-                gc.fillText(fleetCount, screenX - 3, screenY + 3);
+            if (!fleets.isEmpty()) {
+                for (int i = 0; i < fleets.size(); i++) {
+                    Fleet fleet = fleets.get(i);
+                    Color fleetColor = getFleetColor(fleet);
+                    
+                    // 绘制舰队图标（使用圆角矩形表示舰队）
+                    gc.setFill(fleetColor);
+                    gc.fillRoundRect(centerX + (i * 8), centerY, 6, 6, 2, 2); // 小圆角矩形
+                    
+                    // 如果是选中的舰队，添加边框高亮
+                    if (selectedFleet != null && selectedFleet.equals(fleet)) {
+                        gc.setStroke(Color.WHITE);
+                        gc.setLineWidth(1.5);
+                        gc.strokeRoundRect(centerX + (i * 8), centerY, 6, 6, 2, 2);
+                    }
+                }
+                
+                // 如果缩放足够大，显示舰队数量
+                if (scale > 1.0 && fleets.size() > 1) {
+                    gc.setFill(Color.WHITE);
+                    gc.setFont(Font.font(8));
+                    String fleetCount = String.valueOf(fleets.size());
+                    gc.fillText(fleetCount, screenX - 3, screenY + 3);
+                }
             }
         }
 

@@ -628,11 +628,14 @@ public class StarSystemInfoView extends VBox {
     // 更新舰队详情显示
     private void updateFleetDetails() {
         if (fleetListView != null && fleetList != null) {
-            // 刷新舰队列表
+            // 刷新舰队列表 - 只添加还有舰船的舰队（未被完全摧毁的）
             fleetListView.getItems().clear();
-            // 去重后添加舰队到列表
+            // 去重后添加舰队到列表，过滤掉被完全摧毁的舰队
             Set<Fleet> uniqueFleets = new HashSet<>(fleetList);
-            fleetListView.getItems().addAll(uniqueFleets);
+            List<Fleet> validFleets = uniqueFleets.stream()
+                .filter(fleet -> fleet.getShipCount() > 0) // 只添加还有舰船的舰队
+                .collect(java.util.stream.Collectors.toList());
+            fleetListView.getItems().addAll(validFleets);
             
             // 如果有选中的舰队，保持选择状态
             if (fleetListView.getSelectionModel().getSelectedItem() != null) {
@@ -646,6 +649,9 @@ public class StarSystemInfoView extends VBox {
                 }
                 if (index >= 0) {
                     fleetListView.getSelectionModel().select(index);
+                } else {
+                    // 如果选中的舰队已被摧毁，清除选择
+                    fleetListView.getSelectionModel().clearSelection();
                 }
             }
         }
@@ -1038,9 +1044,12 @@ public class StarSystemInfoView extends VBox {
         populationSpinner.setPrefWidth(150);
         
         Label populationLabel = new Label("迁移人口数量:");
+        populationLabel.getStyleClass().add("info-panel");
         
         dialogContent2.getChildren().addAll(costLabel, sourceColonyLabel, descriptionLabel2, populationLabel, populationSpinner);
+        dialogContent2.getStyleClass().add("content-panel");
         transferDialog.getDialogPane().setContent(dialogContent2);
+        transferDialog.getDialogPane().getStyleClass().add("dialog-pane");
         
         ButtonType confirmButtonType2 = new ButtonType("确认", ButtonBar.ButtonData.OK_DONE);
         transferDialog.getDialogPane().getButtonTypes().addAll(confirmButtonType2, ButtonType.CANCEL);
@@ -1159,16 +1168,17 @@ public class StarSystemInfoView extends VBox {
         
         VBox root = new VBox(10);
         root.setPadding(new Insets(10));
-        root.setStyle("-fx-background-color: #2b2b2b;");
+        root.getStyleClass().add("content-panel");
         
         // 当前建筑列表
         Label buildingsLabel = new Label("已建造建筑:");
         buildingsLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: white;");
+        buildingsLabel.getStyleClass().add("title-panel");
         
         ListView<Building> buildingsList = new ListView<>();
         buildingsList.getItems().addAll(colony.getBuildings());
         buildingsList.setPrefHeight(150);
-        buildingsList.setStyle("-fx-background-color: #1e1e1e; -fx-control-inner-background: #1e1e1e;");
+        buildingsList.getStyleClass().add("list-view");
         buildingsList.setCellFactory(param -> new ListCell<Building>() {
             @Override
             protected void updateItem(Building item, boolean empty) {
@@ -1184,12 +1194,14 @@ public class StarSystemInfoView extends VBox {
         
         // 建造新建筑按钮
         Button buildNewButton = new Button("建造新建筑");
-        buildNewButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
+        buildNewButton.getStyleClass().add("button-primary");
         buildNewButton.setOnAction(e -> showBuildNewBuildingDialog(colony, buildingStage));
         
         root.getChildren().addAll(buildingsLabel, buildingsList, buildNewButton);
+        root.getStyleClass().add("content-panel");
         
         Scene scene = new Scene(root, 400, 300);
+        scene.getStylesheets().add(getClass().getResource("/css/main.css").toExternalForm());
         buildingStage.setScene(scene);
         buildingStage.show();
     }
@@ -1199,6 +1211,7 @@ public class StarSystemInfoView extends VBox {
         Dialog<BuildingType> dialog = new Dialog<>();
         dialog.setTitle("选择建筑类型");
         dialog.setHeaderText("选择要建造的建筑类型");
+        dialog.getDialogPane().getStyleClass().add("dialog-pane");
         
         // 设置对话框按钮
         ButtonType buildButtonType = new ButtonType("建造", ButtonBar.ButtonData.OK_DONE);
@@ -1208,6 +1221,7 @@ public class StarSystemInfoView extends VBox {
         ComboBox<BuildingType> buildingTypeCombo = new ComboBox<>();
         buildingTypeCombo.getItems().addAll(BuildingType.values());
         buildingTypeCombo.setPromptText("选择建筑类型");
+        buildingTypeCombo.getStyleClass().add("combo-box-base");
         // 设置显示建筑类型的中文名称
         buildingTypeCombo.setCellFactory(lv -> new ListCell<BuildingType>() {
             @Override
@@ -1234,8 +1248,9 @@ public class StarSystemInfoView extends VBox {
         
         VBox content = new VBox(10);
         content.getChildren().add(buildingTypeCombo);
-        
+        content.getStyleClass().add("content-panel");
         dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getStyleClass().add("dialog-pane");
         
         // 转换结果
         dialog.setResultConverter(dialogButton -> {
@@ -1294,6 +1309,7 @@ public class StarSystemInfoView extends VBox {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        alert.getDialogPane().getStyleClass().add("dialog-pane");
         
         // 设置窗口图标
         try {

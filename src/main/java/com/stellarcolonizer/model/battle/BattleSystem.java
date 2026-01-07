@@ -174,6 +174,16 @@ public class BattleSystem {
             
             // 更新舰队统计 - 使用公共方法替代私有方法
             fleet.updateFleetStats();
+            
+            // 检查舰队是否被完全摧毁（没有舰船了）
+            if (fleet.getShipCount() == 0) {
+                // 如果舰队被完全摧毁，从当前六边形中移除
+                if (fleet.getCurrentHex() != null) {
+                    fleet.getCurrentHex().removeEntity(fleet);
+                    // 设置当前六边形为null，表示舰队已被摧毁
+                    fleet.setCurrentHex(null);
+                }
+            }
         }
     }
     

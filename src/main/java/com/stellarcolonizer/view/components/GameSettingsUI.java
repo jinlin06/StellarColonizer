@@ -30,6 +30,7 @@ public class GameSettingsUI extends VBox {
         // AI数量选择器
         titleLabel = new Label("游戏设置");
         titleLabel.setFont(Font.font("System", FontWeight.BOLD, 24));
+        titleLabel.getStyleClass().add("title-panel");
         
         SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 8, 1); // 设置步长为1
         
@@ -55,12 +56,13 @@ public class GameSettingsUI extends VBox {
         
         // 设置按钮样式
         startGameButton.getStyleClass().add("button-primary");
-        backButton.getStyleClass().add("button-secondary");
+        backButton.getStyleClass().add("button");
     }
     
     private void layoutComponents() {
         this.setSpacing(15);
         this.setPadding(new Insets(20));
+        this.getStyleClass().add("content-panel");
         
         // 清除现有组件
         this.getChildren().clear();
@@ -91,6 +93,7 @@ public class GameSettingsUI extends VBox {
         ScrollPane scrollPane = new ScrollPane(aiNamesContainer);
         scrollPane.setFitToWidth(true);
         scrollPane.setPrefHeight(300);
+        scrollPane.getStyleClass().add("content-panel");
         this.getChildren().add(scrollPane);
         
         // 按钮区域

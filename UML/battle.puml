@@ -1,0 +1,41 @@
+@startuml
+class com.stellarcolonizer.model.battle.BattleSystem {
++ {static} boolean hasEnemiesInHex(com.stellarcolonizer.model.galaxy.Hex)
++ {static} BattleResult startBattle(com.stellarcolonizer.model.galaxy.Hex)
+- {static} BattleResult simulateBattle(List<Ship>,Map<Faction,List<Fleet>>)
+- {static} boolean hasMultipleFactions(List<Ship>)
+- {static} Ship selectTarget(Ship,List<Ship>)
+- {static} Faction getWinningFaction(List<Ship>)
+- {static} Map<Faction,Integer> calculateLosses(List<Ship>,List<Ship>)
+- {static} void updateFleetsAfterBattle(List<Fleet>,BattleResult)
++ {static} BattleResult startBattle(Fleet,Fleet)
++ {static} BattleResult startBattle(Fleet,Colony)
+- {static} BattleResult executeFleetVsColonyBattle(Fleet,Colony)
+- {static} void performAttackOnColony(Fleet,Colony)
+- {static} void performColonyCounterAttack(Colony,Fleet)
+- {static} void performDamageToShips(Fleet,float)
+- {static} BattleResult executeSingleRoundBattle(Fleet,Fleet)
+- {static} float calculateTotalHealth(Fleet)
+- {static} void performAttack(Fleet,Fleet)
+- {static} void distributeDamage(Fleet,float)
+- {static} Map<Faction,Integer> calculateLosses(List<Ship>,List<Ship>,Faction,Faction)
+}
+
+class com.stellarcolonizer.model.battle.BattleResult {
+- Faction winner
+- int rounds
+- Map<Faction,Integer> losses
+- float damageToDefender
+- float damageToAttacker
+- boolean defenderDestroyed
++ Faction getWinner()
++ int getRounds()
++ Map<Faction,Integer> getLosses()
++ float getDamageToDefender()
++ float getDamageToAttacker()
++ boolean isDefenderDestroyed()
++ String getBattleSummary()
+}
+
+
+@enduml

@@ -6,23 +6,79 @@
 
 /* 按钮样式 */
 .button {
-    -fx-background-color: #3c3c3c;
+    -fx-background-color: linear-gradient(to bottom, #4a4a4a, #2a2a2a);
     -fx-text-fill: white;
-    -fx-background-radius: 5;
-    -fx-padding: 8 15 8 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #6a6a6a;
+    -fx-border-width: 1;
+    -fx-padding: 10 15 10 15;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 5, 0, 0, 2);
+    -fx-font-size: 14px;
 }
 
 .button:hover {
-    -fx-background-color: #4c4c4c;
+    -fx-background-color: linear-gradient(to bottom, #5a5a5a, #3a3a3a);
+    -fx-border-color: #7a7a7a;
 }
 
 .button:pressed {
-    -fx-background-color: #2c2c2c;
+    -fx-background-color: linear-gradient(to bottom, #3a3a3a, #1a1a1a);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 3, 0, 0, 1);
+}
+
+/* 主要按钮样式 */
+.button-primary {
+    -fx-background-color: linear-gradient(to bottom, #2196F3, #0d8aee);
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #0d7ae0;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(33, 150, 243, 0.4), 8, 0, 0, 2);
+}
+
+.button-primary:hover {
+    -fx-background-color: linear-gradient(to bottom, #31a6ff, #1d9aff);
+    -fx-effect: dropshadow(gaussian, rgba(33, 150, 243, 0.6), 10, 0, 0, 3);
+}
+
+/* 危险按钮样式 */
+.button-danger {
+    -fx-background-color: linear-gradient(to bottom, #f44336, #e53935);
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #d32f2f;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(244, 67, 54, 0.4), 8, 0, 0, 2);
+}
+
+.button-danger:hover {
+    -fx-background-color: linear-gradient(to bottom, #ff5722, #ff6e40);
+    -fx-effect: dropshadow(gaussian, rgba(244, 67, 54, 0.6), 10, 0, 0, 3);
+}
+
+/* 成功按钮样式 */
+.button-success {
+    -fx-background-color: linear-gradient(to bottom, #4CAF50, #43A047);
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #2E7D32;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.4), 8, 0, 0, 2);
+}
+
+.button-success:hover {
+    -fx-background-color: linear-gradient(to bottom, #66BB6A, #5E8D4B);
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.6), 10, 0, 0, 3);
 }
 
 /* 菜单栏 */
 .menu-bar {
     -fx-background-color: #1e1e1e;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 8, 0, 0, 2);
 }
 
 .menu {
@@ -41,15 +97,20 @@
 /* 滚动条 */
 .scroll-bar:vertical {
     -fx-background-color: #2b2b2b;
+    -fx-background-radius: 5;
 }
 
 .scroll-bar:vertical .thumb {
-    -fx-background-color: #555555;
+    -fx-background-color: linear-gradient(to right, #555555, #666666);
     -fx-background-radius: 5;
 }
 
 .scroll-bar:vertical .thumb:hover {
-    -fx-background-color: #666666;
+    -fx-background-color: linear-gradient(to right, #666666, #777777);
+}
+
+.scroll-bar:vertical .thumb:pressed {
+    -fx-background-color: #444444;
 }
 
 /* 文本区域 */
@@ -57,6 +118,10 @@
     -fx-background-color: #1e1e1e;
     -fx-text-fill: white;
     -fx-highlight-fill: #0096c9;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
 }
 
 .text-area .content {
@@ -77,6 +142,8 @@
 /* 对话框 */
 .dialog-pane {
     -fx-background-color: #2b2b2b;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 20, 0, 5, 5);
 }
 
 .dialog-pane .label {
@@ -84,37 +151,41 @@
 }
 
 .dialog-pane:header .header-panel {
-    -fx-background-color: #1e1e1e;
+    -fx-background-color: linear-gradient(to bottom, #3c3c3c, #2c2c2c);
+    -fx-background-radius: 10 10 0 0;
 }
 
 .dialog-pane:header .header-panel .label {
-    -fx-font-size: 16;
+    -fx-font-size: 18;
     -fx-font-weight: bold;
+    -fx-text-fill: white;
 }
 
 /* 信息对话框 */
 .info-dialog {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #cccccc;
-    -fx-border-width: 1px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 2, 2);
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555555;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 20, 0, 5, 5);
 }
 
 .info-dialog .title-label {
-    -fx-font-size: 16px;
+    -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #333333;
+    -fx-text-fill: white;
 }
 
 .info-dialog .content-label {
     -fx-font-size: 14px;
-    -fx-text-fill: #333333;
+    -fx-text-fill: #e0e0e0;
 }
 
 .info-dialog .scroll-pane {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #dddddd;
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #444444;
     -fx-border-width: 1px;
+    -fx-border-radius: 5;
     -fx-padding: 15px;
     -fx-background-insets: 0;
     -fx-border-insets: 0;
@@ -124,19 +195,27 @@
 .table-view {
     -fx-background-color: #2b2b2b;
     -fx-text-fill: white;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
 }
 
 .table-view .column-header {
-    -fx-background-color: #1e1e1e;
+    -fx-background-color: linear-gradient(to bottom, #3c3c3c, #2c2c2c);
+    -fx-border-color: #444444;
+    -fx-border-width: 0 0 1 0;
 }
 
 .table-view .column-header .label {
     -fx-text-fill: white;
+    -fx-font-weight: bold;
 }
 
 .table-row-cell {
     -fx-background-color: #2b2b2b;
     -fx-text-fill: white;
+    -fx-border-color: transparent;
 }
 
 .table-row-cell:odd {
@@ -145,35 +224,231 @@
 
 .table-row-cell:selected {
     -fx-background-color: #0096c9;
+    -fx-text-fill: white;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #444444;
 }
 
 /* 树视图 */
 .tree-view {
     -fx-background-color: #2b2b2b;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
 }
 
 .tree-cell {
     -fx-text-fill: white;
+    -fx-background-color: transparent;
 }
 
 .tree-cell:selected {
     -fx-background-color: #0096c9;
+    -fx-text-fill: white;
+}
+
+.tree-cell:hover {
+    -fx-background-color: #444444;
 }
 
 /* 选项卡 */
 .tab-pane {
-    -fx-background-color: #2b2b2b;
+    -fx-background-color: transparent;
 }
 
 .tab {
-    -fx-background-color: #3c3c3c;
+    -fx-background-color: linear-gradient(to bottom, #3c3c3c, #2c2c2c);
     -fx-text-fill: white;
+    -fx-background-radius: 8 8 0 0;
+    -fx-border-color: #555555;
+    -fx-border-width: 1 1 0 1;
 }
 
 .tab:selected {
-    -fx-background-color: #1e1e1e;
+    -fx-background-color: linear-gradient(to bottom, #2b2b2b, #1e1e1e);
+    -fx-border-color: #555555;
+    -fx-border-width: 1 1 0 1;
 }
 
 .tab-pane .tab-header-area .tab-header-background {
     -fx-background-color: #2b2b2b;
+}
+
+/* 列表视图 */
+.list-view {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-control-inner-background: #1e1e1e;
+}
+
+.list-cell {
+    -fx-background-color: #2b2b2b;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.list-cell:selected {
+    -fx-background-color: #0096c9;
+    -fx-text-fill: white;
+}
+
+.list-cell:hover {
+    -fx-background-color: #444444;
+}
+
+/* 组合框 */
+.combo-box-base {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.combo-box-base .arrow-button {
+    -fx-background-color: #3c3c3c;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #2b2b2b;
+}
+
+.combo-box-popup .list-view .list-cell {
+    -fx-background-color: #2b2b2b;
+    -fx-text-fill: white;
+}
+
+.combo-box-popup .list-view .list-cell:hover {
+    -fx-background-color: #444444;
+}
+
+.combo-box-popup .list-view .list-cell:selected {
+    -fx-background-color: #0096c9;
+}
+
+/* 进度条 */
+.progress-bar {
+    -fx-background-color: #333333;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.progress-bar .bar {
+    -fx-background-color: linear-gradient(to right, #4CAF50, #8BC34A);
+    -fx-background-radius: 3;
+    -fx-border-radius: 3;
+    -fx-padding: 3;
+}
+
+/* 滑块 */
+.slider .thumb {
+    -fx-background-color: #2196F3;
+    -fx-background-radius: 8;
+}
+
+.slider .track {
+    -fx-background-color: #333333;
+    -fx-border-color: #555555;
+    -fx-border-radius: 2;
+    -fx-background-radius: 2;
+}
+
+/* 复选框 */
+.check-box .box {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555555;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: #2196F3;
+}
+
+/* 单选框 */
+.radio-button .radio {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555555;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.radio-button:selected .dot {
+    -fx-background-color: #2196F3;
+}
+
+/* 弹窗容器 */
+.popup {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555555;
+    -fx-border-width: 2px;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 15, 0, 5, 5);
+}
+
+/* 窗口背景 */
+.window {
+    -fx-background-color: #1e1e1e;
+}
+
+/* 标题面板 */
+.title-panel {
+    -fx-background-color: linear-gradient(to bottom, #3c3c3c, #2c2c2c);
+    -fx-background-radius: 10;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 8, 0, 2, 2);
+}
+
+.title-panel .label {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+/* 内容面板 */
+.content-panel {
+    -fx-background-color: #2b2b2b;
+    -fx-background-radius: 8;
+    -fx-padding: 15;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+/* 信息面板 */
+.info-panel {
+    -fx-background-color: linear-gradient(to bottom, #3c3c3c, #2c2c2c);
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.info-panel .label {
+    -fx-text-fill: white;
+}
+
+/* 操作面板 */
+.operation-panel {
+    -fx-background-color: linear-gradient(to bottom, #333333, #222222);
+    -fx-background-radius: 8;
+    -fx-padding: 15;
+    -fx-border-color: #555555;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.operation-panel .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
 }
