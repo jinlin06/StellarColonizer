@@ -91,6 +91,8 @@ class com.stellarcolonizer.model.colony.Colony {
 - IntegerProperty crimeRate
 - IntegerProperty defenseStrength
 - IntegerProperty garrisonSize
+- IntegerProperty maxHealth
+- IntegerProperty currentHealth
 - void initializePopulation()
 - void initializeProductionRates()
 - void initializeBaseProductionRates()
@@ -170,6 +172,15 @@ class com.stellarcolonizer.model.colony.Colony {
 + ColonyGovernor getGovernor()
 + void setGovernor(ColonyGovernor)
 + ObjectProperty<ColonyGovernor> governorProperty()
++ int getMaxHealth()
++ IntegerProperty maxHealthProperty()
++ int getCurrentHealth()
++ IntegerProperty currentHealthProperty()
++ void setCurrentHealth(int)
++ float getHealthPercentage()
++ void takeDamage(int)
++ void addHealth(int)
+- void destroyColony()
 }
 
 

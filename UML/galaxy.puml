@@ -1,4 +1,209 @@
 @startuml
+class com.stellarcolonizer.model.galaxy.CubeCoord {
++ int q
++ int r
++ int s
++ CubeCoord add(CubeCoord)
++ CubeCoord subtract(CubeCoord)
++ double distance(CubeCoord)
++ double length()
++ boolean equals(Object)
++ int hashCode()
++ String toString()
+}
+
+
+enum com.stellarcolonizer.model.galaxy.enums.HexType {
++  EMPTY
++  NEBULA
++  ASTEROID_FIELD
++  STAR_SYSTEM
++  WORMHOLE
++  DARK_NEBULA
+- String displayName
+- String color
++ String getDisplayName()
++ String getColor()
+}
+
+
+enum com.stellarcolonizer.model.galaxy.enums.StarType {
++  O
++  B
++  A
++  F
++  G
++  K
++  M
+- String displayName
+- String color
+- float resourceMultiplier
+- float habitabilityMultiplier
++ String getDisplayName()
++ String getColor()
++ float getResourceMultiplier()
++ float getHabitabilityMultiplier()
+}
+
+
+class com.stellarcolonizer.model.galaxy.Planet {
+- String name
+- PlanetType type
+- int size
+- float orbitDistance
+- StarSystem starSystem
+- Colony colony
+- Map<ResourceType,Float> resources
+- List<PlanetTrait> traits
+- int orbitIndex
+- float habitabilityModifier
+- void initializeResources()
+- void generateTraits()
++ float getHabitability()
++ void ensureMinimumHabitability(float)
++ float getResourceOutput(ResourceType)
++ boolean canColonize(Faction)
++ Map<ResourceType,Float> calculateColonizationCost()
++ int calculateRequiredPopulation()
++ String getName()
++ void setName(String)
++ PlanetType getType()
++ void setType(PlanetType)
++ int getSize()
++ void setSize(int)
++ float getOrbitDistance()
++ void setOrbitDistance(float)
++ StarSystem getStarSystem()
++ void setStarSystem(StarSystem)
++ Colony getColony()
++ void setColony(Colony)
++ void destroyColony()
++ Map<ResourceType,Float> getResources()
++ float getResource(ResourceType)
++ List<PlanetTrait> getTraits()
++ int getOrbitIndex()
++ void setOrbitIndex(int)
+}
+
+
+class com.stellarcolonizer.model.galaxy.GalaxyGenerator {
+- Random random
+- NameGenerator nameGenerator
++ Galaxy generateGalaxy(int)
+- StarSystem generateStarSystem()
+- Planet generatePlanet(StarSystem,int)
+- StarType getRandomStarType()
+- PlanetType selectPlanetType(StarType,float)
+- float calculateTemperature(StarType,float)
+- void generateNebulas(Galaxy,int)
+- void generateAsteroidFields(Galaxy,int)
+- int calculateGridRadius(int)
+}
+
+
+class com.stellarcolonizer.model.galaxy.HexGrid {
++ {static} CubeCoord[] CUBE_DIRECTIONS
+- Map<CubeCoord,Hex> hexMap
+- int radius
+- double hexSize
+- void generateGrid()
++ Hex getHex(CubeCoord)
++ Hex getHexAt(int,int)
++ List<Hex> getNeighbors(Hex)
++ List<Hex> getHexesInRange(Hex,int)
++ Point2D cubeToPixel(CubeCoord)
++ CubeCoord pixelToCube(double,double)
+- CubeCoord roundCube(double,double,double)
++ List<Hex> getAllHexes()
++ int getRadius()
++ double getHexSize()
+}
+
+
+enum com.stellarcolonizer.model.galaxy.enums.PlanetTrait {
++  STANDARD
++  MINERAL_RICH
++  ENERGY_RICH
++  HABITABLE
++  HOSTILE
++  TIDAL_LOCKED
++  VOLCANIC
++  FERTILE
++  BARREN
++  ASTEROID_BELT
++  RINGED
++  MOON_RICH
+- String displayName
+- float habitabilityMultiplier
+- float resourceMultiplier
+- float generationChance
++ String getDisplayName()
++ float getHabitabilityMultiplier()
++ float getResourceMultiplier(ResourceType)
++ float getGenerationChance()
++ float getColonizationCostMultiplier()
++ boolean isMutuallyExclusiveWith(PlanetTrait)
+}
+
+
+class com.stellarcolonizer.model.galaxy.Hex {
+- CubeCoord coord
+- HexType type
+- StarSystem starSystem
+- List<Fleet> entities
+- float visibility
+- Faction exploredBy
++ boolean hasStarSystem()
++ void addEntity(Fleet)
++ void removeEntity(Fleet)
++ boolean containsFleet(Faction)
++ List<Fleet> getFleets()
++ void updateVisibility(Faction,float)
+- float calculateVisibility(Faction,float)
+- int getDistanceToNearestFriendly(Faction)
++ CubeCoord getCoord()
++ HexType getType()
++ void setType(HexType)
++ StarSystem getStarSystem()
++ void setStarSystem(StarSystem)
++ List<Fleet> getEntities()
++ float getVisibility()
++ void setVisibility(float)
++ Faction getExploredBy()
++ void setExploredBy(Faction)
++ boolean isExplored()
+}
+
+
+enum com.stellarcolonizer.model.galaxy.enums.PlanetType {
++  TERRA
++  DESERT
++  ARID
++  TUNDRA
++  ICE
++  OCEAN
++  JUNGLE
++  LAVA
++  GAS_GIANT
++  BARREN
++  ASTEROID
+- String displayName
+- float habitability
+- float baseMetal
+- float baseEnergy
+- float rareResourceChance
+- boolean colonizable
+- String requiredTech
++ String getDisplayName()
++ float getHabitability()
++ float getBaseMetal()
++ float getBaseEnergy()
++ float getRareResourceChance()
++ boolean isColonizable()
++ String getRequiredTech()
+}
+
+
 class com.stellarcolonizer.model.galaxy.Galaxy {
 - String name
 - HexGrid hexGrid
@@ -38,6 +243,65 @@ class com.stellarcolonizer.model.galaxy.Galaxy$Edge {
 ~ StarSystem to
 ~ double weight
 + int compareTo(Edge)
+}
+
+
+class com.stellarcolonizer.model.galaxy.NameGenerator {
+- Random random
+- {static} String[] STAR_PREFIXES
+- {static} String[] STAR_SUFFIXES
+- {static} String[] CONSTELLATIONS
+- {static} String[] ROMAN_NUMERALS
++ String generateStarSystemName()
++ String generatePlanetName(String)
+}
+
+
+class com.stellarcolonizer.model.galaxy.StarSystem {
+- String name
+- StarType starType
+- List<Planet> planets
+- Point2D position
+- float habitability
+- Faction controllingFaction
++ void addPlanet(Planet)
+- float calculateHabitability()
++ List<Planet> getHabitablePlanets()
++ List<Planet> getColonizablePlanets()
++ boolean hasColony(Faction)
++ String getName()
++ void setName(String)
++ StarType getStarType()
++ void setStarType(StarType)
++ List<Planet> getPlanets()
++ Point2D getPosition()
++ void setPosition(Point2D)
++ float getHabitability()
++ Faction getControllingFaction()
++ void setControllingFaction(Faction)
++ boolean isControlledByFaction()
++ boolean isUncontrolled()
+}
+
+
+enum com.stellarcolonizer.model.galaxy.enums.ResourceType {
++  METAL
++  ENERGY
++  FUEL
++  FOOD
++  SCIENCE
++  MONEY
++  EXOTIC_MATTER
++  NEUTRONIUM
++  CRYSTAL
++  DARK_MATTER
++  ANTI_MATTER
++  LIVING_METAL
+- String displayName
+- String color
++ String getDisplayName()
++ String getColor()
++ {static} ResourceType[] getRareResources()
 }
 
 
