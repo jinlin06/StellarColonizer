@@ -677,98 +677,151 @@ public class Colony {
         System.out.println("[" + name.get() + "] " + message);
     }
 
-
-
-    public boolean canBuild(Building building) {
+    /**
+     * 检查是否可以建造建筑，并返回详细结果
+     */
+    public BuildCheckResult canBuildDetailed(Building building) {
         if (usedBuildingSlots.get() >= maxBuildingSlots.get()) {
-            System.out.println("[" + name.get() + "] 建筑槽位已满: " + usedBuildingSlots.get() + "/" + maxBuildingSlots.get());
-            return false;
+            return new BuildCheckResult(false, "建筑槽位已满: " + usedBuildingSlots.get() + "/" + maxBuildingSlots.get());
         }
 
-        System.out.println("[" + name.get() + "] 检查建筑资源需求: " + building.getName());
+        StringBuilder missingResources = new StringBuilder();
+        boolean hasMissingResources = false;
         for (ResourceRequirement requirement : building.getConstructionRequirements()) {
             float available = faction.getResourceStockpile().getResource(requirement.getResourceType());
-            System.out.println("[" + name.get() + "] 需求: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
             if (available < requirement.getAmount()) {
-                System.out.println("[" + name.get() + "] 资源不足: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
-                return false;
+                if (hasMissingResources) missingResources.append("\n");
+                missingResources.append(requirement.getResourceType().getDisplayName())
+                        .append(": 需要 ").append(requirement.getAmount()).append(", 拥有 ").append(available);
+                hasMissingResources = true;
             }
+        }
+
+        if (hasMissingResources) {
+            return new BuildCheckResult(false, "资源不足:\n" + missingResources.toString());
         }
 
         if (building.getRequiredTechnology() != null &&
                 !faction.hasTechnology(building.getRequiredTechnology())) {
-            System.out.println("[" + name.get() + "] 科技不足: " + building.getRequiredTechnology());
-            return false;
+            return new BuildCheckResult(false, "科技不足: " + building.getRequiredTechnology());
         }
 
-        System.out.println("[" + name.get() + "] 可以建造建筑: " + building.getName());
-        return true;
+        return new BuildCheckResult(true, "可以建造建筑: " + building.getName());
     }
 
-    public boolean build(Building building) {
-        System.out.println("[" + name.get() + "] 开始建造建筑: " + building.getName());
-        if (!canBuild(building)) {
-            System.out.println("[" + name.get() + "] 无法建造建筑: " + building.getName() + ", 条件不满足");
-            return false;
+    /**
+     * 检查是否可以建造建筑
+     */
+    public boolean canBuild(Building building) {
+        return canBuildDetailed(building).canBuild;
+    }
+
+    /**
+     * 建造建筑，并返回详细结果
+     */
+    public BuildResult buildDetailed(Building building) {
+        BuildCheckResult checkResult = canBuildDetailed(building);
+        if (!checkResult.canBuild) {
+            return new BuildResult(false, checkResult.message);
         }
 
-        System.out.println("[" + name.get() + "] 开始消耗资源建造建筑: " + building.getName());
         for (ResourceRequirement requirement : building.getConstructionRequirements()) {
             float before = faction.getResourceStockpile().getResource(requirement.getResourceType());
             boolean success = faction.getResourceStockpile().consumeResource(requirement.getResourceType(), requirement.getAmount());
             float after = faction.getResourceStockpile().getResource(requirement.getResourceType());
-            System.out.println("[" + name.get() + "] 消耗资源: " + requirement.getResourceType().getDisplayName() + ", 消耗前: " + before + ", 消耗后: " + after + ", 消耗量: " + requirement.getAmount() + ", 成功: " + success);
             if (!success) {
-                System.out.println("[" + name.get() + "] 消耗资源失败: " + requirement.getResourceType().getDisplayName());
+                return new BuildResult(false, "消耗资源失败: " + requirement.getResourceType().getDisplayName());
             }
         }
 
         buildings.add(building);
         usedBuildingSlots.set(usedBuildingSlots.get() + 1);
         addColonyLog("完成了建筑: " + building.getName());
-        System.out.println("[" + name.get() + "] 建筑建造完成: " + building.getName());
 
-        return true;
+        return new BuildResult(true, "成功建造 " + building.getName());
+    }
+
+    /**
+     * 建造建筑
+     */
+    public boolean build(Building building) {
+        BuildResult result = buildDetailed(building);
+        return result.success;
+    }
+
+    /**
+     * 建造结果类
+     */
+    public static class BuildResult {
+        public final boolean success;
+        public final String message;
+
+        public BuildResult(boolean success, String message) {
+            this.success = success;
+            this.message = message;
+        }
+    }
+
+    /**
+     * 建造检查结果类
+     */
+    public static class BuildCheckResult {
+        public final boolean canBuild;
+        public final String message;
+
+        public BuildCheckResult(boolean canBuild, String message) {
+            this.canBuild = canBuild;
+            this.message = message;
+        }
     }
 
     public boolean upgradeBuilding(Building building) {
+        BuildResult result = upgradeBuildingDetailed(building);
+        return result.success;
+    }
+
+    /**
+     * 升级建筑，并返回详细结果
+     */
+    public BuildResult upgradeBuildingDetailed(Building building) {
         if (building.getLevel() >= building.getMaxLevel()) {
-            System.out.println("[" + name.get() + "] 建筑已达到最高等级: " + building.getName() + ", 当前等级: " + building.getLevel());
-            return false;
+            return new BuildResult(false, "建筑已达到最高等级: " + building.getName() + ", 当前等级: " + building.getLevel());
         }
 
         BuildingUpgrade upgrade = building.getUpgradeRequirements();
         if (upgrade == null) {
-            System.out.println("[" + name.get() + "] 无法获取升级需求: " + building.getName());
-            return false;
+            return new BuildResult(false, "无法获取升级需求: " + building.getName());
         }
 
-        System.out.println("[" + name.get() + "] 检查升级资源需求: " + building.getName() + " 到等级 " + (building.getLevel() + 1));
+        StringBuilder missingResources = new StringBuilder();
+        boolean hasMissingResources = false;
         for (ResourceRequirement requirement : upgrade.getResourceRequirements()) {
             float available = faction.getResourceStockpile().getResource(requirement.getResourceType());
-            System.out.println("[" + name.get() + "] 升级需求: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
             if (available < requirement.getAmount()) {
-                System.out.println("[" + name.get() + "] 升级资源不足: " + requirement.getResourceType().getDisplayName() + ", 需要: " + requirement.getAmount() + ", 拥有: " + available);
-                return false;
+                if (hasMissingResources) missingResources.append("\n");
+                missingResources.append(requirement.getResourceType().getDisplayName())
+                        .append(": 需要 ").append(requirement.getAmount()).append(", 拥有 ").append(available);
+                hasMissingResources = true;
             }
         }
 
-        System.out.println("[" + name.get() + "] 开始消耗资源升级建筑: " + building.getName());
+        if (hasMissingResources) {
+            return new BuildResult(false, "升级资源不足:\n" + missingResources.toString());
+        }
+
         for (ResourceRequirement requirement : upgrade.getResourceRequirements()) {
             float before = faction.getResourceStockpile().getResource(requirement.getResourceType());
             boolean success = faction.getResourceStockpile().consumeResource(requirement.getResourceType(), requirement.getAmount());
             float after = faction.getResourceStockpile().getResource(requirement.getResourceType());
-            System.out.println("[" + name.get() + "] 消耗升级资源: " + requirement.getResourceType().getDisplayName() + ", 消耗前: " + before + ", 消耗后: " + after + ", 消耗量: " + requirement.getAmount() + ", 成功: " + success);
             if (!success) {
-                System.out.println("[" + name.get() + "] 升级消耗资源失败: " + requirement.getResourceType().getDisplayName());
+                return new BuildResult(false, "升级消耗资源失败: " + requirement.getResourceType().getDisplayName());
             }
         }
 
         building.upgrade();
         addColonyLog("升级了建筑: " + building.getName() + " 到等级 " + building.getLevel());
-        System.out.println("[" + name.get() + "] 建筑升级完成: " + building.getName() + ", 等级: " + building.getLevel());
 
-        return true;
+        return new BuildResult(true, "成功升级 " + building.getName() + " 至等级 " + building.getLevel());
     }
 
     public boolean demolishBuilding(Building building) {

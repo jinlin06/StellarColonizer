@@ -752,10 +752,20 @@ public class ColonyManagerView extends VBox {
                             3
                     );
 
-                    if (selectedColony.build(newBuilding)) {
+                    // 使用新的详细建造方法
+                    Colony.BuildResult result = selectedColony.buildDetailed(newBuilding);
+                    
+                    if (result.success) {
+                        // 显示成功弹窗
+                        showAlert("建造成功", result.message);
                         updateBuildingList();
                         updateColonyDetails();
+                    } else {
+                        // 显示失败弹窗
+                        showAlert("建造失败", result.message);
                     }
+                    
+                    return newBuilding;
                 }
             }
             return null;
@@ -764,13 +774,42 @@ public class ColonyManagerView extends VBox {
         dialog.showAndWait();
     }
 
+    // 显示警告对话框
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+
+        // 设置窗口图标
+        try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(
+                getClass().getResourceAsStream("/images/icon.png"));
+            Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+            stage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.err.println("无法加载窗口图标: " + e.getMessage());
+        }
+
+        alert.showAndWait();
+    }
+    
     private void upgradeSelectedBuilding() {
         if (selectedColony == null || buildingListView.getSelectionModel().isEmpty()) return;
 
         Building selectedBuilding = buildingListView.getSelectionModel().getSelectedItem();
-        if (selectedColony.upgradeBuilding(selectedBuilding)) {
+        
+        // 使用新的详细升级方法
+        Colony.BuildResult result = selectedColony.upgradeBuildingDetailed(selectedBuilding);
+        
+        if (result.success) {
+            // 显示成功弹窗
+            showAlert("升级成功", result.message);
             updateBuildingList();
             updateColonyDetails();
+        } else {
+            // 显示失败弹窗
+            showAlert("升级失败", result.message);
         }
     }
 

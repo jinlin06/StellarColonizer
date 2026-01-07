@@ -1266,26 +1266,19 @@ public class StarSystemInfoView extends VBox {
             String buildingName = getBuildingTypeName(buildingType);
             BasicBuilding building = new BasicBuilding(buildingName, buildingType, 3); // 最大等级3
             
-            // 检查是否可以建造
-            if (colony.canBuild(building)) {
-                // 建造建筑
-                if (colony.build(building)) {
-                    showAlert("建造成功", "成功建造 " + building.getName());
-                    
-                    // 关闭建筑管理窗口并重新打开以刷新列表
-                    parentStage.close();
-                    showBuildingManagement(colony.getPlanet());
-                } else {
-                    showAlert("建造失败", "无法建造选定的建筑");
-                }
+            // 使用新的详细建造方法
+            Colony.BuildResult result = colony.buildDetailed(building);
+            
+            if (result.success) {
+                // 显示成功弹窗
+                showAlert("建造成功", result.message);
+                
+                // 关闭建筑管理窗口并重新打开以刷新列表
+                parentStage.close();
+                showBuildingManagement(colony.getPlanet());
             } else {
-                // 显示缺少的资源
-                StringBuilder missingResources = new StringBuilder("资源不足:\n");
-                for (ResourceRequirement req : building.getConstructionRequirements()) {
-                    missingResources.append(req.getResourceType().getDisplayName())
-                                   .append(": ").append(req.getAmount()).append("\n");
-                }
-                showAlert("资源不足", missingResources.toString());
+                // 显示失败弹窗
+                showAlert("建造失败", result.message);
             }
         });
     }
